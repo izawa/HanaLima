@@ -65,9 +65,12 @@ struct NetworkEndToEndTests {
 }
 
 /// DHCP reservations: a VM's NIC gets the reserved address after the network is reconfigured.
+/// Alpine by default; `HANALIMA_E2E_TEMPLATE=ubuntu-lts` checks a guest that sends a DUID from
+/// systemd-networkd (Alpine's dhcpcd is the other common client).
 @Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["HANALIMA_E2E"] == "1"))
 struct DHCPReservationEndToEndTests {
-    let vm = "hanalima-e2e-dhcp"
+    static let template = ProcessInfo.processInfo.environment["HANALIMA_E2E_TEMPLATE"] ?? "alpine"
+    let vm = template == "alpine" ? "hanalima-e2e-dhcp" : "hanalima-e2e-dhcp-\(template.prefix { $0 != "-" })"
     let agents = LaunchAgentManager()
     let client = LimaClient(limactlURL: LimaClient.locate()!)
 
@@ -90,7 +93,7 @@ struct DHCPReservationEndToEndTests {
         try save(network)
 
         _ = try? await drain(client.delete(vm, force: true))
-        _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1,
+        _ = try await drain(client.create(CreateOptions(name: vm, template: Self.template, cpus: 2, memoryGiB: 2,
                                                         diskGiB: 10, vmType: .vz,
                                                         setExpressions: [#".networks = [{"socket":"\#(network.socketPath)"}]"#])))
         _ = try await drain(client.start(vm))
