@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en" class="lang-en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HanaLima — Lima VMs, VMware-style. Bridges without sudo.</title>
+<meta name="description" content="HanaLima is an unofficial native macOS GUI for Lima: create and run VMs, and build NAT, host-only and bridged networks without root.">
+<meta property="og:title" content="HanaLima — Lima VMs, VMware-style">
+<meta property="og:description" content="Native macOS GUI for Lima with rootless NAT, host-only and bridged networks.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://izawa.github.io/HanaLima/">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script>
+  // Pick the language before first paint: saved choice, else the browser's.
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem("hanalima-lang"); } catch (e) {}
+    var lang = saved || ((navigator.language || "").toLowerCase().indexOf("ja") === 0 ? "ja" : "en");
+    document.documentElement.className = "lang-" + lang;
+    document.documentElement.lang = lang;
+  })();
+</script>
+</head>
+<body>
+
+<!-- =====================================================================
+     Maintaining this page: see README.md on this branch.
+     Every user-visible text exists twice: class="en" and class="ja".
+     ===================================================================== -->
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/img/logo.svg" alt="">HanaLima</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how"><span class="en">How it works</span><span class="ja">仕組み</span></a>
+      <a href="#networking"><span class="en">Networking</span><span class="ja">ネットワーク</span></a>
+      <a href="#features"><span class="en">Features</span><span class="ja">機能</span></a>
+      <a href="#quickstart"><span class="en">Quick start</span><span class="ja">クイックスタート</span></a>
+      <a href="#roadmap"><span class="en">Roadmap</span><span class="ja">ロードマップ</span></a>
+    </nav>
+    <div class="nav-actions">
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button><button type="button" data-lang="ja">JA</button>
+      </div>
+      <a class="btn" href="https://github.com/izawa/HanaLima" style="padding:6px 12px">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============================== HERO ============================== -->
+<section class="hero" style="padding-top:84px">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">● macOS 26+ · Lima 2.2+ · MIT</span>
+      <h1>
+        <span class="en">Lima VMs,<br>VMware-style.<br><span class="grad">Bridges without sudo.</span></span>
+        <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">VMware のように。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
+      </h1>
+      <p class="lead">
+        <span class="en">HanaLima is a native SwiftUI app that drives <code>limactl</code>. Size your CPUs, memory and disks, wire up NAT, host-only and <strong>bridged</strong> networks with fixed IPs, and live in a real console — no root, no socket_vmnet, no sudoers file.</span>
+        <span class="ja">HanaLima は <code>limactl</code> を操作するネイティブの SwiftUI アプリです。CPU・メモリ・ディスクを割り当て、NAT・ホストオンリー・<strong>ブリッジ</strong>のネットワークを固定 IP 付きで組み、そのままコンソールで作業できます。root も socket_vmnet も sudoers も要りません。</span>
+      </p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#quickstart"><span class="en">Build it in 3 commands</span><span class="ja">3 つのコマンドでビルド</span> →</a>
+        <a class="btn" href="#how"><span class="en">How is that possible?</span><span class="ja">なぜ実現できるのか</span></a>
+      </div>
+      <div class="badges">
+        <span class="badge"><b>Swift 6</b> strict concurrency</span>
+        <span class="badge"><b>vmnet</b> macOS 26 API</span>
+        <span class="badge"><b>0</b> sudo prompts*</span>
+        <span class="badge"><b>unofficial</b> · not affiliated with Lima</span>
+      </div>
+    </div>
+
+    <!-- Mock of the app: overview of a VM with two NICs and a live console. -->
+    <div class="mock" aria-label="HanaLima window (illustration)">
+      <div class="mock-bar">
+        <i></i><i></i><i></i><span>hanalima-dev</span>
+        <div class="mock-tabs"><b>Overview</b><b class="on">Console</b><b>Settings</b><b>Log</b></div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-side">
+          <h6>VIRTUAL MACHINES</h6>
+          <div class="on"><span class="dot run"></span>hanalima-dev</div>
+          <div><span class="dot run"></span>k8s-node-1</div>
+          <div><span class="dot"></span>ubuntu-lts</div>
+          <h6>STORAGE</h6>
+          <div>⌁ Disks</div>
+          <h6>NETWORKS</h6>
+          <div>✿ Virtual networks</div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-card">
+            <div class="mock-row"><span class="k">NIC 1</span><span class="v">demo <span class="chip lime">NAT</span> 192.168.200.10 <span class="chip">fixed</span></span></div>
+            <div class="mock-row"><span class="k">NIC 2</span><span class="v">lan <span class="chip sky">bridge en0</span> 192.168.100.13</span></div>
+          </div>
+          <div class="term" id="term" aria-live="off"><span class="p">lima-hanalima-dev$</span> ip -4 -br addr
+<span class="c">lo     UNKNOWN 127.0.0.1/8</span>
+<span class="c">eth0   UP      192.168.5.15/24</span>
+lima0  UP      <span class="h">192.168.200.10</span>/24 <span class="c"># fixed</span>
+lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</span>
+<span class="p">lima-hanalima-dev$</span> <span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== STATS ============================== -->
+<section style="padding:20px 0 64px">
+  <div class="wrap">
+    <div class="stats reveal">
+      <div class="stat"><b class="grad">0</b><span class="en">sudo prompts for NAT, host-only and bridged networks*</span><span class="ja">NAT・ホストオンリー・ブリッジで必要な sudo の回数*</span></div>
+      <div class="stat"><b>3</b><span class="en">network kinds, each with its own launchd-activated helper</span><span class="ja">種類のネットワーク。どれも launchd が起動するヘルパーで提供</span></div>
+      <div class="stat"><b>4 B</b><span class="en">big-endian length + Ethernet frame: the whole wire protocol</span><span class="ja">ビッグエンディアンの長さ＋フレーム。プロトコルはこれだけ</span></div>
+      <div class="stat"><b>0</b><span class="en">patches to Lima. It's all <code>limactl</code> and its JSON</span><span class="ja">Lima への改造。すべて <code>limactl</code> とその JSON で動く</span></div>
+    </div>
+    <p class="muted" style="font-size:13px;margin-top:10px">
+      <span class="en">* Tested on macOS 27.0.1 with an ad-hoc signed helper carrying <code>com.apple.security.virtualization</code>. The optional classic socket_vmnet setup still needs one admin prompt.</span>
+      <span class="ja">* macOS 27.0.1 で、<code>com.apple.security.virtualization</code> 付きの ad-hoc 署名のヘルパーで確認。任意の従来方式（socket_vmnet）を入れる場合だけ、管理者認証が 1 回必要です。</span>
+    </p>
+  </div>
+</section>
+
+<!-- ======================= HOW IS THIS POSSIBLE ======================= -->
+<section id="how" class="alt">
+  <div class="wrap">
+    <div class="kicker">// how it works</div>
+    <h2><span class="en">What makes HanaLima possible</span><span class="ja">HanaLima だからできること、その理由</span></h2>
+    <p class="section-lead">
+      <span class="en">No magic and no kernel extensions: a handful of macOS APIs used in a way most tools don't, plus some careful plumbing around Lima's public interfaces.</span>
+      <span class="ja">魔法もカーネル拡張もありません。多くのツールが使っていない macOS の API の使い方と、Lima の公開インターフェースまわりの丁寧な配管だけです。</span>
+    </p>
+
+    <div class="dives">
+
+      <article class="dive reveal">
+        <div class="num">01</div>
+        <div>
+          <h3><span class="en">macOS 26 <code>vmnet_network</code> + one entitlement = rootless NAT with your subnet</span><span class="ja">macOS 26 の <code>vmnet_network</code> と entitlement 1 つで、root なしの NAT</span></h3>
+          <p><span class="en">The new vmnet API lets a process create a NAT or host-only network with a subnet you choose and DHCP reservations — as an ordinary user, as long as the binary is signed with <code>com.apple.security.virtualization</code>. Without it you get error 1002.</span><span class="ja">新しい vmnet API なら、サブネットを指定した NAT やホストオンリーのネットワークを、DHCP 予約付きで一般ユーザーのまま作れます。条件は、バイナリが <code>com.apple.security.virtualization</code> 付きで署名されていること。無いとエラー 1002 になります。</span></p>
+          <span class="chip lime tag">hanalima-netd</span>
+        </div>
+<pre class="code"><span class="k">let</span> cfg = vmnet_network_configuration_create(
+    .VMNET_SHARED_MODE, &amp;st)
+<span class="c">// the gateway (.1), not the network (.0)</span>
+vmnet_network_configuration_set_ipv4_subnet(
+    cfg, &amp;gw, &amp;mask)
+vmnet_network_configuration_add_dhcp_reservation(
+    cfg, mac, &amp;ip)
+<span class="k">let</span> net = vmnet_network_create(cfg, &amp;st)
+<span class="c">// uid 501 · no sudo</span></pre>
+      </article>
+
+      <article class="dive reveal">
+        <div class="num">02</div>
+        <div>
+          <h3><span class="en">Bridging to the LAN — also without root</span><span class="ja">LAN へのブリッジも root なし</span></h3>
+          <p><span class="en">The classic bridged mode is what socket_vmnet runs as root. We found that, with the same entitlement, <code>vmnet_start_interface</code> in <code>VMNET_BRIDGED_MODE</code> starts fine as uid 501. One interface per VM; two VMs plus en0 share <code>bridge100</code>, and the Mac keeps its IPv4.</span><span class="ja">従来のブリッジモードは、socket_vmnet が root で動かしているものです。同じ entitlement があれば、<code>VMNET_BRIDGED_MODE</code> の <code>vmnet_start_interface</code> が uid 501 のまま起動することを確かめました。VM ごとにインターフェースを作り、2 台の VM と en0 が <code>bridge100</code> を共有しても、Mac の IPv4 は維持されます。</span></p>
+          <span class="chip sky tag">bridge · en0</span>
+        </div>
+<pre class="code"><span class="k">let</span> desc = xpc_dictionary_create(<span class="n">nil</span>, <span class="n">nil</span>, <span class="n">0</span>)
+xpc_dictionary_set_uint64(desc, vmnet_operation_mode_key,
+                          VMNET_BRIDGED_MODE)
+xpc_dictionary_set_string(desc,
+    vmnet_shared_interface_name_key, <span class="s">"en0"</span>)
+vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> … }
+<span class="c">// uid 501 · status 1000 (VMNET_SUCCESS)</span></pre>
+      </article>
+
+      <article class="dive reveal">
+        <div class="num">03</div>
+        <div>
+          <h3><span class="en">Speaking socket_vmnet's protocol, so Lima needs no patches</span><span class="ja">socket_vmnet のプロトコルを話すので、Lima は無改造</span></h3>
+          <p><span class="en">Lima already knows how to plug a VM into a UNIX socket: <code>networks: - socket: PATH</code>. The protocol is QEMU's stream format — a 4-byte big-endian length, then the frame. <code>hanalima-netd</code> speaks it on one side and vmnet on the other. Works for VZ and QEMU VMs.</span><span class="ja">Lima はもともと、VM を UNIX ソケットにつなげます（<code>networks: - socket: PATH</code>）。中身は QEMU の stream 形式で、4 バイトのビッグエンディアンの長さに続けてフレームを送るだけ。<code>hanalima-netd</code> は片側でこれを話し、反対側で vmnet を話します。VZ でも QEMU でも動きます。</span></p>
+          <span class="chip tag">lima.yaml</span>
+        </div>
+<pre class="code"><span class="c"># ~/.lima/dev/lima.yaml (written via limactl edit --set)</span>
+<span class="n">networks</span>:
+  - <span class="n">socket</span>: <span class="s">"~/Library/Application Support/
+      HanaLima/net/lan.sock"</span>
+
+<span class="c"># on the wire</span>
+[00 00 05 ea][ ethernet frame, 1514 bytes … ]</pre>
+      </article>
+
+      <article class="dive reveal">
+        <div class="num">04</div>
+        <div>
+          <h3><span class="en">launchd socket activation: networks outlive the app</span><span class="ja">launchd のソケットアクティベーションで、アプリが無くても動く</span></h3>
+          <p><span class="en">Each network is a per-user LaunchAgent whose socket launchd owns. The helper starts on the first VM connection and exits when idle. Quit HanaLima, run <code>limactl start</code> from a shell — the network is still there.</span><span class="ja">ネットワークごとにユーザーの LaunchAgent を登録し、ソケットは launchd が持ちます。最初の VM 接続でヘルパーが起動し、使われなくなると終了します。HanaLima を終了して、シェルから <code>limactl start</code> しても、ネットワークはそのまま使えます。</span></p>
+          <span class="chip lime tag">LaunchAgent</span>
+        </div>
+<pre class="code"><span class="k">&lt;key&gt;</span>Sockets<span class="k">&lt;/key&gt;</span>
+<span class="k">&lt;dict&gt;</span><span class="k">&lt;key&gt;</span>Listener<span class="k">&lt;/key&gt;</span>
+  <span class="k">&lt;dict&gt;</span><span class="k">&lt;key&gt;</span>SockPathName<span class="k">&lt;/key&gt;</span>
+    <span class="s">&lt;string&gt;…/net/lan.sock&lt;/string&gt;</span>
+<span class="c">&lt;!-- helper calls launch_activate_socket("Listener") --&gt;</span></pre>
+      </article>
+
+      <article class="dive reveal">
+        <div class="num">05</div>
+        <div>
+          <h3><span class="en">Fixed IPs that actually stick: DHCP option 61 surgery</span><span class="ja">固定 IP を本当に効かせる、DHCP オプション 61 の手術</span></h3>
+          <p><span class="en">vmnet reserves addresses by MAC, but macOS's bootpd identifies a client by its client identifier when one is present — and Linux guests send a DUID. So the reservation never matched. The helper strips option 61 from DHCP requests, only for MACs that have a reservation.</span><span class="ja">vmnet の予約は MAC で行いますが、macOS の bootpd はクライアント識別子があればそちらで識別し、Linux のゲストは DUID を送ってきます。そのため予約が一致しませんでした。ヘルパーは、予約のある MAC からの DHCP 要求に限って、オプション 61 を取り除きます。</span></p>
+          <span class="chip tag">DHCPClientIDFilter</span>
+        </div>
+<pre class="code"><span class="c">// VM → vmnet, per frame</span>
+<span class="k">if</span> reservedMACs.contains(srcMAC),
+   <span class="k">let</span> fixed = DHCPClientIDFilter
+       .strippingClientIdentifier(from: frame) {
+    send(fixed)      <span class="c">// bootpd now matches by MAC</span>
+}
+<span class="c">// lima0: 192.168.200.10 — boot after boot</span></pre>
+      </article>
+
+      <article class="dive reveal">
+        <div class="num">06</div>
+        <div>
+          <h3><span class="en"><code>limactl</code> is the API — and edits stay minimal</span><span class="ja"><code>limactl</code> を API として使い、変更は最小限に</span></h3>
+          <p><span class="en">No Go code is linked; HanaLima reads <code>limactl list --format json</code> and the <code>watch --json</code> event stream. Form edits become <code>limactl edit --set</code> expressions for just the fields you touched, so Lima's defaults and your unknown keys survive, and Lima validates every change.</span><span class="ja">Go のコードはリンクせず、<code>limactl list --format json</code> と <code>watch --json</code> のイベントを読みます。フォームの変更は、触った項目だけの <code>limactl edit --set</code> 式になるので、Lima の既定値や未知のキーは残り、変更はすべて Lima が検証します。</span></p>
+          <span class="chip tag">LimaKit</span>
+        </div>
+<pre class="code"><span class="c">$</span> limactl edit dev --set <span class="s">'.cpus = 4'</span> \
+                 --set <span class="s">'.memory = "8GiB"'</span>
+<span class="c">$</span> limactl watch --json
+{<span class="s">"instance"</span>:<span class="s">"dev"</span>,<span class="s">"status"</span>:{<span class="s">"running"</span>:<span class="n">true</span>,
+ <span class="s">"sshLocalPort"</span>:<span class="n">60022</span>}}</pre>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================ NETWORKING ============================ -->
+<section id="networking">
+  <div class="wrap">
+    <div class="kicker">// networking</div>
+    <h2><span class="en">The packet path</span><span class="ja">パケットの通り道</span></h2>
+    <p class="section-lead">
+      <span class="en">One helper process per network, one vmnet interface per VM. NAT and host-only networks are created on the first connection and released on the last — never reused (see the battle scars below for why).</span>
+      <span class="ja">ネットワークごとにヘルパーが 1 プロセス、VM ごとに vmnet のインターフェースが 1 つ。NAT とホストオンリーのネットワークは最初の接続で作り、最後の切断で解放します。使い回しはしません（理由は下の「戦いの記録」で）。</span>
+    </p>
+
+    <div class="diagram reveal">
+      <svg viewBox="0 0 1000 400" role="img" aria-label="Diagram: Lima VMs connect over UNIX sockets to hanalima-netd helpers, which relay to a vmnet NAT network and a bridged interface on en0.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/>
+          </marker>
+        </defs>
+        <!-- column labels -->
+        <g style="fill:var(--faint)" font-size="12">
+          <text x="40" y="26">LIMA VMs (VZ / QEMU)</text>
+          <text x="330" y="26">launchd + hanalima-netd</text>
+          <text x="640" y="26">vmnet</text>
+          <text x="850" y="26">HOST / LAN</text>
+        </g>
+        <!-- VMs -->
+        <g font-size="14">
+          <rect x="30" y="60" width="200" height="120" rx="12" style="fill:var(--panel-2);stroke:var(--line)"/>
+          <text x="50" y="88" style="fill:var(--text)" font-weight="700">dev</text>
+          <text x="50" y="118" style="fill:var(--muted)" font-size="12">lima0 → demo.sock</text>
+          <text x="50" y="140" style="fill:var(--muted)" font-size="12">lima1 → lan.sock</text>
+          <text x="50" y="162" style="fill:var(--faint)" font-size="11">eth0: Lima user-mode</text>
+          <rect x="30" y="230" width="200" height="90" rx="12" style="fill:var(--panel-2);stroke:var(--line)"/>
+          <text x="50" y="258" style="fill:var(--text)" font-weight="700">web</text>
+          <text x="50" y="288" style="fill:var(--muted)" font-size="12">lima0 → lan.sock</text>
+        </g>
+        <!-- helpers -->
+        <g font-size="13">
+          <rect x="320" y="70" width="230" height="80" rx="12" style="fill:var(--panel);stroke:var(--hana)"/>
+          <text x="340" y="100" style="fill:var(--text)" font-weight="700">netd · demo</text>
+          <text x="340" y="124" style="fill:var(--muted)" font-size="11.5">NAT 192.168.200.0/24</text>
+          <text x="340" y="141" style="fill:var(--muted)" font-size="11.5">DHCP opt 61 stripped</text>
+          <rect x="320" y="220" width="230" height="80" rx="12" style="fill:var(--panel);stroke:var(--sky)"/>
+          <text x="340" y="250" style="fill:var(--text)" font-weight="700">netd · lan</text>
+          <text x="340" y="274" style="fill:var(--muted)" font-size="11.5">bridged to en0</text>
+          <text x="340" y="291" style="fill:var(--muted)" font-size="11.5">1 interface per VM</text>
+          <text x="320" y="350" style="fill:var(--faint)" font-size="11">flock(net/vmnet.lock) serializes vmnet calls across helpers</text>
+        </g>
+        <!-- vmnet -->
+        <g font-size="12.5">
+          <rect x="620" y="70" width="170" height="80" rx="12" style="fill:var(--panel-2);stroke:var(--line)"/>
+          <text x="638" y="100" style="fill:var(--text)" font-weight="700">vmnet_network</text>
+          <text x="638" y="122" style="fill:var(--muted)" font-size="11">macOS 26 API</text>
+          <text x="638" y="139" style="fill:var(--muted)" font-size="11">DHCP + NAT · bridge101</text>
+          <rect x="620" y="220" width="170" height="80" rx="12" style="fill:var(--panel-2);stroke:var(--line)"/>
+          <text x="638" y="250" style="fill:var(--text)" font-weight="700">VMNET_BRIDGED</text>
+          <text x="638" y="272" style="fill:var(--muted)" font-size="11">legacy API, no root</text>
+          <text x="638" y="289" style="fill:var(--muted)" font-size="11">vmenet0/1 · bridge100</text>
+        </g>
+        <!-- host -->
+        <g font-size="13">
+          <rect x="840" y="70" width="130" height="80" rx="12" style="fill:var(--panel);stroke:var(--line)"/>
+          <text x="858" y="100" style="fill:var(--text)" font-weight="700">Mac</text>
+          <text x="858" y="122" style="fill:var(--muted)" font-size="11">192.168.200.1</text>
+          <text x="858" y="139" style="fill:var(--muted)" font-size="11">NAT → internet</text>
+          <rect x="840" y="220" width="130" height="80" rx="12" style="fill:var(--panel);stroke:var(--line)"/>
+          <text x="858" y="250" style="fill:var(--text)" font-weight="700">LAN</text>
+          <text x="858" y="272" style="fill:var(--muted)" font-size="11">en0 · LAN DHCP</text>
+          <text x="858" y="289" style="fill:var(--muted)" font-size="11">192.168.100.x</text>
+        </g>
+        <!-- links -->
+        <g fill="none" stroke-width="2.2" marker-end="url(#arrow)">
+          <path class="flow" d="M230 112 C 270 112, 280 105, 318 105" style="stroke:var(--hana)"/>
+          <path class="flow" d="M230 134 C 280 150, 280 245, 318 250" style="stroke:var(--sky)"/>
+          <path class="flow" d="M230 282 C 270 282, 280 268, 318 268" style="stroke:var(--sky)"/>
+          <path class="flow" d="M550 110 L 618 110" style="stroke:var(--lime)"/>
+          <path class="flow" d="M550 260 L 618 260" style="stroke:var(--lime)"/>
+          <path class="flow" d="M790 110 L 838 110" style="stroke:var(--lime)"/>
+          <path class="flow" d="M790 260 L 838 260" style="stroke:var(--lime)"/>
+        </g>
+      </svg>
+      <div class="legend">
+        <span><i style="background:var(--hana)"></i><span class="en">UNIX socket, QEMU stream framing</span><span class="ja">UNIX ソケット（QEMU stream 形式）</span></span>
+        <span><i style="background:var(--sky)"></i><span class="en">same, to the bridge helper</span><span class="ja">同上（ブリッジのヘルパーへ）</span></span>
+        <span><i style="background:var(--lime)"></i><span class="en">vmnet read/write, then the kernel bridge</span><span class="ja">vmnet の読み書き、その先はカーネルのブリッジ</span></span>
+      </div>
+    </div>
+
+    <h3 style="margin:48px 0 16px"><span class="en">Compared with what Lima offers out of the box</span><span class="ja">Lima に標準で用意されている方式との比較</span></h3>
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>user-mode</th>
+            <th>vzNAT</th>
+            <th>socket_vmnet</th>
+            <th class="hl">HanaLima networks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="en">Needs root / sudoers</span><span class="ja">root・sudoers が必要</span></td><td class="yes">no</td><td class="yes">no</td><td class="no">yes</td><td class="hl yes">no</td></tr>
+          <tr><td><span class="en">Host can reach the guest IP</span><span class="ja">ホストからゲストの IP に届く</span></td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
+          <tr><td><span class="en">Choose the subnet</span><span class="ja">サブネットを指定できる</span></td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
+          <tr><td><span class="en">Fixed IP per VM (DHCP reservation)</span><span class="ja">VM ごとの固定 IP（DHCP 予約）</span></td><td class="no">no</td><td class="no">no</td><td class="no">—</td><td class="hl yes">yes</td></tr>
+          <tr><td><span class="en">Bridge to the LAN</span><span class="ja">LAN へのブリッジ</span></td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
+          <tr><td><span class="en">Host-only network</span><span class="ja">ホストオンリー</span></td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
+          <tr><td><span class="en">Works when the GUI isn't running</span><span class="ja">GUI を起動していなくても動く</span></td><td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ BATTLE SCARS ============================ -->
+<section id="scars" class="alt">
+  <div class="wrap">
+    <div class="kicker">// battle scars</div>
+    <h2><span class="en">Bugs we hit, so you don't have to</span><span class="ja">戦いの記録：踏んだ不具合と、その回避</span></h2>
+    <p class="section-lead">
+      <span class="en">The vmnet API is young. Here is what bit us on macOS 27.0.1, and how HanaLima's helper is built around it. Full notes are in the repository.</span>
+      <span class="ja">vmnet の API はまだ若く、macOS 27.0.1 でいくつも不具合を踏みました。HanaLima のヘルパーは、それを前提に作られています。詳しい記録はリポジトリにあります。</span>
+    </p>
+    <div class="scars">
+      <div class="scar reveal">
+        <h3><span class="en">Reusing a network ate the Mac's IPv4</span><span class="ja">ネットワークの使い回しで、Mac の IPv4 が消えた</span></h3>
+        <p><span class="en">A <code>vmnet_network</code> reused after its interface stopped takes over a bridged interface's <code>bridge100</code>, detaches en0, and the host loses its IPv4 address. Reported to Apple as FB25122122, with a standalone repro.</span><span class="ja">インターフェースを止めた <code>vmnet_network</code> を再利用すると、ブリッジの <code>bridge100</code> を奪って en0 を外し、ホストの IPv4 が消えます。再現ツール付きで Apple に FB25122122 として報告しました。</span></p>
+        <p class="fix"><span class="en">Create networks on the first VM connection, release them on the last. Never reuse.</span><span class="ja">ネットワークは最初の接続で作り、最後の切断で解放。使い回さない。</span></p>
+      </div>
+      <div class="scar reveal">
+        <h3><span class="en">Idle networks forget DHCP reservations</span><span class="ja">アイドルのネットワークは DHCP 予約を忘れる</span></h3>
+        <p><span class="en">Once its last interface stops, a network silently drops reservations and port-forward rules, even while you hold the ref (forum thread 847642, FB24895271).</span><span class="ja">最後のインターフェースが止まると、ref を持っていても予約とポート転送の設定が黙って消えます（フォーラム 847642、FB24895271）。</span></p>
+        <p class="fix"><span class="en">Same fix: a fresh network per active period, rebuilt from <code>networks.json</code>.</span><span class="ja">同じ対策：使う期間ごとに、<code>networks.json</code> から作り直す。</span></p>
+      </div>
+      <div class="scar reveal">
+        <h3><span class="en">Exit without stopping = subnet held hostage</span><span class="ja">止めずに終了すると、サブネットが人質に</span></h3>
+        <p><span class="en">If a process exits with an interface still started, vmnet keeps the subnet reserved for hours (or until reboot), and every create fails with 1001. A main-actor signal handler crashing with SIGTRAP made this happen on every SIGTERM.</span><span class="ja">インターフェースを開始したままプロセスが終わると、そのサブネットは数時間（か再起動まで）予約されたままになり、作成が 1001 で失敗し続けます。main actor 扱いのシグナルハンドラが SIGTRAP で落ちて、SIGTERM のたびにこれが起きていました。</span></p>
+        <p class="fix"><span class="en"><code>@Sendable</code> handlers; every exit path stops interfaces first.</span><span class="ja">ハンドラは <code>@Sendable</code> に。すべての終了経路で、先にインターフェースを止める。</span></p>
+      </div>
+      <div class="scar reveal">
+        <h3><span class="en">launchd pins your helper's cdhash</span><span class="ja">launchd はヘルパーの cdhash を覚えている</span></h3>
+        <p><span class="en">Overwrite the helper with a new build and the already-registered LaunchAgent fails to spawn (exit 78, EX_CONFIG) — while the old process keeps running, so you won't notice until it restarts.</span><span class="ja">ヘルパーを新しいビルドで上書きすると、登録済みの LaunchAgent が起動できなくなります（終了コード 78）。古いプロセスは動き続けるので、再起動するまで気づきません。</span></p>
+        <p class="fix"><span class="en">Content-addressed copies (<code>hanalima-netd-&lt;hash&gt;</code>); agents move over only while idle.</span><span class="ja">内容のハッシュ付きの名前で別々に置き、エージェントはアイドルのときだけ移す。</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== FEATURES ============================== -->
+<section id="features">
+  <div class="wrap">
+    <div class="kicker">// features</div>
+    <h2><span class="en">Everything you'd expect from a VM manager</span><span class="ja">VM 管理ソフトに期待するものを、ひととおり</span></h2>
+    <p class="section-lead"><span class="en">The UI is in Japanese for now; the concepts are the ones you know from VMware Fusion.</span><span class="ja">VMware Fusion などでおなじみの操作を、Lima の上で。</span></p>
+    <div class="grid">
+      <!-- To add a feature: copy a .card, set status "done" or "next". -->
+      <div class="card reveal"><span class="status done">v0.1</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+        <h3><span class="en">Create &amp; run</span><span class="ja">作成と運用</span></h3>
+        <p><span class="en">Templates, CPUs, memory, disk, VZ or QEMU. Live state via <code>limactl watch</code>, with image download progress.</span><span class="ja">テンプレート、CPU、メモリ、ディスク、VZ／QEMU を選んで作成。<code>limactl watch</code> で状態をリアルタイム表示、ダウンロードの進捗も。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.1</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+        <h3><span class="en">Console that waits</span><span class="ja">待ってくれるコンソール</span></h3>
+        <p><span class="en">An in-app terminal (SwiftTerm) that connects when the guest is actually ready, not when it merely says Running.</span><span class="ja">アプリ内のターミナル（SwiftTerm）。「Running」の表示ではなく、ゲストの準備が本当に整ってから接続します。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.2</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <h3><span class="en">Settings, form or YAML</span><span class="ja">設定はフォームでも YAML でも</span></h3>
+        <p><span class="en">NICs, shared folders, port forwards, or the raw <code>lima.yaml</code> — validated by Lima before it lands.</span><span class="ja">NIC、共有フォルダ、ポート転送。<code>lima.yaml</code> を直接編集しても、Lima の検証を通ってから反映されます。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.2</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg></div>
+        <h3><span class="en">Extra disks</span><span class="ja">追加ディスク</span></h3>
+        <p><span class="en">Create, grow, delete and attach disks with <code>limactl disk</code>.</span><span class="ja"><code>limactl disk</code> でディスクの作成、拡張、削除、接続。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.2</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M7 12h10M9 16h6"/></svg></div>
+        <h3><span class="en">Menu bar &amp; start at login</span><span class="ja">メニューバーとログイン時の起動</span></h3>
+        <p><span class="en">Every VM one click away; keeps running when the window closes. Per-VM start at login via <code>limactl autostart</code>.</span><span class="ja">すべての VM にワンクリックで。ウィンドウを閉じても常駐。VM ごとのログイン時の起動は <code>limactl autostart</code> で。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.3</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 17M12 11.5l5.5 5.5"/></svg></div>
+        <h3><span class="en">Rootless networks</span><span class="ja">root 不要のネットワーク</span></h3>
+        <p><span class="en">NAT and host-only with your subnet and fixed IPs; bridged to en0. Classic socket_vmnet setup is one click if you still want it.</span><span class="ja">サブネットと固定 IP を指定できる NAT とホストオンリー、en0 へのブリッジ。従来の socket_vmnet も、必要ならワンクリックで導入。</span></p>
+      </div>
+      <div class="card reveal"><span class="status next">next</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3><span class="en">Snapshots &amp; thumbnails</span><span class="ja">スナップショットとサムネイル</span></h3>
+        <p><span class="en">Snapshots for QEMU VMs and live screen thumbnails via <code>limactl screenshot</code>.</span><span class="ja">QEMU の VM のスナップショットと、<code>limactl screenshot</code> による画面のサムネイル。</span></p>
+      </div>
+      <div class="card reveal"><span class="status next">next</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+        <h3><span class="en">Logs &amp; provisioning</span><span class="ja">ログとプロビジョニング</span></h3>
+        <p><span class="en">A proper log viewer and an editor for provisioning scripts.</span><span class="ja">ログビューアと、プロビジョンスクリプトのエディタ。</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= QUICK START ============================= -->
+<section id="quickstart" class="alt">
+  <div class="wrap">
+    <div class="kicker">// quick start</div>
+    <h2><span class="en">From zero to a VM on your LAN</span><span class="ja">ゼロから、LAN に参加する VM まで</span></h2>
+    <p class="section-lead"><span class="en">No signed release yet — build from source. You need macOS 26+, Xcode 26+ with the Metal Toolchain, and Homebrew.</span><span class="ja">署名済みのリリースはまだありません。ソースからビルドしてください。必要なものは macOS 26 以降、Metal Toolchain 入りの Xcode 26 以降、Homebrew です。</span></p>
+    <div class="qs">
+      <ol class="steps">
+        <li><div><strong><span class="en">Install Lima</span><span class="ja">Lima を入れる</span></strong><p><span class="en">Plus the extra guest agents for non-native architectures.</span><span class="ja">別アーキテクチャ用の追加ゲストエージェントも一緒に。</span></p></div></li>
+        <li><div><strong><span class="en">Build the app</span><span class="ja">アプリをビルド</span></strong><p><span class="en">The script assembles <code>build/HanaLima.app</code>, signs the network helper with the virtualization entitlement, and signs the app ad hoc.</span><span class="ja">スクリプトが <code>build/HanaLima.app</code> を組み立て、ネットワークのヘルパーに仮想化の entitlement を付けて署名し、アプリを ad-hoc 署名します。</span></p></div></li>
+        <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ in the sidebar → pick a template → create. The first start downloads the image.</span><span class="ja">サイドバーの ＋ → テンプレートを選んで作成。最初の起動でイメージをダウンロードします。</span></p></div></li>
+        <li><div><strong><span class="en">Add a bridged network</span><span class="ja">ブリッジのネットワークを追加</span></strong><p><span class="en">Networks → ＋ → Bridge → en0. Then add a NIC for it in the VM's Settings → Network. No password prompt.</span><span class="ja">ネットワーク → ＋ → ブリッジ → en0。VM の設定 → ネットワークで NIC を追加します。パスワードは聞かれません。</span></p></div></li>
+      </ol>
+      <div class="copyable">
+<pre class="code" id="qs-code"><span class="c"># 1. Lima</span>
+brew install lima lima-additional-guestagents
+
+<span class="c"># Metal Toolchain (needed by SwiftTerm), once</span>
+xcodebuild -downloadComponent MetalToolchain
+
+<span class="c"># 2. HanaLima</span>
+git clone https://github.com/izawa/HanaLima.git
+cd HanaLima
+scripts/build-app.sh release
+open build/HanaLima.app</pre>
+        <button class="copy" type="button" data-copy="#qs-code">copy</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== ROADMAP =============================== -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="kicker">// roadmap</div>
+    <h2><span class="en">Where it's going</span><span class="ja">これから</span></h2>
+    <p class="section-lead"><span class="en">This page grows with the app. Each milestone lands here when it ships.</span><span class="ja">このページはアプリと一緒に育ちます。マイルストーンを達成するたびに、ここに反映します。</span></p>
+    <div class="road reveal">
+      <div class="milestone done"><div class="bar"></div><h3>MVP</h3>
+        <ul><li><span class="en">List, create, start/stop</span><span class="ja">一覧、作成、起動・停止</span></li><li><span class="en">Console, YAML view</span><span class="ja">コンソール、YAML 表示</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.2</h3>
+        <ul><li><span class="en">Settings editor, disks</span><span class="ja">設定編集、ディスク</span></li><li><span class="en">Shares, port forwards</span><span class="ja">共有フォルダ、ポート転送</span></li><li><span class="en">Menu bar, start at login</span><span class="ja">メニューバー、自動起動</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.3</h3>
+        <ul><li><span class="en">Rootless NAT / host-only</span><span class="ja">root 不要の NAT／ホストオンリー</span></li><li><span class="en">Fixed IPs</span><span class="ja">固定 IP</span></li><li><span class="en">Rootless bridge</span><span class="ja">root 不要のブリッジ</span></li></ul></div>
+      <div class="milestone next"><div class="bar"></div><h3>v0.4</h3>
+        <ul><li><span class="en">Snapshots (QEMU)</span><span class="ja">スナップショット（QEMU）</span></li><li><span class="en">Screen thumbnails</span><span class="ja">画面のサムネイル</span></li><li><span class="en">Log viewer, provisioning</span><span class="ja">ログビューア、プロビジョニング</span></li></ul></div>
+      <div class="milestone"><div class="bar"></div><h3><span class="en">Release</span><span class="ja">配布</span></h3>
+        <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">English UI</span><span class="ja">英語 UI</span></li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="notice">
+      <span class="en"><strong>Unofficial project.</strong> HanaLima is an independent project. It is not affiliated with, endorsed by, or supported by the Lima project or the Cloud Native Computing Foundation (CNCF). "Lima" is used only to describe what this app works with. Please report HanaLima issues on <a href="https://github.com/izawa/HanaLima/issues">its own tracker</a>.</span>
+      <span class="ja"><strong>非公式プロジェクトです。</strong> HanaLima は個人による独立したプロジェクトで、Lima プロジェクトおよび Cloud Native Computing Foundation (CNCF) とは関係がなく、公認も支援も受けていません。「Lima」の名前は、このアプリが扱う対象を説明するためだけに使っています。HanaLima の問題は<a href="https://github.com/izawa/HanaLima/issues">こちらの Issue</a> に報告してください。</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:10px"><img src="assets/img/logo.svg" alt="" width="22" height="22"> HanaLima · MIT License · © 2026 Yukimitsu IZAWA</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap">
+      <a href="https://github.com/izawa/HanaLima">GitHub</a>
+      <a href="https://github.com/izawa/HanaLima/blob/main/docs/04-design.md"><span class="en">Design notes</span><span class="ja">設計メモ</span></a>
+      <a href="https://lima-vm.io/">Lima</a>
+      <a href="mailto:izawa@izawa.org">izawa@izawa.org</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>
