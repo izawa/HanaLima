@@ -18,7 +18,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 
 ## Features
 
-- **VM list and lifecycle**: create from Lima's templates — grouped by distribution with readable names such as “Ubuntu 24.04 LTS” — then start, stop, restart and delete, with live status from `limactl watch` and image download progress.
+- **VM list and lifecycle**: create from Lima's templates — grouped by distribution with readable names such as “Ubuntu 24.04 LTS” — then start, stop, restart and delete, with live status from `limactl watch` and image download progress (percent, speed and time left).
 - **Console**: a terminal (`limactl shell`) inside the app that waits until the VM is actually ready.
 - **Settings editor**: CPUs, memory, disk size, NICs, shared folders and port forwards through a form, or the full `lima.yaml` with Lima's validation. Only the fields you change are written back.
 - **Additional disks**: create, resize, delete and attach (`limactl disk`).
