@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# SwiftPM / Xcode
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.dSYM/
+
+# App bundle built by scripts/build-app.sh
+build/
+
+# Prototype binaries (build them from the sources in each directory)
+Prototypes/vmnet-relay/hanalima-net
+Prototypes/vmnet-relay/probe
+Prototypes/vmnet-bridge100-repro/repro
+Prototypes/vmnet-bridge-relay/bridge-relay
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local notes for AI coding assistants (kept out of the public repository)
+CLAUDE.md
+CLAUDE.local.md
+.claude/

@@ -1,0 +1,421 @@
+import Foundation
+import LimaKit
+import NetworkKit
+import Observation
+
+/// A long-running limactl command (create/start/stop/...) tied to one instance.
+struct Operation: Sendable {
+    enum Kind: String, Sendable {
+        case create, start, stop, restart, delete, edit
+
+        var label: String {
+            switch self {
+            case .create: "作成"
+            case .start: "起動"
+            case .stop: "停止"
+            case .restart: "再起動"
+            case .delete: "削除"
+            case .edit: "設定変更"
+            }
+        }
+    }
+
+    var kind: Kind
+    var log: [LogEntry] = []
+    var isRunning = true
+    var error: String?
+    /// Set while limactl is downloading an image or archive.
+    var download: DownloadProgress?
+}
+
+/// What the sidebar can select.
+enum SidebarItem: Hashable {
+    case instance(String)
+    case disks
+    case networks
+
+    var instanceName: String? {
+        if case .instance(let name) = self { name } else { nil }
+    }
+}
+
+/// An event from `limactl watch`, kept for the log tab.
+struct EventRecord: Identifiable, Sendable {
+    let id = UUID()
+    let date: Date
+    let text: String
+    let isError: Bool
+}
+
+@MainActor
+@Observable
+final class AppModel {
+    enum Availability: Equatable {
+        case checking
+        case ready(version: String)
+        case missing
+        case failed(String)
+    }
+
+    struct AlertMessage: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
+
+    private(set) var availability: Availability = .checking
+    private(set) var instances: [LimaInstance] = []
+    private(set) var templates: [String] = []
+    private(set) var operations: [String: Operation] = [:]
+    private(set) var events: [String: [EventRecord]] = [:]
+    private(set) var disks: [LimaDisk] = []
+    private(set) var networks: LimaNetworks = .defaults
+    /// HanaLima's own vmnet networks (served by hanalima-netd).
+    var virtualNetworks: [VirtualNetwork] = []
+    var networkStates: [String: LaunchAgentManager.State] = [:]
+    var networkStatuses: [String: NetworkDaemonStatus] = [:]
+    /// macOS's DHCP leases (written by vmnet), for showing VM addresses.
+    var dhcpLeases: [DHCPLease] = []
+    /// True while a `limactl disk` command runs.
+    private(set) var isDiskBusy = false
+    /// Running instances whose boot has finished (SSH and guest agent are up). `limactl list`
+    /// says Running as soon as the VM boots, so readiness comes from the watch `running` event
+    /// or from `limactl start` returning.
+    private(set) var readyInstances: Set<String> = []
+    @ObservationIgnored private var hasListedOnce = false
+    /// Instances registered to start at login (`limactl autostart`).
+    private(set) var autostartInstances: Set<String> = []
+    var selection: SidebarItem?
+    /// Set by the menu bar to show an instance's console; InstanceDetailView switches tab and clears it.
+    var consoleRequest: String?
+    /// Set by the menu bar and the File menu to open the create sheet; ContentView clears it.
+    var createRequested = false
+    var alert: AlertMessage?
+    /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
+    var pendingConflictStart: ConflictPrompt?
+
+    struct ConflictPrompt: Identifiable {
+        let id = UUID()
+        let name: String
+        let restart: Bool
+        let message: String
+    }
+
+    private(set) var client: LimaClient?
+    @ObservationIgnored private var lastSSHPort: [String: Int] = [:]
+    private var watchTask: Task<Void, Never>?
+    private var pollTask: Task<Void, Never>?
+    private var refreshTask: Task<Void, Never>?
+
+    private static let maxEventsPerInstance = 500
+    private static let maxLogLines = 2000
+
+    // MARK: - Lifecycle
+
+    func bootstrap() async {
+        guard client == nil else { return }
+        availability = .checking
+        guard let url = LimaClient.locate() else {
+            availability = .missing
+            return
+        }
+        let client = LimaClient(limactlURL: url)
+        do {
+            let version = try await client.version()
+            self.client = client
+            availability = .ready(version: version)
+        } catch {
+            availability = .failed(error.localizedDescription)
+            return
+        }
+        await refresh()
+        if selection == nil { selection = instances.first.map { .instance($0.name) } }
+        #if DEBUG
+        if let item = DebugSnapshot.requestedSelection { selection = item }
+        #endif
+        networks = LimaNetworks.load()
+        await setUpVirtualNetworks()
+        #if DEBUG
+        // After the networks are loaded, so the conflict check sees them.
+        if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
+        #endif
+        await client.terminateOrphanedWatchers()
+        startWatching()
+        startPolling()
+        templates = (try? await client.templates()) ?? []
+    }
+
+    func retryBootstrap() async {
+        stopBackgroundTasks()
+        client = nil
+        await bootstrap()
+    }
+
+    private func stopBackgroundTasks() {
+        watchTask?.cancel()
+        pollTask?.cancel()
+        refreshTask?.cancel()
+    }
+
+    // MARK: - Queries
+
+    func instance(named name: String?) -> LimaInstance? {
+        guard let name else { return nil }
+        return instances.first { $0.name == name }
+    }
+
+    /// Names shown in the sidebar: real instances plus ones still being created.
+    var sidebarNames: [String] {
+        let existing = Set(instances.map(\.name))
+        let pending = operations.filter { $0.value.kind == .create && !existing.contains($0.key) }.keys
+        return instances.map(\.name) + pending.sorted()
+    }
+
+    func isBusy(_ name: String) -> Bool { operations[name]?.isRunning == true }
+
+    func isReady(_ name: String) -> Bool { readyInstances.contains(name) }
+
+    func refresh() async {
+        guard let client else { return }
+        do {
+            let list = try await client.list()
+            for inst in list {
+                if !inst.isRunning {
+                    readyInstances.remove(inst.name)
+                } else if !hasListedOnce && !isBusy(inst.name) {
+                    // Already running when the app launched: assume it finished booting.
+                    // (The console retries if it turns out it hasn't.)
+                    readyInstances.insert(inst.name)
+                }
+            }
+            readyInstances.formIntersection(list.map(\.name))
+            hasListedOnce = true
+            if list != instances { instances = list }
+            let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
+            if autostart != autostartInstances { autostartInstances = autostart }
+        } catch {
+            // Transient failures (e.g. an instance dir mid-creation) are retried by polling.
+        }
+        if let list = try? await client.disks(), list != disks { disks = list }
+    }
+
+    /// Coalesces bursts of watch events into a single `limactl list`.
+    private func scheduleRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await refresh()
+        }
+    }
+
+    private func startPolling() {
+        pollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                await refresh()
+                await refreshNetworkStates()
+            }
+        }
+    }
+
+    private func startWatching() {
+        guard let client else { return }
+        watchTask = Task {
+            while !Task.isCancelled {
+                do {
+                    for try await event in client.watch() {
+                        record(event)
+                        if event.affectsStatus { scheduleRefresh() }
+                    }
+                } catch {
+                    // limactl watch exited; restart below.
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    private func record(_ event: WatchEvent) {
+        if event.event.status.running == true { readyInstances.insert(event.instance) }
+        if event.event.status.exiting == true { readyInstances.remove(event.instance) }
+        let text = event.summary(previousSSHPort: lastSSHPort[event.instance])
+        if let port = event.event.status.sshLocalPort, port != 0 { lastSSHPort[event.instance] = port }
+        if event.event.status.exiting == true { lastSSHPort[event.instance] = nil }
+        guard !text.isEmpty else { return }
+        var list = events[event.instance, default: []]
+        list.append(EventRecord(date: event.event.time ?? .now, text: text,
+                                isError: !(event.event.status.errors ?? []).isEmpty))
+        if list.count > Self.maxEventsPerInstance { list.removeFirst(list.count - Self.maxEventsPerInstance) }
+        events[event.instance] = list
+    }
+
+    // MARK: - Actions
+
+    func create(_ options: CreateOptions, startAfterCreate: Bool) {
+        guard let client else { return }
+        selection = .instance(options.name)
+        run(.create, on: options.name, client.create(options)) { [weak self] ok in
+            if ok && startAfterCreate { self?.start(options.name) }
+        }
+    }
+
+    /// Starts `name`. If it would mix socket_vmnet and HanaLima networks, asks first
+    /// (see NetworkConflict) unless `confirmed`.
+    func start(_ name: String, confirmed: Bool = false) {
+        guard let client, confirmed || !askIfConflicting(name, restart: false) else { return }
+        run(.start, on: name, client.start(name))
+    }
+
+    /// Returns true (and asks the user) if starting `name` would mix socket_vmnet and HanaLima
+    /// networks.
+    private func askIfConflicting(_ name: String, restart: Bool) -> Bool {
+        guard let conflict = networkConflict(starting: name) else { return false }
+        pendingConflictStart = ConflictPrompt(name: name, restart: restart, message: conflict.message)
+        return true
+    }
+
+    func confirmConflictStart(_ prompt: ConflictPrompt) {
+        if prompt.restart { restart(prompt.name, confirmed: true) } else { start(prompt.name, confirmed: true) }
+    }
+
+    func stop(_ name: String, force: Bool = false) {
+        guard let client else { return }
+        run(.stop, on: name, client.stop(name, force: force))
+    }
+
+    func restart(_ name: String, confirmed: Bool = false) {
+        guard let client, confirmed || !askIfConflicting(name, restart: true) else { return }
+        run(.restart, on: name, client.restart(name))
+    }
+
+    /// Selects `name` and asks its detail view to show the console.
+    func openConsole(_ name: String) {
+        selection = .instance(name)
+        consoleRequest = name
+    }
+
+    func setAutostart(_ name: String, enabled: Bool) async {
+        guard let client else { return }
+        do {
+            try await client.setAutostart(name, enabled: enabled)
+        } catch {
+            alert = AlertMessage(title: "「\(name)」の自動起動を\(enabled ? "有効" : "無効")にできませんでした",
+                                 message: error.localizedDescription)
+        }
+        await refresh()
+    }
+
+    func delete(_ name: String, force: Bool = false) {
+        guard let client else { return }
+        run(.delete, on: name, client.delete(name, force: force)) { [weak self] ok in
+            guard let self, ok else { return }
+            self.operations[name] = nil
+            self.events[name] = nil
+            if self.selection == .instance(name) { self.selection = self.instances.first.map { .instance($0.name) } }
+        }
+    }
+
+    /// Applies `limactl edit --set` expressions. `completion` gets whether it succeeded.
+    func edit(_ name: String, set expressions: [String], completion: @escaping @MainActor (Bool) -> Void) {
+        guard let client, !expressions.isEmpty else { return completion(true) }
+        run(.edit, on: name, client.edit(name, set: expressions), completion: completion)
+    }
+
+    /// Replaces lima.yaml wholesale; Lima validates it and rejects invalid configs.
+    func replaceConfig(_ name: String, yaml: String, completion: @escaping @MainActor (Bool) -> Void) {
+        guard let client else { return completion(false) }
+        run(.edit, on: name, client.replaceConfig(name, yaml: yaml), completion: completion)
+    }
+
+    func createDisk(_ name: String, sizeGiB: Int, format: String) async -> Bool {
+        guard let client else { return false }
+        return await runDiskCommand("ディスク「\(name)」の作成", client.createDisk(name, size: ByteSize.gib(sizeGiB), format: format))
+    }
+
+    func resizeDisk(_ name: String, sizeGiB: Int) async -> Bool {
+        guard let client else { return false }
+        return await runDiskCommand("ディスク「\(name)」のサイズ変更", client.resizeDisk(name, size: ByteSize.gib(sizeGiB)))
+    }
+
+    func deleteDisk(_ name: String) async -> Bool {
+        guard let client else { return false }
+        return await runDiskCommand("ディスク「\(name)」の削除", client.deleteDisk(name))
+    }
+
+    private func runDiskCommand(_ title: String, _ stream: AsyncThrowingStream<LogEntry, Error>) async -> Bool {
+        isDiskBusy = true
+        defer { isDiskBusy = false }
+        do {
+            for try await _ in stream {}
+            await refresh()
+            return true
+        } catch {
+            alert = AlertMessage(title: "\(title)に失敗しました", message: error.localizedDescription)
+            await refresh()
+            return false
+        }
+    }
+
+    func reloadNetworks() {
+        networks = LimaNetworks.load()
+    }
+
+    func clearOperation(_ name: String) {
+        if operations[name]?.isRunning == false { operations[name] = nil }
+    }
+
+    private func run(_ kind: Operation.Kind, on name: String,
+                     _ stream: AsyncThrowingStream<LogEntry, Error>,
+                     completion: (@MainActor (Bool) -> Void)? = nil) {
+        guard !isBusy(name) else { return }
+        operations[name] = Operation(kind: kind)
+        if [.start, .restart, .stop, .delete].contains(kind) { readyInstances.remove(name) }
+        Task {
+            var ok = true
+            var monitor: Task<Void, Never>?
+            defer { monitor?.cancel() }
+            do {
+                for try await entry in stream {
+                    appendLog(entry, to: name)
+                    // Any further output means the previous download (if any) is finished.
+                    monitor?.cancel()
+                    operations[name]?.download = nil
+                    if entry.message.hasPrefix("Attempting to download"), let location = entry.fields["location"] {
+                        monitor = monitorDownload(location, for: name)
+                    }
+                    // Status flips (Installing → Running etc.) happen mid-command.
+                    if kind != .delete { scheduleRefresh() }
+                }
+            } catch {
+                ok = false
+                operations[name]?.error = error.localizedDescription
+                alert = AlertMessage(title: "\(name) の\(kind.label)に失敗しました",
+                                     message: error.localizedDescription)
+            }
+            monitor?.cancel()
+            operations[name]?.download = nil
+            operations[name]?.isRunning = false
+            // `limactl start` only returns after the instance reports READY.
+            if ok && (kind == .start || kind == .restart) { readyInstances.insert(name) }
+            await refresh()
+            completion?(ok)
+        }
+    }
+
+    private func monitorDownload(_ location: String, for name: String) -> Task<Void, Never> {
+        Task {
+            for await progress in DownloadMonitor.progress(for: location) {
+                guard !Task.isCancelled else { return }
+                operations[name]?.download = progress
+            }
+        }
+    }
+
+    private func appendLog(_ entry: LogEntry, to name: String) {
+        guard operations[name] != nil else { return }
+        operations[name]!.log.append(entry)
+        let overflow = operations[name]!.log.count - Self.maxLogLines
+        if overflow > 0 { operations[name]!.log.removeFirst(overflow) }
+    }
+}

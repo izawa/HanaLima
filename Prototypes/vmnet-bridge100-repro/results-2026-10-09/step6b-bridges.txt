@@ -1,0 +1,27 @@
+bridge100: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=3<RXCSUM,TXCSUM>
+	ether d2:11:e5:71:21:64
+	Configuration:
+		id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0
+		maxage 0 holdcnt 0 proto stp maxaddr 256 timeout 1200
+		root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0
+		ipfilter disabled flags 0x0
+	member: vmenet0 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 25 priority 0 path cost 0
+	member: en0 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 7 priority 0 path cost 0
+	nd6 options=201<PERFORMNUD,DAD>
+--
+bridge101: flags=8a63<UP,BROADCAST,SMART,RUNNING,ALLMULTI,SIMPLEX,MULTICAST> mtu 1500
+	options=3<RXCSUM,TXCSUM>
+	ether d2:11:e5:71:21:65
+	inet 192.168.242.1 netmask 0xffffff00 broadcast 192.168.242.255
+	inet6 fe80::d011:e5ff:fe71:2165%bridge101 prefixlen 64 scopeid 0x1c 
+	Configuration:
+		id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0
+		maxage 0 holdcnt 0 proto stp maxaddr 256 timeout 1200
+		root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0
+		ipfilter disabled flags 0x0
+	member: vmenet1 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 27 priority 0 path cost 0
+	nd6 options=201<PERFORMNUD,DAD>
