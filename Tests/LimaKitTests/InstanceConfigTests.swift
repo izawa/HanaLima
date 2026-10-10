@@ -142,3 +142,66 @@ import Testing
         #expect(disks[1].attachedInstance == nil)
     }
 }
+
+@Suite struct ProvisionConfigTests {
+    let raw = try! JSONValue.parseYAML("""
+    provision:
+    - mode: system
+      script: |
+        #!/bin/sh
+        set -eux
+        apk add htop
+    - script: echo default-mode
+    - mode: data
+      path: /etc/motd
+      content: hello
+      permissions: 644
+      overwrite: false
+    - mode: yq
+      path: /etc/x.json
+      expression: .a = 1
+    - mode: user
+      file:
+        url: user.sh
+    - mode: dependency
+      skipDefaultDependencyResolution: true
+      script: echo deps
+    """)
+
+    @Test func parsesEntries() {
+        let p = InstanceConfig(raw: raw, effective: nil).provision
+        #expect(p.map(\.mode) == [.system, .system, .data, .yq, .user, .dependency])
+        #expect(p[0].summary == "apk add htop")
+        #expect(p[2].path == "/etc/motd" && p[2].content == "hello")
+        #expect(p[5].skipDefaultDependencyResolution)
+        #expect(p.map(\.isEditable) == [true, true, true, false, false, true])
+        #expect(p[4].summary == "file: user.sh")
+    }
+
+    @Test func unchangedProvisionProducesNoExpression() {
+        let c = InstanceConfig(raw: raw, effective: nil)
+        #expect(c.setExpressions(comparedTo: c).isEmpty)
+    }
+
+    @Test func editKeepsUnmodeledFieldsAndReadOnlyEntries() throws {
+        let original = InstanceConfig(raw: raw, effective: nil)
+        var edited = original
+        edited.provision[2].content = "bye"
+        edited.provision.append(ProvisionConfig(mode: .user, script: "echo hi"))
+        let exprs = edited.setExpressions(comparedTo: original)
+        #expect(exprs.count == 1)
+        let expr = try #require(exprs.first)
+        #expect(expr.hasPrefix(".provision = "))
+        let list = try JSONValue.parseYAML(String(expr.dropFirst(".provision = ".count))).arrayValue ?? []
+        #expect(list.count == 7)
+        #expect(list[2]["content"] == .string("bye"))
+        #expect(list[2]["permissions"] == .int(644))
+        #expect(list[2]["overwrite"] == .bool(false))
+        #expect(list[3]["expression"] == .string(".a = 1"))
+        #expect(list[3]["path"] == .string("/etc/x.json"))
+        #expect(list[4]["file"]?["url"] == .string("user.sh"))
+        #expect(list[4]["script"] == nil)
+        #expect(list[1]["mode"] == .string("system"))
+        #expect(list[6] == .object(["mode": .string("user"), "script": .string("echo hi")]))
+    }
+}

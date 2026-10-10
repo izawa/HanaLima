@@ -222,3 +222,42 @@ struct SnapshotEndToEndTests {
         return out
     }
 }
+
+/// Provisioning set through `limactl edit --set` runs on the next boot.
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["HANALIMA_E2E"] == "1"))
+struct ProvisionEndToEndTests {
+    let name = "hanalima-e2e-provision"
+    let client = LimaClient(limactlURL: LimaClient.locate()!)
+
+    @Test(.timeLimit(.minutes(10)))
+    func scriptAndDataTakeEffect() async throws {
+        _ = try? await drain(client.delete(name, force: true))
+        _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1,
+                                                        diskGiB: 10, vmType: .vz)))
+        defer { Task { [client, name] in _ = try? await drain(client.delete(name, force: true)) } }
+
+        let inst = try #require(try await client.list().first { $0.name == name })
+        let original = try client.config(of: inst)
+        var config = original
+        config.provision = [
+            ProvisionConfig(mode: .system, script: "#!/bin/sh\nset -eux\necho \"{{.Name}}\" > /etc/hanalima-provisioned\n"),
+            ProvisionConfig(mode: .data, path: "/etc/hanalima-data", content: "hello from data\n"),
+        ]
+        _ = try await drain(client.edit(name, set: config.setExpressions(comparedTo: original)))
+        let reloaded = try client.config(of: try #require(try await client.list().first { $0.name == name }))
+        #expect(reloaded.provision == config.provision)
+
+        _ = try await drain(client.start(name))
+        let out = try await client.runner.run(["shell", name, "cat", "/etc/hanalima-provisioned", "/etc/hanalima-data"])
+        #expect(out.stdoutString == "\(name)\nhello from data\n")
+        _ = try await drain(client.stop(name))
+        _ = try await drain(client.delete(name))
+    }
+
+    @discardableResult
+    private func drain(_ s: AsyncThrowingStream<LogEntry, Error>) async throws -> [LogEntry] {
+        var out: [LogEntry] = []
+        for try await e in s { out.append(e) }
+        return out
+    }
+}

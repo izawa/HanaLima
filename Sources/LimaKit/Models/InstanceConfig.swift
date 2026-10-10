@@ -14,10 +14,12 @@ public struct InstanceConfig: Hashable, Sendable {
     public var mounts: [MountConfig]
     public var portForwards: [PortForwardConfig]
     public var additionalDisks: [AdditionalDiskConfig]
+    public var provision: [ProvisionConfig]
 
     public init(cpus: Int? = nil, memory: String? = nil, disk: String? = nil,
                 networks: [NetworkConfig] = [], mounts: [MountConfig] = [],
-                portForwards: [PortForwardConfig] = [], additionalDisks: [AdditionalDiskConfig] = []) {
+                portForwards: [PortForwardConfig] = [], additionalDisks: [AdditionalDiskConfig] = [],
+                provision: [ProvisionConfig] = []) {
         self.cpus = cpus
         self.memory = memory
         self.disk = disk
@@ -25,6 +27,7 @@ public struct InstanceConfig: Hashable, Sendable {
         self.mounts = mounts
         self.portForwards = portForwards
         self.additionalDisks = additionalDisks
+        self.provision = provision
     }
 
     /// - Parameters:
@@ -47,6 +50,7 @@ public struct InstanceConfig: Hashable, Sendable {
         portForwards = pfs.entries.map { PortForwardConfig(json: $0) }
         let disks = list("additionalDisks")
         additionalDisks = disks.entries.map { AdditionalDiskConfig(json: $0, stripDefaults: !disks.fromRaw) }
+        provision = list("provision").entries.map(ProvisionConfig.init(json:))
     }
 
     /// yq expressions for `limactl edit --set`, covering only what differs from `original`.
@@ -63,6 +67,7 @@ public struct InstanceConfig: Hashable, Sendable {
         list("mounts", mounts.map(\.json), original.mounts.map(\.json))
         list("portForwards", portForwards.map(\.json), original.portForwards.map(\.json))
         list("additionalDisks", additionalDisks.map(\.json), original.additionalDisks.map(\.json))
+        list("provision", provision.map(\.json), original.provision.map(\.json))
         return exprs
     }
 }
@@ -246,6 +251,88 @@ public struct AdditionalDiskConfig: Hashable, Sendable, Identifiable {
         var o = extra
         o["name"] = .string(name)
         return .object(o)
+    }
+
+    public static func == (a: Self, b: Self) -> Bool { a.json == b.json }
+    public func hash(into h: inout Hasher) { h.combine(json) }
+}
+
+/// One `provision:` entry. Script modes and `data` are editable; entries that load a `file`, and
+/// the `yq` and `ansible` modes, are kept as they are (edit them as YAML).
+///
+/// Lima runs provisioning on every boot (cloud-init `scripts_per_boot`), so scripts must be idempotent.
+public struct ProvisionConfig: Hashable, Sendable, Identifiable {
+    public enum Mode: String, CaseIterable, Sendable, Identifiable {
+        case system, user, boot, dependency, data, yq, ansible
+        public var id: String { rawValue }
+        /// Modes whose entry is a `script`.
+        public var isScript: Bool { [.system, .user, .boot, .dependency].contains(self) }
+    }
+
+    public var id = UUID()
+    /// As written; Lima defaults a missing mode to `system`.
+    public var mode: Mode
+    public var script: String
+    /// `data`: destination path in the guest and file content.
+    public var path: String
+    public var content: String
+    /// `dependency`: skip Lima's own package installation.
+    public var skipDefaultDependencyResolution: Bool
+    var extra: [String: JSONValue]
+
+    public init(mode: Mode, script: String = "", path: String = "", content: String = "") {
+        self.mode = mode
+        self.script = script
+        self.path = path
+        self.content = content
+        self.skipDefaultDependencyResolution = false
+        self.extra = [:]
+    }
+
+    init(json: JSONValue) {
+        var o = json.objectValue ?? [:]
+        mode = Mode(rawValue: o["mode"]?.stringValue ?? "system") ?? .system
+        script = o["script"]?.stringValue ?? ""
+        path = o["path"]?.stringValue ?? ""
+        content = o["content"]?.stringValue ?? ""
+        skipDefaultDependencyResolution = o["skipDefaultDependencyResolution"]?.boolValue ?? false
+        for k in ["mode", "script", "path", "content", "skipDefaultDependencyResolution"] { o[k] = nil }
+        // An unknown mode survives in `extra` so writing back doesn't change it.
+        if let raw = json["mode"]?.stringValue, Mode(rawValue: raw) == nil { o["mode"] = .string(raw) }
+        extra = o
+    }
+
+    /// False for entries HanaLima shows read-only: a `file` source, `yq`, `ansible`, or an unknown mode.
+    public var isEditable: Bool {
+        extra["file"] == nil && extra["mode"] == nil && (mode.isScript || mode == .data)
+    }
+
+    public var json: JSONValue {
+        var o = extra
+        if o["mode"] == nil { o["mode"] = .string(mode.rawValue) }
+        if mode.isScript {
+            if !script.isEmpty || extra["file"] == nil { o["script"] = .string(script) }
+            if mode == .dependency && skipDefaultDependencyResolution { o["skipDefaultDependencyResolution"] = .bool(true) }
+        }
+        if mode == .data {
+            o["path"] = .string(path)
+            if !content.isEmpty || extra["file"] == nil { o["content"] = .string(content) }
+        }
+        if !mode.isScript && mode != .data {
+            if !path.isEmpty { o["path"] = .string(path) }
+            if !script.isEmpty { o["script"] = .string(script) }
+        }
+        return .object(o)
+    }
+
+    /// The first meaningful line of the script, or the data path.
+    public var summary: String {
+        if mode == .data || mode == .yq { return path.isEmpty ? "（パス未設定）" : path }
+        if let file = extra["file"] { return "file: \(file.stringValue ?? file["url"]?.stringValue ?? file.jsonText)" }
+        let line = script.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty && !$0.hasPrefix("#!") && !$0.hasPrefix("set -") }
+        return line ?? "（空のスクリプト）"
     }
 
     public static func == (a: Self, b: Self) -> Bool { a.json == b.json }

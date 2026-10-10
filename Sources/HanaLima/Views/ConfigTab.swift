@@ -54,12 +54,8 @@ struct ConfigTab: View {
                             .disabled(isLocked)
                     }
                 case .yaml:
-                    TextEditor(text: $yamlDraft)
-                        .font(.body.monospaced())
-                        .autocorrectionDisabled()
-                        .scrollContentBackground(.hidden)
+                    CodeEditor(text: $yamlDraft, isEditable: !isLocked)
                         .padding(8)
-                        .disabled(isLocked)
                 }
             }
             Divider()
@@ -189,6 +185,7 @@ private struct ConfigForm: View {
             MountSection(mounts: $config.mounts)
             PortForwardSection(portForwards: $config.portForwards)
             DiskSection(disks: $config.additionalDisks)
+            ProvisionSection(provision: $config.provision)
         }
         .formStyle(.grouped)
     }
