@@ -22,6 +22,8 @@ Published by GitHub Pages at **https://izawa.github.io/HanaLima/**
 - Keep claims factual and dated where it matters (e.g. "tested on macOS 27.0.1"). Link to `docs/` on `main` for details.
 - Keep the "unofficial project" notice.
 
+- **Bump the `?v=` on the stylesheet and script links in `index.html` whenever `site.css` or `site.js` changes.** GitHub Pages lets browsers cache them for 10 minutes, so new HTML could otherwise be drawn with the old CSS (the figures would render as black boxes).
+
 ## Growing the site with the app
 
 When a feature ships on `main`:
