@@ -20,7 +20,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 
 - **VM list and lifecycle**: create from Lima's templates — grouped by distribution with readable names such as “Ubuntu 24.04 LTS” — then start, stop, restart and delete, with live status from `limactl watch` and image download progress (percent, speed and time left).
 - **Console**: a terminal (`limactl shell`) inside the app that waits until the VM is actually ready.
-- **Settings editor**: CPUs, memory, disk size, NICs, shared folders and port forwards through a form, or the full `lima.yaml` with Lima's validation. Only the fields you change are written back.
+- **Settings editor**: CPUs, memory, disk size, NICs, shared folders and port forwards through a form, or the full `lima.yaml` with Lima's validation. Only the fields you change are written back. While a VM runs, its settings stay viewable (read-only), provisioning scripts included.
 - **Additional disks**: create, resize, delete and attach (`limactl disk`).
 - **Storage usage**: where Lima keeps VMs, disks and downloaded images, the space each actually uses, and cleanup of the image cache (`limactl prune`).
 - **Virtual networks without root**: NAT and host-only networks with your own subnet and DHCP reservations (fixed IPs), and **bridged** networks to a host interface (e.g. `en0`), served by a small helper (`hanalima-netd`) on macOS 26 vmnet. No `sudo` and no socket_vmnet needed.
