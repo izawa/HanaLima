@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="Resources/AppIcon/AppIcon-1024.png" width="160" alt="HanaLima icon: a plumeria with five petals">
+</p>
+
 # HanaLima
 
 A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root.
 
 **Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
+
+*Hana lima* is Hawaiian for "handmade" — *hana*, to make; *lima*, hand (and five). The icon is a plumeria, Hawaii's five-petaled flower, whose petals are VMs you build by hand around one network.
 
 > [!IMPORTANT]
 > **HanaLima is an unofficial, independent project.** It is not affiliated with, endorsed by, or supported by the Lima project or the Cloud Native Computing Foundation (CNCF). "Lima" is used only to describe what this app works with. Please report HanaLima problems here, not to the Lima project.

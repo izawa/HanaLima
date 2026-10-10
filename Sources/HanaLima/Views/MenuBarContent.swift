@@ -99,7 +99,7 @@ struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Image(systemName: "server.rack")
+        Image(nsImage: MenuBarIcon.image)
             .task {
                 // If the app last quit with its window closed, window restoration brings back
                 // "no window" (and .defaultLaunchBehavior doesn't override that), leaving only

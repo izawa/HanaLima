@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="Resources/AppIcon/AppIcon-1024.png" width="160" alt="HanaLima icon: a plumeria with five petals">
+</p>
+
 # HanaLima
 
 [Lima](https://lima-vm.io/) の仮想マシンを、GUI でかんたんに作成・運用できる macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作できます。仮想 NAT、ホストオンリー、ブリッジのネットワークも、管理者権限なしで作れます。
 
 **Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
+
+*Hana lima* はハワイ語で「手作り」（*hana*＝作る、*lima*＝手。*lima* には「5」の意味も）。アイコンは、ハワイを象徴する 5 弁の花・プルメリアです。花びらの一枚一枚が、ひとつのネットワークのまわりに手で組み上げていく VM を表しています。
 
 > [!IMPORTANT]
 > **HanaLima は非公式の個人プロジェクトです。** Lima プロジェクトおよび Cloud Native Computing Foundation (CNCF) とは関係がなく、公認も支援も受けていません。「Lima」の名前は、このアプリが扱う対象を説明するためだけに使っています。HanaLima の問題は、Lima プロジェクトではなく、このリポジトリに報告してください。
