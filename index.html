@@ -410,7 +410,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
       <div class="card reveal"><span class="status done">v0.1</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
         <h3><span class="en">Create &amp; run</span><span class="ja">作成と運用</span></h3>
-        <p><span class="en">Templates, CPUs, memory, disk, VZ or QEMU. Live state via <code>limactl watch</code>, with image download progress.</span><span class="ja">テンプレート、CPU、メモリ、ディスク、VZ／QEMU を選んで作成。<code>limactl watch</code> で状態をリアルタイム表示、ダウンロードの進捗も。</span></p>
+        <p><span class="en">Pick from all of Lima's templates, grouped by distribution with readable names — “Ubuntu 24.04 LTS”, “Debian (Latest: 13)”. Then CPUs, memory, disk, VZ or QEMU. Live state via <code>limactl watch</code>, with image download progress.</span><span class="ja">Lima のテンプレートを、ディストリビューションごとに「Ubuntu 24.04 LTS」「Debian（最新: 13）」のような名前で選べます。CPU、メモリ、ディスク、VZ／QEMU も選んで作成。<code>limactl watch</code> で状態をリアルタイム表示、ダウンロードの進捗も。</span></p>
       </div>
       <div class="card reveal"><span class="status done">v0.1</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
@@ -471,7 +471,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
       <ol class="steps">
         <li><div><strong><span class="en">Install Lima</span><span class="ja">Lima を入れる</span></strong><p><span class="en">Plus the extra guest agents for non-native architectures.</span><span class="ja">別アーキテクチャ用の追加ゲストエージェントも一緒に。</span></p></div></li>
         <li><div><strong><span class="en">Build the app</span><span class="ja">アプリをビルド</span></strong><p><span class="en">The script builds a release, signs the network helper with the virtualization entitlement, signs the app ad hoc for your Mac, installs it into <code>/Applications</code> and opens it. Run it again to update.</span><span class="ja">スクリプトがリリースビルドを作り、ネットワークのヘルパーに仮想化の entitlement を付けて署名し、アプリをこの Mac 用に ad-hoc 署名して、<code>/Applications</code> に入れて起動します。更新するときも同じコマンドです。</span></p></div></li>
-        <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ New VM in the sidebar → pick a template → Create. The first start downloads the image.</span><span class="ja">サイドバーの ＋ 新規仮想マシン → テンプレートを選んで作成。最初の起動でイメージをダウンロードします。</span></p></div></li>
+        <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ New VM in the sidebar → pick a template (e.g. Ubuntu 24.04 LTS) → Create. The first start downloads the image.</span><span class="ja">サイドバーの ＋ 新規仮想マシン → テンプレート（例: Ubuntu 24.04 LTS）を選んで作成。最初の起動でイメージをダウンロードします。</span></p></div></li>
         <li><div><strong><span class="en">Add a bridged network</span><span class="ja">ブリッジのネットワークを追加</span></strong><p><span class="en">Networks → ＋ → Bridge → en0. Then Add NIC in the VM's Settings tab. No password prompt.</span><span class="ja">ネットワーク → ＋ → ブリッジ → en0。VM の設定タブの「NIC を追加」で選びます。パスワードは聞かれません。</span></p></div></li>
       </ol>
       <div class="copyable">
