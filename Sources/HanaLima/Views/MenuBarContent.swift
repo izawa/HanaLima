@@ -77,7 +77,12 @@ struct MenuBarContent: View {
     }
 
     private func statusText(_ instance: LimaInstance) -> String {
-        if let op = model.operations[instance.name], op.isRunning { return op.kind.progressLabel }
+        if let op = model.operations[instance.name], op.isRunning {
+            if let percent = op.download?.percent {
+                return String(localized: "\(op.kind.progressLabel) · ダウンロード \(percent)%")
+            }
+            return op.kind.progressLabel
+        }
         if instance.isRunning && !model.isReady(instance.name) { return String(localized: "起動処理中") }
         return instance.status.label
     }

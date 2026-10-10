@@ -6,6 +6,18 @@ enum Formatting {
         guard let value, value > 0 else { return "—" }
         return ByteCountFormatter.string(fromByteCount: value, countStyle: .memory)
     }
+
+    /// A rough time left: seconds under a minute (by 5), minutes under an hour, then hours and minutes.
+    static func remaining(_ seconds: Double) -> String {
+        let style = Duration.UnitsFormatStyle(allowedUnits: [.hours, .minutes, .seconds], width: .abbreviated,
+                                              maximumUnitCount: 2)
+        let rounded: Double = switch seconds {
+        case ..<60: max(5, (seconds / 5).rounded(.up) * 5)
+        case ..<3600: (seconds / 60).rounded(.up) * 60
+        default: (seconds / 300).rounded(.up) * 300
+        }
+        return Duration.seconds(rounded).formatted(style)
+    }
 }
 
 extension InstanceStatus {

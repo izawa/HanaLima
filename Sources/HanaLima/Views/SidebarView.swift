@@ -90,7 +90,12 @@ private struct SidebarRow: View {
     }
 
     private func subtitle(_ instance: LimaInstance?) -> String {
-        if let op = model.operations[name], op.isRunning { return op.kind.progressLabel + "…" }
+        if let op = model.operations[name], op.isRunning {
+            if let percent = op.download?.percent {
+                return String(localized: "\(op.kind.progressLabel) · ダウンロード \(percent)%")
+            }
+            return op.kind.progressLabel + "…"
+        }
         guard let instance else { return String(localized: "作成中…") }
         var parts = [instance.status.label]
         if let vm = instance.vmType { parts.append(vm.uppercased()) }

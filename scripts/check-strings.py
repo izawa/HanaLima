@@ -68,8 +68,9 @@ def pattern(text):
         if body.startswith("\\n", i): out += "\n"; i += 2; continue
         if body.startswith("\\r", i): out += "\r"; i += 2; continue
         if body.startswith('\\"', i): out += '"'; i += 2; continue
-        out += re.escape(body[i]); i += 1
-    return re.compile(out.replace("%", "%%").replace("%%(?:", "%(?:") + "$") if False else re.compile(out + "$")
+        # A literal % is written %% in the key.
+        out += "%%" if body[i] == "%" else re.escape(body[i]); i += 1
+    return re.compile(out + "$")
 
 problems = 0
 for f in sorted(glob.glob("Sources/**/*.swift", recursive=True)):

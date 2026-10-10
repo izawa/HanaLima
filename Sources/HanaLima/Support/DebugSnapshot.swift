@@ -10,7 +10,8 @@ import LimaKit
 /// (open the create sheet first), `HANALIMA_SNAPSHOT_TAB=<tab name>` (select a detail tab),
 /// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|<instance>` (sidebar selection),
 /// `HANALIMA_SNAPSHOT_ABOUT=1` (open the About panel),
-/// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it).
+/// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it),
+/// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it).
 @MainActor
 enum DebugSnapshot {
     static var env: [String: String] { ProcessInfo.processInfo.environment }

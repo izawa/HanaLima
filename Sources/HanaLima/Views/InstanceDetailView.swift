@@ -162,16 +162,26 @@ private struct DownloadProgressView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            if let fraction = progress.fraction {
-                ProgressView(value: fraction).frame(width: 160)
+                .help(progress.remote.absoluteString)
+                .layoutPriority(-1)  // the file name gives way first, the numbers stay whole
+            if let fraction = progress.fraction, let percent = progress.percent {
+                ProgressView(value: fraction).frame(width: 140)
+                Text(verbatim: "\(percent)%").monospacedDigit().fontWeight(.medium)
             }
-            Text(sizeText).monospacedDigit().foregroundStyle(.secondary)
+            Text(detailText).monospacedDigit().foregroundStyle(.secondary).lineLimit(1).fixedSize()
         }
     }
 
-    private var sizeText: String {
-        let received = Formatting.bytes(progress.received)
-        guard let total = progress.total else { return received }
-        return "\(received) / \(Formatting.bytes(total))"
+    /// "412 MB / 902 MB · 11.8 MB/秒 · 残り 約 42 秒"
+    private var detailText: String {
+        var parts = [Formatting.bytes(progress.received)]
+        if let total = progress.total { parts[0] += " / " + Formatting.bytes(total) }
+        if let speed = progress.bytesPerSecond, speed > 0 {
+            parts.append(String(localized: "\(Formatting.bytes(Int64(speed)))/秒"))
+        }
+        if let seconds = progress.secondsRemaining {
+            parts.append(String(localized: "残り 約 \(Formatting.remaining(seconds))"))
+        }
+        return parts.joined(separator: " · ")
     }
 }

@@ -168,6 +168,14 @@ final class AppModel {
         #if DEBUG
         // After the networks are loaded, so the conflict check sees them.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
+        // A made-up download in progress, to check the banner and the sidebar without downloading.
+        if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_DOWNLOAD"] {
+            var op = Operation(kind: .create)
+            op.download = DownloadProgress(
+                remote: URL(string: "https://cloud-images.ubuntu.com/releases/resolute/release-20260927/ubuntu-26.04-server-cloudimg-arm64.img")!,
+                received: 412_000_000, total: 945_530_880, bytesPerSecond: 11_800_000)
+            operations[name] = op
+        }
         #endif
         await client.terminateOrphanedWatchers()
         startWatching()

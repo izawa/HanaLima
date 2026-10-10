@@ -281,3 +281,31 @@ import Testing
         #expect(LogFileFollower.stripANSI("\u{1B}[=3h\u{1B}[=3hBdsDxe") == "BdsDxe")
     }
 }
+
+@Suite struct DownloadProgressTests {
+    @Test func percentAndTimeLeft() {
+        let url = URL(string: "https://example.com/os.img")!
+        var p = DownloadProgress(remote: url, received: 450, total: 1000, bytesPerSecond: 50)
+        #expect(p.percent == 45)
+        #expect(p.secondsRemaining == 11)
+        p.received = 999
+        #expect(p.percent == 99)  // never 100 until limactl moves on
+        p.total = nil
+        #expect(p.percent == nil)
+        #expect(p.secondsRemaining == nil)
+    }
+
+    @Test func speedOverSlidingWindow() {
+        var meter = SpeedMeter(window: 8)
+        #expect(meter.add(time: 0, bytes: 0) == nil)
+        #expect(meter.add(time: 1, bytes: 100) == nil)  // under 2 s of samples
+        #expect(meter.add(time: 2, bytes: 200) == 100)
+        #expect(meter.add(time: 10, bytes: 1000) == 100)  // the 0 s sample has left the window
+        #expect(meter.add(time: 11, bytes: 50) == nil)  // a new temp file: start over
+    }
+
+    @Test func contentRangeTotal() {
+        #expect(DownloadMonitor.totalLength(fromContentRange: "bytes 0-0/945530880") == 945530880)
+        #expect(DownloadMonitor.totalLength(fromContentRange: "bytes 0-0/*") == nil)
+    }
+}
