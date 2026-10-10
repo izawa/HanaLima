@@ -243,6 +243,8 @@ td.hl, th.hl { background: color-mix(in srgb, var(--hana) 7%, var(--panel)); }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 @media (max-width: 960px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+/* A card that closes the grid on its own row in the 3-column layout (no orphan). */
+@media (min-width: 961px) { .grid > .card.wide { grid-column: 1 / -1; } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; position: relative; }
 .card .icon { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: var(--hana-soft); color: var(--hana); margin-bottom: 14px; }
 .card .icon svg { width: 20px; height: 20px; }

@@ -404,7 +404,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
   <div class="wrap">
     <div class="kicker">// features</div>
     <h2><span class="en">Everything you'd expect from a VM manager</span><span class="ja">VM 管理ソフトに期待するものを、ひととおり</span></h2>
-    <p class="section-lead"><span class="en">Size the hardware, wire the networks, open a console — all from windows and forms, no YAML required (it's still there when you want it). The UI is in Japanese for now.</span><span class="ja">ハードウェアの割り当ても、ネットワークの配線も、コンソールも、すべてウィンドウとフォームで。YAML を書く必要はありません（書きたいときは書けます）。</span></p>
+    <p class="section-lead"><span class="en">Size the hardware, wire the networks, open a console — all from windows and forms, no YAML required (it's still there when you want it). In English or Japanese, following your Mac's language.</span><span class="ja">ハードウェアの割り当ても、ネットワークの配線も、コンソールも、すべてウィンドウとフォームで。YAML を書く必要はありません（書きたいときは書けます）。表示は Mac の言語設定に合わせて英語か日本語で。</span></p>
     <div class="grid">
       <!-- To add a feature: copy a .card, set status "done" or "next". -->
       <div class="card reveal"><span class="status done">v0.1</span>
@@ -447,7 +447,12 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
         <h3><span class="en">Logs &amp; provisioning</span><span class="ja">ログとプロビジョニング</span></h3>
         <p><span class="en">Follow the host agent log and serial consoles live, with search. Edit the provisioning scripts and data files Lima applies on every boot — in an editor that won't smart-quote your shell script.</span><span class="ja">ホストエージェントのログとシリアルコンソールを、検索しながらリアルタイムに。Lima が起動のたびに適用するスクリプトやファイルも、スマート引用符に化けないエディタで編集。</span></p>
       </div>
-      <div class="card reveal"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
+      <div class="card reveal"><span class="status done">v0.4</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></div>
+        <h3><span class="en">English &amp; Japanese</span><span class="ja">英語と日本語</span></h3>
+        <p><span class="en">The whole UI — menus, sheets, error messages, plurals — in both languages, from a String Catalog. HanaLima follows your Mac's language, or pick one per app in System Settings.</span><span class="ja">メニュー、シート、エラーメッセージ、複数形まで、UI のすべてを両方の言語で（String Catalog）。Mac の言語設定に従います。システム設定で HanaLima だけ別の言語にもできます。</span></p>
+      </div>
+      <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
         <p><span class="en">Developer ID signing, notarization and auto-update — once enough people use HanaLima. Until then, one command builds it and installs it into <code>/Applications</code>.</span><span class="ja">Developer ID の署名、公証、自動アップデート。使う人が増えたら取り組みます。それまでは、コマンド 1 つでビルドして <code>/Applications</code> に入れられます。</span></p>
@@ -466,8 +471,8 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
       <ol class="steps">
         <li><div><strong><span class="en">Install Lima</span><span class="ja">Lima を入れる</span></strong><p><span class="en">Plus the extra guest agents for non-native architectures.</span><span class="ja">別アーキテクチャ用の追加ゲストエージェントも一緒に。</span></p></div></li>
         <li><div><strong><span class="en">Build the app</span><span class="ja">アプリをビルド</span></strong><p><span class="en">The script builds a release, signs the network helper with the virtualization entitlement, signs the app ad hoc for your Mac, installs it into <code>/Applications</code> and opens it. Run it again to update.</span><span class="ja">スクリプトがリリースビルドを作り、ネットワークのヘルパーに仮想化の entitlement を付けて署名し、アプリをこの Mac 用に ad-hoc 署名して、<code>/Applications</code> に入れて起動します。更新するときも同じコマンドです。</span></p></div></li>
-        <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ in the sidebar → pick a template → create. The first start downloads the image.</span><span class="ja">サイドバーの ＋ → テンプレートを選んで作成。最初の起動でイメージをダウンロードします。</span></p></div></li>
-        <li><div><strong><span class="en">Add a bridged network</span><span class="ja">ブリッジのネットワークを追加</span></strong><p><span class="en">Networks → ＋ → Bridge → en0. Then add a NIC for it in the VM's Settings → Network. No password prompt.</span><span class="ja">ネットワーク → ＋ → ブリッジ → en0。VM の設定 → ネットワークで NIC を追加します。パスワードは聞かれません。</span></p></div></li>
+        <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ New VM in the sidebar → pick a template → Create. The first start downloads the image.</span><span class="ja">サイドバーの ＋ 新規仮想マシン → テンプレートを選んで作成。最初の起動でイメージをダウンロードします。</span></p></div></li>
+        <li><div><strong><span class="en">Add a bridged network</span><span class="ja">ブリッジのネットワークを追加</span></strong><p><span class="en">Networks → ＋ → Bridge → en0. Then Add NIC in the VM's Settings tab. No password prompt.</span><span class="ja">ネットワーク → ＋ → ブリッジ → en0。VM の設定タブの「NIC を追加」で選びます。パスワードは聞かれません。</span></p></div></li>
       </ol>
       <div class="copyable">
 <pre class="code" id="qs-code"><span class="c"># 1. Lima</span>
@@ -500,9 +505,9 @@ scripts/make-app.sh --install --open</pre>
       <div class="milestone done"><div class="bar"></div><h3>v0.3</h3>
         <ul><li><span class="en">Rootless NAT / host-only</span><span class="ja">root 不要の NAT／ホストオンリー</span></li><li><span class="en">Fixed IPs</span><span class="ja">固定 IP</span></li><li><span class="en">Rootless bridge</span><span class="ja">root 不要のブリッジ</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.4</h3>
-        <ul><li><span class="en">Snapshots (QEMU)</span><span class="ja">スナップショット（QEMU）</span></li><li><span class="en">Screen thumbnails</span><span class="ja">画面のサムネイル</span></li><li><span class="en">Log viewer, provisioning</span><span class="ja">ログビューア、プロビジョニング</span></li></ul></div>
+        <ul><li><span class="en">Snapshots (QEMU)</span><span class="ja">スナップショット（QEMU）</span></li><li><span class="en">Screen thumbnails</span><span class="ja">画面のサムネイル</span></li><li><span class="en">Log viewer, provisioning</span><span class="ja">ログビューア、プロビジョニング</span></li><li><span class="en">English UI</span><span class="ja">英語 UI</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
-        <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">English UI</span><span class="ja">英語 UI</span></li></ul></div>
+        <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
   </div>
 </section>

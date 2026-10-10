@@ -26,7 +26,7 @@ Published by GitHub Pages at **https://izawa.github.io/HanaLima/**
 
 When a feature ships on `main`:
 
-1. **Features** (`#features`): copy a `.card`, set its badge to the version (`<span class="status done">v0.4</span>`), or add a planned one with `class="status next"`.
+1. **Features** (`#features`): copy a `.card`, set its badge to the version (`<span class="status done">v0.4</span>`), or add a planned one with `class="status next"`. Keep the grid free of a lone card in the last row: with 3 columns, a closing card can take the full row with `class="card reveal wide"`.
 2. **Roadmap** (`#roadmap`): change the milestone's class from `next` to `done`, and mark the following one `next`. Postponed work uses `later` (cards: `class="status later"`).
 3. **How it works** (`#how`): if the feature relies on a non-obvious technique, add an `article.dive` with the next number — a short explanation on the left, a code snippet on the right.
 4. **Battle scars** (`#scars`): add a `.scar` for any platform bug you hit and how the app avoids it.
