@@ -52,6 +52,7 @@ struct Operation: Sendable {
 enum SidebarItem: Hashable {
     case instance(String)
     case disks
+    case storage
     case networks
 
     var instanceName: String? {
@@ -98,6 +99,10 @@ final class AppModel {
     var dhcpLeases: [DHCPLease] = []
     /// True while a `limactl disk` command runs.
     private(set) var isDiskBusy = false
+    /// Space used by Lima's data and download cache (the Storage view measures it on demand).
+    var storage: StorageReport?
+    var isMeasuringStorage = false
+    var isPruningCache = false
     /// Running instances whose boot has finished (SSH and guest agent are up). `limactl list`
     /// says Running as soon as the VM boots, so readiness comes from the watch `running` event
     /// or from `limactl start` returning.

@@ -28,6 +28,8 @@ struct ContentView: View {
                             .id(name)
                     case .disks:
                         DiskListView()
+                    case .storage:
+                        StorageView()
                     case .networks:
                         NetworkListView()
                     case nil:

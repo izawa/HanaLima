@@ -8,7 +8,7 @@ import LimaKit
 ///
 /// Optional: `HANALIMA_SNAPSHOT_DELAY` (seconds, default 4), `HANALIMA_SNAPSHOT_CREATE=1`
 /// (open the create sheet first), `HANALIMA_SNAPSHOT_TAB=<tab name>` (select a detail tab),
-/// `HANALIMA_SNAPSHOT_SELECT=disks|networks|<instance>` (sidebar selection),
+/// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|<instance>` (sidebar selection),
 /// `HANALIMA_SNAPSHOT_ABOUT=1` (open the About panel),
 /// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it).
 @MainActor
@@ -20,6 +20,7 @@ enum DebugSnapshot {
         guard let s = env["HANALIMA_SNAPSHOT_SELECT"] else { return nil }
         switch s {
         case "disks": return .disks
+        case "storage": return .storage
         case "networks": return .networks
         default: return .instance(s)
         }

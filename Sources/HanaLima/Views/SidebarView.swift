@@ -28,6 +28,8 @@ struct SidebarView: View {
                     Image(systemName: "externaldrive")
                 }
                 .tag(SidebarItem.disks)
+                Label("使用量", systemImage: "chart.pie")
+                    .tag(SidebarItem.storage)
             }
             Section("ネットワーク") {
                 Label {

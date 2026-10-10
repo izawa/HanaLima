@@ -71,6 +71,20 @@ public struct LimaClient: Sendable {
         }
     }
 
+    /// `LIMA_HOME`: where Lima keeps instances and disks (`~/.lima` unless overridden).
+    public func limaHome() async throws -> URL {
+        struct Info: Decodable { var limaHome: String }
+        let out = try await runner.run(["info"])
+        return URL(filePath: try JSONDecoder().decode(Info.self, from: out.stdout).limaHome, directoryHint: .isDirectory)
+    }
+
+    /// `limactl prune`: deletes Lima's download cache. With `keepReferred`, keeps the files that an
+    /// instance or a template still points to (so only images left behind by Lima updates go).
+    /// Instances don't depend on the cache; a deleted image is downloaded again when needed.
+    public func prune(keepReferred: Bool) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["prune", "--tty=false"] + (keepReferred ? ["--keep-referred"] : []))
+    }
+
     /// Reads the instance's `lima.yaml` as written by `limactl create`.
     public func configYAML(of instance: LimaInstance) throws -> String {
         try String(contentsOf: instance.configURL, encoding: .utf8)

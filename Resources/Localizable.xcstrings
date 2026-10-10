@@ -1021,6 +1021,22 @@
         }
       }
     },
+    "Lima の設定など": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima Settings and Other"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の設定など"
+          }
+        }
+      }
+    },
     "Lima をインストールしてください。": {
       "localizations": {
         "en": {
@@ -1201,6 +1217,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "NIC を追加"
+          }
+        }
+      }
+    },
+    "OS のイメージなどは、最初に使うときにここへダウンロードされ、次からは再利用されます。削除しても仮想マシンには影響しません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS images and other files are downloaded here the first time they're needed, then reused. Deleting them doesn't affect your virtual machines."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS のイメージなどは、最初に使うときにここへダウンロードされ、次からは再利用されます。削除しても仮想マシンには影響しません。"
           }
         }
       }
@@ -2392,6 +2424,22 @@
         }
       }
     },
+    "すべて削除…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete All…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて削除…"
+          }
+        }
+      }
+    },
     "その他": {
       "localizations": {
         "en": {
@@ -2628,6 +2676,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "オプション"
+          }
+        }
+      }
+    },
+    "キャッシュを削除できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Delete the Cache"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャッシュを削除できませんでした"
           }
         }
       }
@@ -3380,6 +3444,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "タグ"
+          }
+        }
+      }
+    },
+    "ダウンロードしたイメージはありません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No downloaded images"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたイメージはありません"
+          }
+        }
+      }
+    },
+    "ダウンロードしたイメージをすべて削除しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete all downloaded images?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたイメージをすべて削除しますか？"
+          }
+        }
+      }
+    },
+    "ダウンロードしたイメージ（キャッシュ）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded Images (Cache)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたイメージ（キャッシュ）"
           }
         }
       }
@@ -4664,6 +4776,38 @@
         }
       }
     },
+    "仮想マシンとディスク": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual Machines and Disks"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンとディスク"
+          }
+        }
+      }
+    },
+    "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。保存先は Lima の LIMA_HOME で決まります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual machine disks are sparse files, so the sizes shown are the space actually used. The location is set by Lima's LIMA_HOME."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。保存先は Lima の LIMA_HOME で決まります。"
+          }
+        }
+      }
+    },
     "仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。": {
       "localizations": {
         "en": {
@@ -4676,6 +4820,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "仮想マシンの作成や起動が終わるまで、キャッシュは削除できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cache can't be deleted while a virtual machine is being created or started."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの作成や起動が終わるまで、キャッシュは削除できません。"
           }
         }
       }
@@ -4712,6 +4872,22 @@
         }
       }
     },
+    "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your virtual machines keep working. Images are downloaded again the next time you create a virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。"
+          }
+        }
+      }
+    },
     "仮想マシンは停止しています": {
       "localizations": {
         "en": {
@@ -4724,6 +4900,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンは停止しています"
+          }
+        }
+      }
+    },
+    "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only files that no virtual machine or template refers to are deleted, such as images left behind by Lima updates."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。"
           }
         }
       }
@@ -4884,6 +5076,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "使えるテンプレート変数: {{.Home}}  {{.Name}}  {{.Hostname}}  {{.UID}}  {{.User}}  {{.Param.キー}}"
+          }
+        }
+      }
+    },
+    "使われていないイメージを削除…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Unused Images…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使われていないイメージを削除…"
+          }
+        }
+      }
+    },
+    "使われていないイメージを削除しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete unused images?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使われていないイメージを削除しますか？"
+          }
+        }
+      }
+    },
+    "使用量": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用量"
           }
         }
       }
@@ -5144,6 +5384,22 @@
         }
       }
     },
+    "再計算": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recalculate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再計算"
+          }
+        }
+      }
+    },
     "再読み込み": {
       "localizations": {
         "en": {
@@ -5300,6 +5556,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "取り外す"
+          }
+        }
+      }
+    },
+    "合計 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ total"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合計 %@"
           }
         }
       }
@@ -5480,6 +5752,22 @@
         }
       }
     },
+    "場所": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "場所"
+          }
+        }
+      }
+    },
     "変更": {
       "localizations": {
         "en": {
@@ -5572,6 +5860,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "実行中の「%@」を強制停止して削除しますか？"
+          }
+        }
+      }
+    },
+    "容量を計算しています…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calculating sizes…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "容量を計算しています…"
           }
         }
       }

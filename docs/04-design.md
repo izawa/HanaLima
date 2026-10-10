@@ -22,6 +22,7 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 - **ログイン時の自動起動は Lima の `limactl autostart` に任せる。** 登録の有無は `~/Library/LaunchAgents/io.lima-vm.autostart.<名前>.plist` があるかで判定する（Lima 自身の判定と同じ）。登録した VM の `limactl start`/`stop` は Lima が launchd 経由で行うので、アプリ側の分岐は不要。
 - **メイン画面は単一の `Window`、メニューバーは `MenuBarExtra`。** メニューバーに表示している間は、ウィンドウを閉じてもアプリは終了しない。メニューバーから開く操作（コンソール、新規作成）は、モデルの `consoleRequest`/`createRequested` を通して画面に伝える。
 - **テンプレートの一覧は Lima から取り、表示名とグループは名前から作る**（`TemplateCatalog`）。一覧は `limactl info` の `templates`（`--list-templates` と同じ名前に、ファイルの場所が付く）。`ubuntu-24.04` → 「Ubuntu 24.04 LTS」（LTS は偶数年の .04）のように名前から組み立てるので、Lima の更新で版が増えてもそのまま並ぶ。`ubuntu`・`ubuntu-lts`・`debian`・`default` など最新版を指すテンプレートは、YAML の `base: - template:_images/<名前>` をたどって今の版を表示する（`_images/ubuntu` のような版なしの画像は、中身が同じ `_images/ubuntu-26.04.yaml` を探す）。知らない名前は「その他」に元の名前で出る。
+- **使用量の画面は、`LIMA_HOME`（`limactl info` の `limaHome`）とダウンロードのキャッシュ（`~/Library/Caches/lima`、macOS では場所を変えられない）を、ファイルの実際の使用量（`du` と同じ）で集計する。** VM のディスクはスパースなので、名目のサイズは使わない。キャッシュの 1 項目には、ダウンロードしたファイル（`data`）と VZ 用に変換した `imgconv/raw` が含まれる。削除は `limactl prune`（使われていないものだけなら `--keep-referred`）で行い、VM の作成・起動中はダウンロードと重なるので押せない。保存先の変更（`LIMA_HOME`）は、すべての `limactl` 呼び出しと自動起動の登録に関わるので、まだ扱わない。
 - **`limactl watch` は app の終了時に止める**（`ProcessRunner.terminateBackgroundProcesses`）。強制終了で残ったものは次回起動時に片付ける。
 - **ネットワークは 3 系統。**
   1. HanaLima 仮想ネットワーク（NAT／ホストオンリー: サブネット指定、DHCP 予約。ブリッジ: 接続先インターフェースを指定）: root 不要。
