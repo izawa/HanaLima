@@ -59,7 +59,10 @@ struct LogTab: View {
             controls
             Divider()
             LogLinesView(lines: filtered(lines), emptyText: emptyText, showsDate: source != .serial)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // Keep the controls at the top when the list is empty (the empty-state view doesn't stretch).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: fileURL) {
             guard let fileURL else { return }
             await followed.follow(fileURL, parse: source == .hostAgent ? Self.hostAgentLine : Self.serialLine)
@@ -142,7 +145,9 @@ struct LogTab: View {
         case .operation: return "このセッションで実行したコマンドはまだありません。"
         case .events: return "イベントはまだありません。"
         case .hostAgent: return "ホストエージェントのログはまだありません。"
-        case .serial: return serialFiles.isEmpty ? "シリアルコンソールのログはありません。" : "シリアルコンソールの出力はまだありません。"
+        case .serial:
+            guard let file = fileURL?.lastPathComponent else { return "シリアルコンソールのログはありません。" }
+            return "\(file) は空です。ゲストによっては、このコンソールに何も出力しません。"
         }
     }
 
