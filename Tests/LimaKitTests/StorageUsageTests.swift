@@ -30,3 +30,21 @@ import Testing
         #expect(report.cacheTotal == report.downloads[0].size)
     }
 }
+
+@Suite struct CachedDownloadUsageTests {
+    @Test func classifiesByInstancesThenTemplates() {
+        func item(_ url: String) -> CachedDownload {
+            CachedDownload(directory: URL(filePath: "/c/\(url.hashValue)"), url: url, size: 1, downloaded: nil)
+        }
+        let debian = "https://cloud.debian.org/debian-13-genericcloud-arm64.qcow2"
+        let fedora = "https://download.fedoraproject.org/Fedora-Cloud-Base-Generic-44-1.7.aarch64.qcow2"
+        let nerdctl = "https://github.com/containerd/nerdctl/releases/download/v2.4.1/nerdctl-full-2.4.1-linux-arm64.tar.gz"
+        let result = StorageReport.classify(
+            [item(debian), item(fedora), item(nerdctl)],
+            instanceConfigs: ["fedora": "images:\n- location: \"\(fedora)\"\n", "f2": "location: \(fedora)"],
+            templates: ["images:\n- location: \"\(debian)\"\n", "images:\n- location: \"\(fedora)\"\n"])
+        #expect(result[0].usage == .unused)                 // only a template mentions it
+        #expect(result[1].usage == .usedBy(["f2", "fedora"]))
+        #expect(result[2].usage == .component)              // Lima's own archive
+    }
+}

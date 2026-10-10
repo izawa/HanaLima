@@ -925,6 +925,22 @@
         }
       }
     },
+    "Lima が仮想マシンの起動時に使うファイルです（containerd の nerdctl など）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A file Lima uses when starting virtual machines, such as the nerdctl archive for containerd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima が仮想マシンの起動時に使うファイルです（containerd の nerdctl など）。"
+          }
+        }
+      }
+    },
     "Lima が依存パッケージを導入する前に実行されます。リポジトリの追加などに使います。": {
       "localizations": {
         "en": {
@@ -1065,6 +1081,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima の設定など"
+          }
+        }
+      }
+    },
+    "Lima の部品": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used by Lima"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の部品"
           }
         }
       }
@@ -2484,6 +2516,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "その他"
+          }
+        }
+      }
+    },
+    "どの仮想マシンも使っていないイメージ %lld 個（%@）を削除します。同じテンプレートで仮想マシンを作るときに、ダウンロードし直します。\n\n%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes the downloads no virtual machine uses (%1$lld, %2$@). They're downloaded again when you create a virtual machine from the same template.\n\n%3$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "どの仮想マシンも使っていないイメージ %1$lld 個（%2$@）を削除します。同じテンプレートで仮想マシンを作るときに、ダウンロードし直します。\n\n%3$@"
           }
         }
       }
@@ -4921,6 +4969,7 @@
       }
     },
     "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4932,6 +4981,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。"
+          }
+        }
+      }
+    },
+    "仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your virtual machines keep working. Files are downloaded again the next time you create a virtual machine, or when a component such as containerd is needed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。"
           }
         }
       }
@@ -4953,6 +5018,7 @@
       }
     },
     "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5156,6 +5222,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "使われていないイメージを削除しますか？"
+          }
+        }
+      }
+    },
+    "使用中: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In use: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中: %@"
           }
         }
       }
@@ -6384,6 +6466,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "未インストール"
+          }
+        }
+      }
+    },
+    "未使用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unused"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未使用"
           }
         }
       }

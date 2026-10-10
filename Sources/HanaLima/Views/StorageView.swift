@@ -37,13 +37,16 @@ struct StorageView: View {
         .confirmationDialog(pruning == .all ? "ダウンロードしたイメージをすべて削除しますか？" : "使われていないイメージを削除しますか？",
                             isPresented: Binding(get: { pruning != nil }, set: { if !$0 { pruning = nil } })) {
             Button("削除", role: .destructive) {
-                let keep = pruning == .unreferred
-                Task { await model.pruneCache(keepReferred: keep) }
+                let all = pruning == .all
+                Task { all ? await model.pruneCache() : await model.deleteUnusedDownloads() }
             }
         } message: {
-            Text(pruning == .all
-                 ? "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。"
-                 : "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。")
+            if pruning == .all {
+                Text("仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。")
+            } else {
+                let unused = model.storage?.unusedDownloads ?? []
+                Text("どの仮想マシンも使っていないイメージ \(unused.count) 個（\(Formatting.bytes(unused.reduce(0) { $0 + $1.size }))）を削除します。同じテンプレートで仮想マシンを作るときに、ダウンロードし直します。\n\n\(unused.map(\.fileName).joined(separator: "\n"))")
+            }
         }
     }
 
@@ -96,17 +99,22 @@ struct StorageView: View {
                         Text(verbatim: item.fileName)
                             .lineLimit(1).truncationMode(.middle)
                             .help(item.url)
-                        if let date = item.downloaded {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        HStack(spacing: 6) {
+                            UsageBadge(usage: item.usage)
+                            if let date = item.downloaded {
+                                Text(date, format: .dateTime.year().month().day().hour().minute())
+                            }
                         }
                     }
                 }
                 HStack {
                     Spacer()
                     Button("使われていないイメージを削除…") { pruning = .unreferred }
+                        .disabled(report.unusedDownloads.isEmpty)
                     Button("すべて削除…") { pruning = .all }
+                        .disabled(report.downloads.isEmpty)
                 }
-                .disabled(report.downloads.isEmpty || model.isPruningCache || model.isAnyOperationRunning)
+                .disabled(model.isPruningCache || model.isAnyOperationRunning)
             } header: {
                 HStack {
                     Text("ダウンロードしたイメージ（キャッシュ）")
@@ -146,6 +154,23 @@ struct StorageView: View {
         }
         rows.append(Row(title: String(localized: "Lima の設定など"), url: report.limaHome.appending(path: "_config"), size: other))
         return rows
+    }
+}
+
+/// Whether a cached file is still needed: by which VMs, by none, or by Lima itself.
+private struct UsageBadge: View {
+    let usage: CachedDownload.Usage
+
+    var body: some View {
+        switch usage {
+        case .usedBy(let names):
+            Text("使用中: \(names.joined(separator: ", "))").foregroundStyle(.green)
+        case .unused:
+            Text("未使用").foregroundStyle(.orange)
+        case .component:
+            Text("Lima の部品").foregroundStyle(.secondary)
+                .help("Lima が仮想マシンの起動時に使うファイルです（containerd の nerdctl など）。")
+        }
     }
 }
 

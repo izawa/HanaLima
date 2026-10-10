@@ -12,6 +12,19 @@ public struct CachedDownload: Identifiable, Hashable, Sendable {
     /// Space used on disk by the whole entry (download plus converted copy).
     public var size: Int64
     public var downloaded: Date?
+    public var usage: Usage = .component
+
+    /// Who needs this file. `limactl prune --keep-referred` also keeps everything a template
+    /// mentions, which is nearly every image, so HanaLima decides "unused" itself.
+    public enum Usage: Hashable, Sendable {
+        /// Named in these instances' lima.yaml (their disks were made from it).
+        case usedBy([String])
+        /// Only a template mentions it: no VM needs it; a new VM would download it again.
+        case unused
+        /// Neither: something Lima adds on its own, such as the nerdctl archive copied into
+        /// each VM's cidata at every start. Kept.
+        case component
+    }
 
     public var fileName: String {
         URL(string: url)?.lastPathComponent ?? url
@@ -38,8 +51,12 @@ public struct StorageReport: Sendable {
     public var limaTotal: Int64 { limaItems.reduce(0) { $0 + $1.size } }
     public var cacheTotal: Int64 { downloads.reduce(0) { $0 + $1.size } }
 
+    public var unusedDownloads: [CachedDownload] { downloads.filter { $0.usage == .unused } }
+
     /// Measures both locations. Reads every file's allocated size, so call it off the main actor.
-    public static func measure(limaHome: URL, cacheRoot: URL = DownloadMonitor.cacheRoot) -> StorageReport {
+    /// `templatesDirectory` (Lima's `share/lima/templates`) tells templates' images from Lima's own files.
+    public static func measure(limaHome: URL, templatesDirectory: URL? = nil,
+                               cacheRoot: URL = DownloadMonitor.cacheRoot) -> StorageReport {
         let fm = FileManager.default
         let children = (try? fm.contentsOfDirectory(at: limaHome, includingPropertiesForKeys: [.isDirectoryKey],
                                                     options: [.skipsHiddenFiles])) ?? []
@@ -47,8 +64,39 @@ public struct StorageReport: Sendable {
             .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
             .map { Item(name: $0.lastPathComponent, url: $0, size: allocatedSize(of: $0)) }
             .sorted { $0.size > $1.size }
-        return StorageReport(limaHome: limaHome, limaItems: items, cacheRoot: cacheRoot,
-                             downloads: cachedDownloads(cacheRoot: cacheRoot))
+        let instanceConfigs: [String: String] = Dictionary(uniqueKeysWithValues: items
+            .filter { !$0.name.hasPrefix("_") }
+            .compactMap { item in
+                (try? String(contentsOf: item.url.appending(path: "lima.yaml"), encoding: .utf8)).map { (item.name, $0) }
+            })
+        let downloads = classify(cachedDownloads(cacheRoot: cacheRoot), instanceConfigs: instanceConfigs,
+                                 templates: templatesDirectory.map(yamlTexts(in:)) ?? [])
+        return StorageReport(limaHome: limaHome, limaItems: items, cacheRoot: cacheRoot, downloads: downloads)
+    }
+
+    static func classify(_ downloads: [CachedDownload], instanceConfigs: [String: String],
+                         templates: [String]) -> [CachedDownload] {
+        downloads.map { item in
+            var item = item
+            let users = instanceConfigs.filter { $0.value.contains(item.url) }.keys.sorted()
+            if !users.isEmpty {
+                item.usage = .usedBy(users)
+            } else if templates.contains(where: { $0.contains(item.url) }) {
+                item.usage = .unused
+            } else {
+                item.usage = .component
+            }
+            return item
+        }
+    }
+
+    /// Every YAML file under the templates directory (including `_images/`).
+    static func yamlTexts(in directory: URL) -> [String] {
+        let root = directory.resolvingSymlinksInPath()
+        guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { return [] }
+        return enumerator.compactMap { ($0 as? URL)?.resolvingSymlinksInPath() }
+            .filter { $0.pathExtension == "yaml" }
+            .compactMap { try? String(contentsOf: $0, encoding: .utf8) }
     }
 
     public static func cachedDownloads(cacheRoot: URL = DownloadMonitor.cacheRoot) -> [CachedDownload] {
