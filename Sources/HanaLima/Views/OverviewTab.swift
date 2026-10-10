@@ -38,6 +38,17 @@ struct OverviewTab: View {
                 AutostartToggle(name: instance.name, title: "ログイン時に自動で起動")
             }
 
+            if instance.vmType?.lowercased() == "vz",
+               let display = instance.config?["video"]?["display"]?.stringValue, display != "none" {
+                Section("画面") {
+                    if instance.isRunning {
+                        ScreenThumbnail(name: instance.name)
+                    } else {
+                        Text("起動すると、ここに仮想マシンの画面が表示されます。").foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Section("ハードウェア") {
                 LabeledContent("仮想 CPU") { Text(instance.cpus.map { "\($0) コア" } ?? "—") }
                 LabeledContent("メモリ") { Text(Formatting.bytes(instance.memory)) }
@@ -114,6 +125,53 @@ struct CopyableText: View {
             }
             .buttonStyle(.borderless)
             .help("コピー")
+        }
+    }
+}
+
+/// The VM's display, captured with `limactl screenshot` every few seconds while visible.
+struct ScreenThumbnail: View {
+    @Environment(AppModel.self) private var model
+    let name: String
+    @State private var image: NSImage?
+    @State private var error: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 280)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
+            } else if error == nil {
+                ProgressView().frame(maxWidth: .infinity, minHeight: 120)
+            }
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .task(id: name) {
+            while !Task.isCancelled {
+                await capture()
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
+    }
+
+    private func capture() async {
+        guard let client = model.client else { return }
+        do {
+            let data = try await client.screenshot(name)
+            image = NSImage(data: data)
+            error = nil
+        } catch {
+            // The window opens a little after boot, and can be closed by the user.
+            self.error = image == nil
+                ? "画面を取得できません。仮想マシンの画面ウィンドウが開いていることを確認してください。"
+                : "画面を更新できません（画面ウィンドウが閉じられた可能性があります）。"
         }
     }
 }

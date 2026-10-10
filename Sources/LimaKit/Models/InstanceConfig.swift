@@ -10,6 +10,8 @@ public struct InstanceConfig: Hashable, Sendable {
     /// As written in YAML, e.g. "4GiB".
     public var memory: String?
     public var disk: String?
+    /// `video.display`: "none" (headless, Lima's default for VZ), "default" or "vz" (a VM window).
+    public var videoDisplay: String?
     public var networks: [NetworkConfig]
     public var mounts: [MountConfig]
     public var portForwards: [PortForwardConfig]
@@ -41,6 +43,7 @@ public struct InstanceConfig: Hashable, Sendable {
         cpus = effective?["cpus"]?.intValue ?? raw["cpus"]?.intValue
         memory = effective?["memory"]?.stringValue ?? raw["memory"]?.stringValue
         disk = effective?["disk"]?.stringValue ?? raw["disk"]?.stringValue
+        videoDisplay = effective?["video"]?["display"]?.stringValue ?? raw["video"]?["display"]?.stringValue
 
         let nets = list("networks")
         networks = nets.entries.map { NetworkConfig(json: $0, stripDefaults: !nets.fromRaw) }
@@ -59,6 +62,9 @@ public struct InstanceConfig: Hashable, Sendable {
         if cpus != original.cpus, let cpus { exprs.append(".cpus = \(cpus)") }
         if memory != original.memory, let memory { exprs.append(".memory = \(JSONValue.string(memory).jsonText)") }
         if disk != original.disk, let disk { exprs.append(".disk = \(JSONValue.string(disk).jsonText)") }
+        if videoDisplay != original.videoDisplay, let videoDisplay {
+            exprs.append(".video.display = \(JSONValue.string(videoDisplay).jsonText)")
+        }
         func list(_ key: String, _ new: [JSONValue], _ old: [JSONValue]) {
             guard new != old else { return }
             exprs.append(".\(key) = \(JSONValue.array(new).jsonText)")

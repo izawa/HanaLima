@@ -20,6 +20,10 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **socket_vmnet setup** (optional, the classic way): installs the official release and the Lima sudoers file with a single administrator prompt.
 - **Menu bar item**: every VM with its state, start/stop, and quick access to the console. HanaLima keeps running in the menu bar when the window is closed.
 - **Start at login**: per-VM switch using `limactl autostart`.
+- **Snapshots** (QEMU VMs): save, restore and delete disk snapshots while the VM is stopped.
+- **Screen thumbnails** (VZ VMs with a display): a live view of the VM's screen on the overview.
+- **Logs**: the host agent log and serial consoles, followed live, with search.
+- **Provisioning**: edit the scripts and data files Lima applies on every boot.
 
 ## Requirements
 
@@ -85,7 +89,7 @@ Lima's own files (`~/.lima`, and `~/Library/LaunchAgents/io.lima-vm.autostart.<n
 ## Known issues
 
 - macOS 27.0.1's vmnet has bugs that HanaLima works around. In particular, reusing a vmnet network after its interface stopped can take over a bridged interface's `bridge100` and remove the Mac's own IPv4 address (reported to Apple as FB25122122). HanaLima never reuses networks, but other virtualization tools running at the same time might. If your Mac loses its IPv4 address, renew DHCP in System Settings (or run `sudo ipconfig set en0 DHCP`) or restart. Details: [docs/02-networking-investigation.md](docs/02-networking-investigation.md).
-- Snapshots, VM screen thumbnails and provisioning script editing are not implemented yet.
+- Lima 2.2 limits two features: snapshots work only for QEMU VMs (HanaLima operates on them while the VM is stopped, because live snapshots fail silently with 9p shares), and screenshots only for VZ VMs with a display whose window is open.
 - Bridging to Wi-Fi interfaces is untested.
 
 ## Uninstalling

@@ -143,6 +143,19 @@ import Testing
     }
 }
 
+@Suite struct VideoDisplayConfigTests {
+    @Test func readsEffectiveDisplayAndWritesOnlyChanges() throws {
+        let raw = try JSONValue.parseYAML("cpus: 2")
+        let effective = try JSONValue.parseYAML("video:\n  display: none")
+        let original = InstanceConfig(raw: raw, effective: effective)
+        #expect(original.videoDisplay == "none")
+        #expect(original.setExpressions(comparedTo: original).isEmpty)
+        var c = original
+        c.videoDisplay = "default"
+        #expect(c.setExpressions(comparedTo: original) == [#".video.display = "default""#])
+    }
+}
+
 @Suite struct ProvisionConfigTests {
     let raw = try! JSONValue.parseYAML("""
     provision:

@@ -34,6 +34,15 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 - **DHCP 予約は、予約のある MAC からの DHCP 要求に限り、オプション 61 を除去して効かせる。** bootpd はクライアント識別子（Linux の DUID）があるとそれで識別するため、MAC による予約が一致しない。
 - **socket_vmnet と HanaLima ネットワークの同時使用は、確認ダイアログを出したうえで許可する**（`NetworkConflict`）。netd はネットワークを使い回さないので、実機の 6 パターン（起動・再起動の順序、1 台の VM に両方の NIC）で問題は起きなかった。ほかのツールや古い netd が使い回すと macOS の不具合が起きうるので、警告は残している。
 
+## v0.4 の機能と Lima 2.2.1 の実際の挙動
+
+- **スナップショットは QEMU のみ、停止中だけ操作する。** VZ ドライバーは `unimplemented`。QEMU では、停止中は `qemu-img` の内部スナップショット（起動ディスクのみ）で、作成・適用・削除とも正しく動く。実行中は HMP `savevm` を使うが、9p の共有フォルダがあると QEMU が拒否し、**limactl は終了コード 0 を返す**（何も作られない）。さらに、`loadvm` に失敗すると VM が `restore-vm`（停止）のまま残る（QMP `cont` で再開できた）。そのため HanaLima は停止中だけ操作を許し、作成後は一覧にタグがあるかを確かめる。
+- **スクリーンショットは、画面を有効にした VZ の VM だけ。** `limactl screenshot` は、ホストエージェントが表示している VM のウィンドウを `CGWindowListCreateImage` で撮る。QEMU は非対応、`video.display: none`（既定）では撮れない。ウィンドウを閉じると撮れなくなる。概要タブでは 3 秒ごとに更新する（表示中のみ）。
+- **ログは差分だけ読む。** `ha.stderr.log`（logrus の JSON）と `serial*.log` を、前回の位置から追記分だけ読む（`LogFileFollower`）。Lima は起動のたびにファイルを作り直すので、i-node が変わるか小さくなったら最初から読み直す。シリアルの ANSI エスケープは除去する。
+- **プロビジョニングは起動のたびに実行される**（cloud-init の `scripts_per_boot`）。冪等に書く必要があることを画面に明記している。スクリプト系（system/user/boot/dependency）と data は編集でき、`file` を使うものや yq・ansible は読み取り専用で保持する。
+- **コードの編集は `CodeEditor`（NSTextView）で行う。** SwiftUI の TextEditor はシステム設定に従ってスマート引用符やダッシュに置き換えるため、スクリプトや YAML が壊れる。
+- **メイン画面はメニューバーのアイコンから開く。** ウィンドウを閉じた状態で終了すると、ウィンドウの復元で「ウィンドウなし」が戻り、`.defaultLaunchBehavior(.presented)` や `.restorationBehavior(.disabled)` でも開かなかった。常に存在するメニューバーのラベルが、起動時にウィンドウがなければ `openWindow` で開き、`bootstrap()`（1 回だけ実行）も始める。
+
 ## macOS vmnet の既知の不具合（2026-10, macOS 27.0.1）
 
 - アイドルになった `vmnet_network` は、ref を保持していても DHCP 予約とポート転送規則を失う（[フォーラム 847642](https://developer.apple.com/forums/thread/847642), FB24895271）。

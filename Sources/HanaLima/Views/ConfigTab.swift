@@ -180,7 +180,7 @@ private struct ConfigForm: View {
 
     var body: some View {
         Form {
-            HardwareSection(config: $config, original: original)
+            HardwareSection(config: $config, original: original, vmType: vmType)
             NetworkSection(networks: $config.networks, vmType: vmType)
             MountSection(mounts: $config.mounts)
             PortForwardSection(portForwards: $config.portForwards)
@@ -194,6 +194,7 @@ private struct ConfigForm: View {
 private struct HardwareSection: View {
     @Binding var config: InstanceConfig
     let original: InstanceConfig
+    let vmType: String?
 
     var body: some View {
         Section("ハードウェア") {
@@ -209,8 +210,17 @@ private struct HardwareSection: View {
             }
             Text("ディスクは拡張のみ可能です（縮小はできません）。")
                 .font(.caption).foregroundStyle(.secondary)
+            Toggle(isOn: Binding(get: { (config.videoDisplay ?? "none") != "none" },
+                                 set: { config.videoDisplay = $0 ? "default" : "none" })) {
+                Text("画面（ディスプレイ）")
+                Text(isVZ
+                     ? "起動すると仮想マシンの画面ウィンドウが開きます。概要タブに画面のサムネイルを表示します。"
+                     : "起動すると仮想マシンの画面ウィンドウが開きます（QEMU ではサムネイルは表示できません）。")
+            }
         }
     }
+
+    private var isVZ: Bool { (vmType ?? "vz").lowercased() == "vz" }
 
     private var minDisk: Int { ByteSize.gibValue(original.disk) ?? 10 }
 

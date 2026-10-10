@@ -155,6 +155,19 @@ public struct LimaClient: Sendable {
         logStream(["delete"] + (force ? ["--force"] : []) + [name])
     }
 
+    // MARK: - Screenshots
+
+    /// A PNG of the VM's display window. Lima 2.2 supports this only for VZ instances with
+    /// `video.display` enabled, while their window is open (the host agent captures it).
+    public func screenshot(_ name: String) async throws -> Data {
+        let dir = Self.workDirectory.appending(path: "screenshots", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appending(path: "\(name)-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: file) }
+        _ = try await runner.run(["screenshot", name, "-o", file.path, "--tty=false"])
+        return try Data(contentsOf: file)
+    }
+
     // MARK: - Snapshots (QEMU only; see LimaSnapshot)
 
     public func snapshots(_ name: String) async throws -> [LimaSnapshot] {
