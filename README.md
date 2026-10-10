@@ -65,6 +65,12 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    open build/HanaLima.app
    ```
 
+   Or install it into `/Applications` (quits a running HanaLima first) and launch it from there:
+
+   ```bash
+   scripts/make-app.sh --install --open
+   ```
+
 5. Click **＋ 新規仮想マシン** (New VM) at the bottom of the sidebar, pick a template (for example `default` or `alpine`), and create it. The first start downloads the OS image.
 
 To use a fixed IP or a bridged network, open **ネットワーク** (Networks) in the sidebar, create a network with **＋**, then add a NIC for it in the VM's **設定 → ネットワーク** (Settings → Network) tab.
