@@ -142,6 +142,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <span class="ja">魔法もカーネル拡張もありません。多くのツールが使っていない macOS の API の使い方と、Lima の公開インターフェースまわりの丁寧な配管だけです。</span>
     </p>
 
+    <!-- Arrowheads shared by the figures below. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="fa-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker><marker id="fa-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--hana)"/></marker><marker id="fa-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--sky)"/></marker><marker id="fa-l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--lime)"/></marker></defs></svg>
     <div class="dives">
 
       <article class="dive reveal">
@@ -151,15 +153,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
           <p><span class="en">The new vmnet API lets a process create a NAT or host-only network with a subnet you choose and DHCP reservations — as an ordinary user, as long as the binary is signed with <code>com.apple.security.virtualization</code>. Without it you get error 1002.</span><span class="ja">新しい vmnet API なら、サブネットを指定した NAT やホストオンリーのネットワークを、DHCP 予約付きで一般ユーザーのまま作れます。条件は、バイナリが <code>com.apple.security.virtualization</code> 付きで署名されていること。無いとエラー 1002 になります。</span></p>
           <span class="chip lime tag">hanalima-netd</span>
         </div>
-<pre class="code"><span class="k">let</span> cfg = vmnet_network_configuration_create(
-    .VMNET_SHARED_MODE, &amp;st)
-<span class="c">// the gateway (.1), not the network (.0)</span>
-vmnet_network_configuration_set_ipv4_subnet(
-    cfg, &amp;gw, &amp;mask)
-vmnet_network_configuration_add_dhcp_reservation(
-    cfg, mac, &amp;ip)
-<span class="k">let</span> net = vmnet_network_create(cfg, &amp;st)
-<span class="c">// uid 501 · no sudo</span></pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Before: socket_vmnet runs as root with a fixed subnet. HanaLima: hanalima-netd runs as your user with an entitlement and creates a vmnet_network with your subnet and DHCP reservations."><text x="16" y="26" class="f en">BEFORE · socket_vmnet</text><text x="16" y="26" class="f ja">従来 · socket_vmnet</text><rect x="16" y="38" width="84" height="56" rx="9" class="box "/><text x="58" y="71" class="t" text-anchor="middle">VM</text><path d="M100 66 L 134 66" class="ln " marker-end="url(#fa-m)"/><rect x="138" y="38" width="170" height="56" rx="9" class="box ng"/><text x="152" y="61" class="t">socket_vmnet</text><text x="152" y="81" class="ng en">root · sudoers</text><text x="152" y="81" class="ng ja">root · sudoers が必要</text><path d="M308 66 L 342 66" class="ln " marker-end="url(#fa-m)"/><rect x="346" y="38" width="158" height="56" rx="9" class="box "/><text x="360" y="61" class="t">vmnet</text><text x="360" y="81" class="f en">fixed subnet</text><text x="360" y="81" class="f ja">サブネットは固定</text><text x="16" y="140" class="f hana-t en">HANALIMA · hanalima-netd</text><text x="16" y="140" class="f hana-t ja">HANALIMA · hanalima-netd</text><rect x="16" y="152" width="84" height="78" rx="9" class="box "/><text x="58" y="196" class="t" text-anchor="middle">VM</text><path d="M100 190 L 134 190" class="ln hana" marker-end="url(#fa-h)"/><rect x="138" y="152" width="170" height="78" rx="9" class="box hana"/><text x="152" y="176" class="t">hanalima-netd</text><text x="152" y="196" class="ok en">uid 501 · no sudo</text><text x="152" y="196" class="ok ja">uid 501 · sudo なし</text><rect x="152" y="206" width="142" height="16" rx="4" class="chipbox"/><text x="158" y="218" class="chip-t en">+ VM entitlement</text><text x="158" y="218" class="chip-t ja">+ 仮想化の entitlement</text><path d="M308 190 L 342 190" class="ln lime" marker-end="url(#fa-l)"/><rect x="346" y="152" width="158" height="78" rx="9" class="box lime"/><text x="360" y="176" class="t">vmnet_network</text><text x="360" y="196" class="m">192.168.200.0/24</text><text x="360" y="214" class="m en">DHCP: .10 reserved</text><text x="360" y="214" class="m ja">DHCP 予約: .10</text><text x="16" y="270" class="ok en">Your subnet, your fixed IPs — as an ordinary user.</text><text x="16" y="270" class="ok ja">サブネットも固定 IP も、一般ユーザーのまま。</text><text x="16" y="290" class="f en">Unsigned → vmnet_network_create fails with 1002.</text><text x="16" y="290" class="f ja">署名がないと vmnet_network_create は 1002 で失敗。</text></svg></figure>
       </article>
 
       <article class="dive reveal">
@@ -169,13 +163,7 @@ vmnet_network_configuration_add_dhcp_reservation(
           <p><span class="en">The classic bridged mode is what socket_vmnet runs as root. We found that, with the same entitlement, <code>vmnet_start_interface</code> in <code>VMNET_BRIDGED_MODE</code> starts fine as uid 501. One interface per VM; two VMs plus en0 share <code>bridge100</code>, and the Mac keeps its IPv4.</span><span class="ja">従来のブリッジモードは、socket_vmnet が root で動かしているものです。同じ entitlement があれば、<code>VMNET_BRIDGED_MODE</code> の <code>vmnet_start_interface</code> が uid 501 のまま起動することを確かめました。VM ごとにインターフェースを作り、2 台の VM と en0 が <code>bridge100</code> を共有しても、Mac の IPv4 は維持されます。</span></p>
           <span class="chip sky tag">bridge · en0</span>
         </div>
-<pre class="code"><span class="k">let</span> desc = xpc_dictionary_create(<span class="n">nil</span>, <span class="n">nil</span>, <span class="n">0</span>)
-xpc_dictionary_set_uint64(desc, vmnet_operation_mode_key,
-                          VMNET_BRIDGED_MODE)
-xpc_dictionary_set_string(desc,
-    vmnet_shared_interface_name_key, <span class="s">"en0"</span>)
-vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> … }
-<span class="c">// uid 501 · status 1000 (VMNET_SUCCESS)</span></pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="A LAN router connects to bridge100, which joins en0 (the Mac keeps 192.168.100.4) and one vmnet interface per VM, each created by hanalima-netd as uid 501."><rect x="180" y="10" width="160" height="40" rx="9" class="box "/><text x="260" y="28" class="t en" text-anchor="middle">LAN router</text><text x="260" y="28" class="t ja" text-anchor="middle">LAN のルーター</text><text x="260" y="43" class="f" text-anchor="middle">192.168.100.1</text><path d="M260 50 L 260 84" class="ln sky"/><rect x="30" y="84" width="460" height="30" rx="8" class="bus"/><text x="44" y="104" class="t sky-t">bridge100</text><text x="476" y="104" class="ok en" text-anchor="end">no sudo</text><text x="476" y="104" class="ok ja" text-anchor="end">sudo なし</text><path d="M100 114 L 100 150" class="ln sky"/><text x="106" y="136" class="f">en0</text><path d="M260 114 L 260 150" class="ln sky"/><text x="266" y="136" class="f">vmenet0</text><path d="M420 114 L 420 150" class="ln sky"/><text x="426" y="136" class="f">vmenet1</text><rect x="36" y="150" width="128" height="58" rx="9" class="box "/><text x="100" y="172" class="t" text-anchor="middle">Mac</text><text x="100" y="194" class="ok" text-anchor="middle">192.168.100.4 ✓</text><rect x="196" y="150" width="128" height="58" rx="9" class="box hana"/><text x="260" y="172" class="t" text-anchor="middle">VM dev</text><text x="260" y="194" class="m" text-anchor="middle">192.168.100.13</text><rect x="356" y="150" width="128" height="58" rx="9" class="box hana"/><text x="420" y="172" class="t" text-anchor="middle">VM web</text><text x="420" y="194" class="m" text-anchor="middle">192.168.100.14</text><path d="M260 242 L 260 212" class="ln hana dash" marker-end="url(#fa-h)"/><path d="M420 242 L 420 212" class="ln hana dash" marker-end="url(#fa-h)"/><rect x="168" y="242" width="336" height="30" rx="8" class="box hana"/><text x="182" y="262" class="m en">hanalima-netd · uid 501 · 1 interface / VM</text><text x="182" y="262" class="m ja">hanalima-netd · uid 501 · VM ごとに 1 つ</text><text x="36" y="234" class="ok en">keeps its IPv4</text><text x="36" y="234" class="ok ja">IPv4 はそのまま</text><text x="16" y="292" class="f en">Classic bridged mode, started with the entitlement instead of root.</text><text x="16" y="292" class="f ja">従来のブリッジモードを、root ではなく entitlement で起動。</text></svg></figure>
       </article>
 
       <article class="dive reveal">
@@ -185,13 +173,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
           <p><span class="en">Lima already knows how to plug a VM into a UNIX socket: <code>networks: - socket: PATH</code>. The protocol is QEMU's stream format — a 4-byte big-endian length, then the frame. <code>hanalima-netd</code> speaks it on one side and vmnet on the other. Works for VZ and QEMU VMs.</span><span class="ja">Lima はもともと、VM を UNIX ソケットにつなげます（<code>networks: - socket: PATH</code>）。中身は QEMU の stream 形式で、4 バイトのビッグエンディアンの長さに続けてフレームを送るだけ。<code>hanalima-netd</code> は片側でこれを話し、反対側で vmnet を話します。VZ でも QEMU でも動きます。</span></p>
           <span class="chip tag">lima.yaml</span>
         </div>
-<pre class="code"><span class="c"># ~/.lima/dev/lima.yaml (written via limactl edit --set)</span>
-<span class="n">networks</span>:
-  - <span class="n">socket</span>: <span class="s">"~/Library/Application Support/
-      HanaLima/net/lan.sock"</span>
-
-<span class="c"># on the wire</span>
-[00 00 05 ea][ ethernet frame, 1514 bytes … ]</pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Lima, unmodified, connects to a UNIX socket. Either socket_vmnet (root) or hanalima-netd (your user) can sit behind it. On the wire: a 4-byte big-endian length, then the Ethernet frame."><rect x="16" y="34" width="112" height="78" rx="9" class="box "/><text x="72" y="64" class="t" text-anchor="middle">Lima VM</text><text x="72" y="86" class="ok en" text-anchor="middle">unmodified</text><text x="72" y="86" class="ok ja" text-anchor="middle">無改造</text><text x="72" y="102" class="f" text-anchor="middle">socket: path</text><path d="M128 73 L 176 73" class="ln hana" marker-end="url(#fa-h)"/><rect x="180" y="55" width="70" height="36" rx="18" class="box hana"/><text x="215" y="78" class="m" text-anchor="middle">lan.sock</text><path d="M250 73 C 270 73, 270 40, 296 40" class="ln dash"/><path d="M250 73 C 270 73, 270 106, 292 106" class="ln hana" marker-end="url(#fa-h)"/><g class="off"><rect x="298" y="18" width="206" height="44" rx="9" class="box dashed"/><text x="312" y="37" class="m">socket_vmnet</text><text x="312" y="53" class="f">root</text></g><rect x="296" y="84" width="208" height="44" rx="9" class="box hana"/><text x="310" y="103" class="t">hanalima-netd</text><text x="310" y="119" class="ok">uid 501 → vmnet</text><text x="16" y="168" class="f en">ON THE WIRE · QEMU stream</text><text x="16" y="168" class="f ja">ソケットの中身 · QEMU stream 形式</text><rect x="16" y="180" width="112" height="40" rx="6" class="box lime"/><text x="72" y="205" class="m" text-anchor="middle">00 00 05 ea</text><rect x="132" y="180" width="372" height="40" rx="6" class="box"/><text x="318" y="205" class="m en" text-anchor="middle">Ethernet frame · 1514 bytes</text><text x="318" y="205" class="m ja" text-anchor="middle">イーサネットフレーム · 1514 バイト</text><text x="72" y="240" class="f en" text-anchor="middle">length, 4 B BE</text><text x="72" y="240" class="f ja" text-anchor="middle">長さ 4 バイト</text><text x="318" y="240" class="f en" text-anchor="middle">as-is</text><text x="318" y="240" class="f ja" text-anchor="middle">そのまま</text><text x="16" y="284" class="f en">Same protocol as socket_vmnet: works for VZ and QEMU VMs.</text><text x="16" y="284" class="f ja">socket_vmnet と同じ形式なので、VZ でも QEMU でも動く。</text></svg></figure>
       </article>
 
       <article class="dive reveal">
@@ -201,11 +183,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
           <p><span class="en">Each network is a per-user LaunchAgent whose socket launchd owns. The helper starts on the first VM connection and exits when idle. Quit HanaLima, run <code>limactl start</code> from a shell — the network is still there.</span><span class="ja">ネットワークごとにユーザーの LaunchAgent を登録し、ソケットは launchd が持ちます。最初の VM 接続でヘルパーが起動し、使われなくなると終了します。HanaLima を終了して、シェルから <code>limactl start</code> しても、ネットワークはそのまま使えます。</span></p>
           <span class="chip lime tag">LaunchAgent</span>
         </div>
-<pre class="code"><span class="k">&lt;key&gt;</span>Sockets<span class="k">&lt;/key&gt;</span>
-<span class="k">&lt;dict&gt;</span><span class="k">&lt;key&gt;</span>Listener<span class="k">&lt;/key&gt;</span>
-  <span class="k">&lt;dict&gt;</span><span class="k">&lt;key&gt;</span>SockPathName<span class="k">&lt;/key&gt;</span>
-    <span class="s">&lt;string&gt;…/net/lan.sock&lt;/string&gt;</span>
-<span class="c">&lt;!-- helper calls launch_activate_socket("Listener") --&gt;</span></pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Timeline: the HanaLima app quits early, launchd keeps the socket listening the whole time, hanalima-netd runs only while a VM is connected, and a VM started later from the shell still gets its network."><text x="16" y="49" class="m en">HanaLima app</text><text x="16" y="49" class="m ja">HanaLima アプリ</text><text x="16" y="104" class="m en">launchd socket</text><text x="16" y="104" class="m ja">launchd のソケット</text><text x="16" y="159" class="m">hanalima-netd</text><text x="16" y="214" class="m">VM</text><rect x="150" y="34" width="120" height="22" rx="6" class="bar hana"/><text x="278" y="50" class="f en">✕ quit</text><text x="278" y="50" class="f ja">✕ 終了</text><rect x="150" y="89" width="354" height="22" rx="6" class="bar lime"/><text x="160" y="105" class="lime-t en">listening on lan.sock</text><text x="160" y="105" class="lime-t ja">lan.sock で待ち受け</text><rect x="176" y="144" width="86" height="22" rx="6" class="bar hana"/><rect x="386" y="144" width="96" height="22" rx="6" class="bar hana"/><text x="272" y="160" class="f en">idle → exit</text><text x="272" y="160" class="f ja">未使用 → 終了</text><rect x="176" y="199" width="86" height="22" rx="6" class="bar sky"/><rect x="386" y="199" width="96" height="22" rx="6" class="bar sky"/><path d="M183 197 L 183 170" class="ln hana" marker-end="url(#fa-h)"/><path d="M393 197 L 393 170" class="ln hana" marker-end="url(#fa-h)"/><path d="M386 30 L 386 236" class="ln dash"/><text x="386" y="254" class="f en" text-anchor="middle">limactl start (from a shell)</text><text x="386" y="254" class="f ja" text-anchor="middle">シェルから limactl start</text><text x="16" y="290" class="ok en">Quit the app — the network still works.</text><text x="16" y="290" class="ok ja">アプリを終了しても、ネットワークは動く。</text></svg></figure>
       </article>
 
       <article class="dive reveal">
@@ -215,13 +193,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
           <p><span class="en">vmnet reserves addresses by MAC, but macOS's bootpd identifies a client by its client identifier when one is present — and Linux guests send a DUID. So the reservation never matched. The helper strips option 61 from DHCP requests, only for MACs that have a reservation.</span><span class="ja">vmnet の予約は MAC で行いますが、macOS の bootpd はクライアント識別子があればそちらで識別し、Linux のゲストは DUID を送ってきます。そのため予約が一致しませんでした。ヘルパーは、予約のある MAC からの DHCP 要求に限って、オプション 61 を取り除きます。</span></p>
           <span class="chip tag">DHCPClientIDFilter</span>
         </div>
-<pre class="code"><span class="c">// VM → vmnet, per frame</span>
-<span class="k">if</span> reservedMACs.contains(srcMAC),
-   <span class="k">let</span> fixed = DHCPClientIDFilter
-       .strippingClientIdentifier(from: frame) {
-    send(fixed)      <span class="c">// bootpd now matches by MAC</span>
-}
-<span class="c">// lima0: 192.168.200.10 — boot after boot</span></pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Before: the DHCP request carries option 61 with a DUID, bootpd identifies the client by it, and the MAC reservation doesn't match. HanaLima: netd strips option 61 for reserved MACs, bootpd matches by MAC, and the VM gets .10."><text x="16" y="22" class="f en">AS SENT</text><text x="16" y="22" class="f ja">そのまま送ると</text><rect x="16" y="32" width="196" height="62" rx="9" class="box "/><text x="30" y="54" class="t">DHCPREQUEST</text><rect x="26" y="62" width="80" height="24" rx="5" class="box sky"/><text x="66" y="78" class="m" text-anchor="middle">MAC 52:55…</text><rect x="112" y="62" width="94" height="24" rx="5" class="box ng"/><text x="159" y="78" class="m" text-anchor="middle">opt 61 DUID</text><path d="M212 63 L 246 63" class="ln " marker-end="url(#fa-m)"/><rect x="250" y="32" width="110" height="62" rx="9" class="box "/><text x="305" y="56" class="t" text-anchor="middle">bootpd</text><text x="305" y="78" class="m" text-anchor="middle">ID = DUID</text><path d="M360 63 L 394 63" class="ln " marker-end="url(#fa-m)"/><rect x="398" y="32" width="106" height="62" rx="9" class="box ng"/><text x="451" y="56" class="t" text-anchor="middle">.37</text><text x="451" y="78" class="ng en" text-anchor="middle">✗ no match</text><text x="451" y="78" class="ng ja" text-anchor="middle">✗ 予約と不一致</text><text x="16" y="140" class="f hana-t">HANALIMA</text><rect x="16" y="150" width="196" height="62" rx="9" class="box "/><text x="30" y="172" class="t">DHCPREQUEST</text><rect x="26" y="180" width="80" height="24" rx="5" class="box sky"/><text x="66" y="196" class="m" text-anchor="middle">MAC 52:55…</text><rect x="112" y="180" width="94" height="24" rx="5" class="box dashed"/><text x="159" y="196" class="f" text-anchor="middle">opt 61</text><path d="M122 192 L 196 192" class="strike"/><text x="220" y="174" class="hana-t big">✂</text><path d="M212 181 L 246 181" class="ln hana" marker-end="url(#fa-h)"/><rect x="250" y="150" width="110" height="62" rx="9" class="box "/><text x="305" y="174" class="t" text-anchor="middle">bootpd</text><text x="305" y="196" class="m" text-anchor="middle">ID = MAC</text><path d="M360 181 L 394 181" class="ln lime" marker-end="url(#fa-l)"/><rect x="398" y="150" width="106" height="62" rx="9" class="box lime"/><text x="451" y="174" class="t" text-anchor="middle">.10</text><text x="451" y="196" class="ok en" text-anchor="middle">✓ reserved</text><text x="451" y="196" class="ok ja" text-anchor="middle">✓ 予約どおり</text><text x="16" y="240" class="m en">netd removes option 61 — only for MACs with a reservation.</text><text x="16" y="240" class="m ja">netd がオプション 61 を外す（予約のある MAC だけ）。</text><text x="16" y="284" class="f en">Linux sends a DUID; bootpd prefers it over the MAC.</text><text x="16" y="284" class="f ja">Linux は DUID を送り、bootpd は MAC よりそれを優先する。</text></svg></figure>
       </article>
 
       <article class="dive reveal">
@@ -231,11 +203,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
           <p><span class="en">No Go code is linked; HanaLima reads <code>limactl list --format json</code> and the <code>watch --json</code> event stream. Form edits become <code>limactl edit --set</code> expressions for just the fields you touched, so Lima's defaults and your unknown keys survive, and Lima validates every change.</span><span class="ja">Go のコードはリンクせず、<code>limactl list --format json</code> と <code>watch --json</code> のイベントを読みます。フォームの変更は、触った項目だけの <code>limactl edit --set</code> 式になるので、Lima の既定値や未知のキーは残り、変更はすべて Lima が検証します。</span></p>
           <span class="chip tag">LimaKit</span>
         </div>
-<pre class="code"><span class="c">$</span> limactl edit dev --set <span class="s">'.cpus = 4'</span> \
-                 --set <span class="s">'.memory = "8GiB"'</span>
-<span class="c">$</span> limactl watch --json
-{<span class="s">"instance"</span>:<span class="s">"dev"</span>,<span class="s">"status"</span>:{<span class="s">"running"</span>:<span class="n">true</span>,
- <span class="s">"sshLocalPort"</span>:<span class="n">60022</span>}}</pre>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="A form change of CPUs from 2 to 4 becomes one limactl edit --set expression; only that line of lima.yaml changes, comments and unknown keys stay, and Lima validates it. Rewriting the whole file would bake in defaults and lose unknown keys."><text x="16" y="22" class="f en">FORM</text><text x="16" y="22" class="f ja">フォーム</text><rect x="16" y="32" width="150" height="92" rx="9" class="box "/><text x="28" y="56" class="m en">CPUs</text><text x="28" y="56" class="m ja">CPU</text><text x="154" y="56" class="t hana-t" text-anchor="end">2 → 4</text><text x="28" y="82" class="m en">Memory</text><text x="28" y="82" class="m ja">メモリ</text><text x="154" y="82" class="m" text-anchor="end">4 GiB</text><text x="28" y="108" class="m en">Disk</text><text x="28" y="108" class="m ja">ディスク</text><text x="154" y="108" class="m" text-anchor="end">100 GiB</text><path d="M166 66 L 196 66" class="ln hana" marker-end="url(#fa-h)"/><rect x="200" y="44" width="304" height="40" rx="8" class="term"/><text x="214" y="69" class="term-t">limactl edit --set '.cpus = 4'</text><text x="500" y="102" class="ok en" text-anchor="end">Lima validates ✓</text><text x="500" y="102" class="ok ja" text-anchor="end">Lima が検証 ✓</text><path d="M352 84 L 352 124" class="ln lime" marker-end="url(#fa-l)"/><rect x="200" y="128" width="304" height="132" rx="9" class="box "/><text x="212" y="150" class="f">lima.yaml</text><text x="212" y="172" class="f"># my notes</text><rect x="204" y="180" width="296" height="20" rx="4" class="hl"/><text x="212" y="195" class="t hana-t">cpus: 4</text><text x="490" y="195" class="hana-t en" text-anchor="end">only this</text><text x="490" y="195" class="hana-t ja" text-anchor="end">ここだけ</text><text x="212" y="218" class="m">memory: 4GiB</text><text x="212" y="240" class="m">myTool: …</text><text x="490" y="240" class="ok en" text-anchor="end">kept</text><text x="490" y="240" class="ok ja" text-anchor="end">そのまま</text><g class="off"><text x="16" y="160" class="f en">REWRITE THE FILE</text><text x="16" y="160" class="f ja">ファイルごと書き換えると</text><rect x="16" y="170" width="166" height="90" rx="9" class="box dashed"/><text x="28" y="196" class="ng small en">✗ defaults baked in</text><text x="28" y="196" class="ng small ja">✗ 既定値が書き込まれる</text><text x="28" y="220" class="ng small en">✗ unknown keys,</text><text x="28" y="220" class="ng small ja">✗ 未知のキーや</text><text x="44" y="238" class="ng small en">comments lost</text><text x="44" y="238" class="ng small ja">コメントが消える</text></g><text x="16" y="290" class="f en">Reads: list --format json, watch --json. No Go linked.</text><text x="16" y="290" class="f ja">読み取りは list --format json と watch --json。Go はリンクしない。</text></svg></figure>
       </article>
 
     </div>
@@ -248,8 +216,8 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
     <div class="kicker">// networking</div>
     <h2><span class="en">The packet path</span><span class="ja">パケットの通り道</span></h2>
     <p class="section-lead">
-      <span class="en">One helper process per network, one vmnet interface per VM. NAT and host-only networks are created on the first connection and released on the last — never reused (see the battle scars below for why).</span>
-      <span class="ja">ネットワークごとにヘルパーが 1 プロセス、VM ごとに vmnet のインターフェースが 1 つ。NAT とホストオンリーのネットワークは最初の接続で作り、最後の切断で解放します。使い回しはしません（理由は下の「戦いの記録」で）。</span>
+      <span class="en">One helper process per network, one vmnet interface per VM. NAT and host-only networks are created on the first connection and released on the last — never reused, because a reused vmnet network can lose its DHCP reservations and even take the Mac's IPv4 with it.</span>
+      <span class="ja">ネットワークごとにヘルパーが 1 プロセス、VM ごとに vmnet のインターフェースが 1 つ。NAT とホストオンリーのネットワークは最初の接続で作り、最後の切断で解放します。使い回しはしません。使い回した vmnet のネットワークは DHCP 予約を失い、Mac の IPv4 まで奪うことがあるためです。</span>
     </p>
 
     <div class="diagram reveal">
@@ -355,52 +323,8 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
   </div>
 </section>
 
-<!-- ============================ BATTLE SCARS ============================ -->
-<section id="scars" class="alt">
-  <div class="wrap">
-    <div class="kicker">// battle scars</div>
-    <h2><span class="en">Bugs we hit, so you don't have to</span><span class="ja">戦いの記録：踏んだ不具合と、その回避</span></h2>
-    <p class="section-lead">
-      <span class="en">The vmnet API is young. Here is what bit us on macOS 27.0.1, and how HanaLima's helper is built around it. Full notes are in the repository.</span>
-      <span class="ja">vmnet の API はまだ若く、macOS 27.0.1 でいくつも不具合を踏みました。HanaLima のヘルパーは、それを前提に作られています。詳しい記録はリポジトリにあります。</span>
-    </p>
-    <div class="scars">
-      <div class="scar reveal">
-        <h3><span class="en">Reusing a network ate the Mac's IPv4</span><span class="ja">ネットワークの使い回しで、Mac の IPv4 が消えた</span></h3>
-        <p><span class="en">A <code>vmnet_network</code> reused after its interface stopped takes over a bridged interface's <code>bridge100</code>, detaches en0, and the host loses its IPv4 address. Reported to Apple as FB25122122, with a standalone repro.</span><span class="ja">インターフェースを止めた <code>vmnet_network</code> を再利用すると、ブリッジの <code>bridge100</code> を奪って en0 を外し、ホストの IPv4 が消えます。再現ツール付きで Apple に FB25122122 として報告しました。</span></p>
-        <p class="fix"><span class="en">Create networks on the first VM connection, release them on the last. Never reuse.</span><span class="ja">ネットワークは最初の接続で作り、最後の切断で解放。使い回さない。</span></p>
-      </div>
-      <div class="scar reveal">
-        <h3><span class="en">Idle networks forget DHCP reservations</span><span class="ja">アイドルのネットワークは DHCP 予約を忘れる</span></h3>
-        <p><span class="en">Once its last interface stops, a network silently drops reservations and port-forward rules, even while you hold the ref (forum thread 847642, FB24895271).</span><span class="ja">最後のインターフェースが止まると、ref を持っていても予約とポート転送の設定が黙って消えます（フォーラム 847642、FB24895271）。</span></p>
-        <p class="fix"><span class="en">Same fix: a fresh network per active period, rebuilt from <code>networks.json</code>.</span><span class="ja">同じ対策：使う期間ごとに、<code>networks.json</code> から作り直す。</span></p>
-      </div>
-      <div class="scar reveal">
-        <h3><span class="en">Exit without stopping = subnet held hostage</span><span class="ja">止めずに終了すると、サブネットが人質に</span></h3>
-        <p><span class="en">If a process exits with an interface still started, vmnet keeps the subnet reserved for hours (or until reboot), and every create fails with 1001. A main-actor signal handler crashing with SIGTRAP made this happen on every SIGTERM.</span><span class="ja">インターフェースを開始したままプロセスが終わると、そのサブネットは数時間（か再起動まで）予約されたままになり、作成が 1001 で失敗し続けます。main actor 扱いのシグナルハンドラが SIGTRAP で落ちて、SIGTERM のたびにこれが起きていました。</span></p>
-        <p class="fix"><span class="en"><code>@Sendable</code> handlers; every exit path stops interfaces first.</span><span class="ja">ハンドラは <code>@Sendable</code> に。すべての終了経路で、先にインターフェースを止める。</span></p>
-      </div>
-      <div class="scar reveal">
-        <h3><span class="en">launchd pins your helper's cdhash</span><span class="ja">launchd はヘルパーの cdhash を覚えている</span></h3>
-        <p><span class="en">Overwrite the helper with a new build and the already-registered LaunchAgent fails to spawn (exit 78, EX_CONFIG) — while the old process keeps running, so you won't notice until it restarts.</span><span class="ja">ヘルパーを新しいビルドで上書きすると、登録済みの LaunchAgent が起動できなくなります（終了コード 78）。古いプロセスは動き続けるので、再起動するまで気づきません。</span></p>
-        <p class="fix"><span class="en">Content-addressed copies (<code>hanalima-netd-&lt;hash&gt;</code>); agents move over only while idle.</span><span class="ja">内容のハッシュ付きの名前で別々に置き、エージェントはアイドルのときだけ移す。</span></p>
-      </div>
-      <div class="scar reveal">
-        <h3><span class="en">A live snapshot that "succeeds" but saves nothing</span><span class="ja">成功したのに何も保存されないスナップショット</span></h3>
-        <p><span class="en">On a running QEMU VM, Lima sends HMP <code>savevm</code>; QEMU refuses while a 9p share is mounted, yet <code>limactl</code> exits 0. And a failed <code>loadvm</code> leaves the VM frozen in <code>restore-vm</code> until someone sends QMP <code>cont</code>.</span><span class="ja">実行中の QEMU の VM では、Lima は HMP の <code>savevm</code> を送ります。9p の共有があると QEMU は拒否しますが、<code>limactl</code> は終了コード 0。さらに <code>loadvm</code> に失敗すると、QMP の <code>cont</code> を送るまで VM は <code>restore-vm</code> で止まったままです。</span></p>
-        <p class="fix"><span class="en">Snapshot only while stopped (<code>qemu-img</code> path), and verify the tag exists afterwards.</span><span class="ja">停止中（<code>qemu-img</code> の経路）だけで操作し、作成後にタグがあるかを確かめる。</span></p>
-      </div>
-      <div class="scar reveal">
-        <h3><span class="en">Window restoration wins over <code>.defaultLaunchBehavior</code></span><span class="ja">ウィンドウの復元は <code>.defaultLaunchBehavior</code> より強い</span></h3>
-        <p><span class="en">Quit a menu-bar app with its window closed, and macOS faithfully restores "no window" next time — even with <code>.defaultLaunchBehavior(.presented)</code> and <code>.restorationBehavior(.disabled)</code>. The app looked like it never launched.</span><span class="ja">ウィンドウを閉じたままメニューバーのアプリを終了すると、次の起動で macOS は「ウィンドウなし」を忠実に復元します。<code>.defaultLaunchBehavior(.presented)</code> や <code>.restorationBehavior(.disabled)</code> を付けても同じで、起動していないように見えました。</span></p>
-        <p class="fix"><span class="en">The menu bar label — which always exists — opens the window on launch if none is visible.</span><span class="ja">常に存在するメニューバーのラベルが、起動時にウィンドウがなければ開く。</span></p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ============================== FEATURES ============================== -->
-<section id="features">
+<section id="features" class="alt">
   <div class="wrap">
     <div class="kicker">// features</div>
     <h2><span class="en">Everything you'd expect from a VM manager</span><span class="ja">VM 管理ソフトに期待するものを、ひととおり</span></h2>
@@ -462,7 +386,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
 </section>
 
 <!-- ============================= QUICK START ============================= -->
-<section id="quickstart" class="alt">
+<section id="quickstart">
   <div class="wrap">
     <div class="kicker">// quick start</div>
     <h2><span class="en">From zero to a VM on your LAN</span><span class="ja">ゼロから、LAN に参加する VM まで</span></h2>
@@ -492,7 +416,7 @@ scripts/make-app.sh --install --open</pre>
 </section>
 
 <!-- =============================== ROADMAP =============================== -->
-<section id="roadmap">
+<section id="roadmap" class="alt">
   <div class="wrap">
     <div class="kicker">// roadmap</div>
     <h2><span class="en">Where it's going</span><span class="ja">これから</span></h2>

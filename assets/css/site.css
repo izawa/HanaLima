@@ -41,6 +41,7 @@
     --lime-soft: rgba(76, 154, 14, .1);
     --sky: #1479c4;
     --amber: #a66a00;
+    --red: #c9302c;
     --grad: linear-gradient(in oklch 100deg, #e0337f 0%, #8a4fd0 55%, #3f8f12 100%);
     color-scheme: light;
   }
@@ -220,6 +221,44 @@ pre.code .s { color: #c3f58a; }
 pre.code .c { color: #6f798c; }
 pre.code .n { color: #8fd3ff; }
 
+/* Concept figures next to each deep dive: small SVGs in the site's tokens. */
+.fig { margin: 0; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.fig svg { display: block; width: 100%; height: auto; }
+.fig text { font-family: var(--mono); font-size: 12px; }
+.fig .t { fill: var(--text); font-size: 13px; font-weight: 700; }
+.fig .m { fill: var(--muted); }
+.fig .f { fill: var(--faint); font-size: 11px; letter-spacing: .02em; }
+.fig .ok { fill: var(--lime); font-weight: 600; }
+.fig .ng { fill: var(--red); font-weight: 600; }
+.fig .small { font-size: 11px; }
+.fig .big { font-size: 18px; }
+.fig .hana-t { fill: var(--hana); }
+.fig .sky-t { fill: var(--sky); }
+.fig .lime-t { fill: var(--lime); font-weight: 600; }
+.fig .chip-t { fill: var(--muted); font-size: 10px; }
+.fig .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+.fig .box.hana { stroke: var(--hana); }
+.fig .box.sky { stroke: var(--sky); }
+.fig .box.lime { stroke: var(--lime); }
+.fig .box.ng { stroke: var(--red); }
+.fig .box.dashed { stroke-dasharray: 4 4; fill: none; }
+.fig .chipbox { fill: var(--hana-soft); }
+.fig .bus { fill: color-mix(in srgb, var(--sky) 14%, transparent); stroke: var(--sky); stroke-width: 1.2; }
+.fig .bar { stroke-width: 1.2; }
+.fig .bar.hana { fill: var(--hana-soft); stroke: var(--hana); }
+.fig .bar.lime { fill: var(--lime-soft); stroke: var(--lime); }
+.fig .bar.sky { fill: color-mix(in srgb, var(--sky) 14%, transparent); stroke: var(--sky); }
+.fig .ln { fill: none; stroke: var(--muted); stroke-width: 1.8; }
+.fig .ln.hana { stroke: var(--hana); }
+.fig .ln.sky { stroke: var(--sky); }
+.fig .ln.lime { stroke: var(--lime); }
+.fig .ln.dash { stroke-dasharray: 4 4; }
+.fig .strike { stroke: var(--hana); stroke-width: 2; }
+.fig .term { fill: #07080c; stroke: var(--line); }
+.fig .term-t { fill: #c3f58a; }
+.fig .hl { fill: var(--hana-soft); }
+.fig .off { opacity: .6; }
+
 /* Architecture diagram */
 .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
 .diagram svg { display: block; width: 100%; height: auto; }
@@ -253,15 +292,6 @@ td.hl, th.hl { background: color-mix(in srgb, var(--hana) 7%, var(--panel)); }
 .status.done { background: var(--lime-soft); color: var(--lime); }
 .status.next { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
 .status.later { background: var(--panel-2); color: var(--faint); border: 1px dashed var(--line); }
-
-/* Battle scars */
-.scars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-@media (max-width: 800px) { .scars { grid-template-columns: 1fr; } }
-.scar { border-left: 3px solid var(--hana); background: var(--panel); border-radius: 0 var(--radius) var(--radius) 0; padding: 18px 20px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.scar h3 { font-size: 16.5px; }
-.scar p { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
-.scar .fix { color: var(--text); font-size: 14.5px; margin: 0; }
-.scar .fix::before { content: "→ "; color: var(--lime); font-family: var(--mono); }
 
 /* Quick start */
 .qs { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
