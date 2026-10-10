@@ -10,6 +10,13 @@ struct ConfigTab: View {
         case form = "フォーム"
         case yaml = "YAML"
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .form: String(localized: "フォーム")
+            case .yaml: "YAML"
+            }
+        }
     }
 
     @Environment(AppModel.self) private var model
@@ -71,7 +78,7 @@ struct ConfigTab: View {
     private var header: some View {
         HStack {
             Picker("", selection: $mode) {
-                ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Mode.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .fixedSize()
@@ -200,7 +207,7 @@ private struct HardwareSection: View {
         Section("ハードウェア") {
             Stepper(value: Binding(get: { config.cpus ?? 1 }, set: { config.cpus = $0 }),
                     in: 1...HostInfo.cpuCount) {
-                LabeledContent("仮想 CPU", value: "\(config.cpus ?? 1) コア")
+                LabeledContent("仮想 CPU") { Text("\(config.cpus ?? 1) コア") }
             }
             Stepper(value: gib(\.memory, fallback: 4), in: 1...HostInfo.memoryGiB) {
                 LabeledContent("メモリ", value: "\(ByteSize.gibValue(config.memory) ?? 4) GiB")
@@ -238,7 +245,7 @@ private struct NetworkSection: View {
 
     var body: some View {
         Section {
-            LabeledContent("NIC 0", value: "ユーザーモード NAT（常に有効）")
+            LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
             ForEach($networks) { $nic in
                 let index = networks.firstIndex { $0.id == nic.id } ?? 0
                 VStack(alignment: .leading, spacing: 6) {
@@ -305,17 +312,17 @@ private struct NetworkSection: View {
 
     private func label(for kind: NetworkConfig.Kind) -> String {
         switch kind {
-        case .vzNAT: return "vzNAT（NAT・高速）"
+        case .vzNAT: return String(localized: "vzNAT（NAT・高速）")
         case .lima(let name):
             guard let net = model.networks.network(named: name) else { return "lima:\(name)" }
             let detail = switch net.mode {
             case "shared": "NAT \(net.gateway ?? "")"
-            case "host": "ホストオンリー \(net.gateway ?? "")"
-            case "bridged": "ブリッジ \(net.interface ?? "")"
-            case "user-v2": "VM 間ネットワーク \(net.gateway ?? "")"
+            case "host": String(localized: "ホストオンリー \(net.gateway ?? "")")
+            case "bridged": String(localized: "ブリッジ \(net.interface ?? "")")
+            case "user-v2": String(localized: "VM 間ネットワーク \(net.gateway ?? "")")
             default: net.mode
             }
-            return "lima:\(name)（\(detail.trimmingCharacters(in: .whitespaces))）"
+            return String(localized: "lima:\(name)（\(detail.trimmingCharacters(in: .whitespaces))）")
         case .socket(let path):
             if let vn = model.virtualNetwork(forSocket: path) {
                 return vn.menuDescription
@@ -327,18 +334,18 @@ private struct NetworkSection: View {
     private func warning(for kind: NetworkConfig.Kind) -> String? {
         switch kind {
         case .vzNAT where vmType != "vz":
-            return "vzNAT は VZ でのみ使えます。"
+            return String(localized: "vzNAT は VZ でのみ使えます。")
         case .lima(let name):
             guard let net = model.networks.network(named: name) else {
-                return "networks.yaml に「\(name)」が定義されていません。"
+                return String(localized: "networks.yaml に「\(name)」が定義されていません。")
             }
             if net.needsSocketVMNet && !model.networks.socketVMNetInstalled {
-                return "socket_vmnet が未インストールのため、このままでは起動に失敗します。"
+                return String(localized: "socket_vmnet が未インストールのため、このままでは起動に失敗します。")
             }
             return nil
         case .socket(let path):
             if model.virtualNetwork(forSocket: path) == nil, !FileManager.default.fileExists(atPath: path) {
-                return "ソケット \(path) が見つかりません。"
+                return String(localized: "ソケット \(path) が見つかりません。")
             }
             return nil
         default:
@@ -384,7 +391,7 @@ private struct MountSection: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "選択"
+        panel.prompt = String(localized: "選択")
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         // Keep paths under the home directory portable, as Lima's own templates do.
         let home = NSHomeDirectory()
@@ -470,7 +477,7 @@ private struct DiskSection: View {
                             .font(.caption).foregroundStyle(.orange)
                     }
                     Spacer()
-                    RemoveButton(help: "取り外す") { disks.removeAll { $0.id == disk.id } }
+                    RemoveButton(help: String(localized: "取り外す")) { disks.removeAll { $0.id == disk.id } }
                 }
             }
             Menu("ディスクを接続", systemImage: "plus") {
@@ -500,7 +507,7 @@ private struct DiskSection: View {
 }
 
 struct RemoveButton: View {
-    var help = "削除"
+    var help = String(localized: "削除")
     let action: () -> Void
 
     var body: some View {

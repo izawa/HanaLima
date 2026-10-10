@@ -73,7 +73,7 @@ final class TerminalSession: NSObject, LocalProcessTerminalViewDelegate {
         let failedFast = code != 0 && Date.now.timeIntervalSince(startedAt) < Self.quickFailure
         guard failedFast, attempts <= Self.maxRetries, shouldRetry(), let client else { return }
         retryAttempt = attempts
-        feed("\r\n[HanaLima] 接続できませんでした。3 秒後に再試行します（\(attempts)/\(Self.maxRetries)）…\r\n")
+        feed(String(localized: "\r\n[HanaLima] 接続できませんでした。3 秒後に再試行します（\(attempts)/\(Self.maxRetries)）…\r\n"))
         let instance = instance
         retryTask = Task { [weak self] in
             try? await Task.sleep(for: Self.retryDelay)
@@ -197,9 +197,9 @@ struct ConsoleTab: View {
             return session.title.isEmpty ? "limactl shell \(instance.name)" : session.title
         }
         if let attempt = session.retryAttempt {
-            return "接続を再試行しています（\(attempt) 回目の失敗）…"
+            return String(localized: "接続を再試行しています（\(attempt) 回目の失敗）…")
         }
-        return "シェルは終了しました（終了コード \(session.exitCode.map(String.init) ?? "—")）"
+        return String(localized: "シェルは終了しました（終了コード \(session.exitCode.map(String.init) ?? "—")）")
     }
 }
 

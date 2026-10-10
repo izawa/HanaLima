@@ -16,7 +16,7 @@ struct OverviewTab: View {
     /// Address on a HanaLima virtual network: the reservation if any, else the DHCP lease.
     private func nicAddress(_ net: NetworkAttachment) -> String? {
         guard let path = net.socket, let vn = model.virtualNetwork(forSocket: path) else { return nil }
-        if let r = model.reservation(of: instance, on: vn) { return "\(r.ip)（固定）" }
+        if let r = model.reservation(of: instance, on: vn) { return String(localized: "\(r.ip)（固定）") }
         return model.address(of: instance, on: vn)
     }
 
@@ -35,7 +35,7 @@ struct OverviewTab: View {
                 if instance.protected == true {
                     LabeledContent("保護") { Text("削除禁止 (limactl protect)") }
                 }
-                AutostartToggle(name: instance.name, title: "ログイン時に自動で起動")
+                AutostartToggle(name: instance.name, title: String(localized: "ログイン時に自動で起動"))
             }
 
             if instance.vmType?.lowercased() == "vz",
@@ -170,8 +170,8 @@ struct ScreenThumbnail: View {
         } catch {
             // The window opens a little after boot, and can be closed by the user.
             self.error = image == nil
-                ? "画面を取得できません。仮想マシンの画面ウィンドウが開いていることを確認してください。"
-                : "画面を更新できません（画面ウィンドウが閉じられた可能性があります）。"
+                ? String(localized: "画面を取得できません。仮想マシンの画面ウィンドウが開いていることを確認してください。")
+                : String(localized: "画面を更新できません（画面ウィンドウが閉じられた可能性があります）。")
         }
     }
 }

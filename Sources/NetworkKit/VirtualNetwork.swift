@@ -66,14 +66,14 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
     public var kindLabel: String {
         switch mode {
         case .shared: "NAT"
-        case .host: "ホストオンリー"
-        case .bridged: "ブリッジ"
+        case .host: String(localized: "ホストオンリー")
+        case .bridged: String(localized: "ブリッジ")
         }
     }
 
     /// One-line description for menus, e.g. "dev（NAT 192.168.200.0/24）" or "lan（ブリッジ en0）".
     public var menuDescription: String {
-        isBridged ? "\(name)（ブリッジ \(bridgedInterface)）" : "\(name)（\(kindLabel) \(subnet?.description ?? "")）"
+        isBridged ? String(localized: "\(name)（ブリッジ \(bridgedInterface)）") : String(localized: "\(name)（\(kindLabel) \(subnet?.description ?? "")）")
     }
 
     public var socketPath: String { NetworkPaths.socket(for: name).path }
@@ -95,26 +95,26 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
 
         public var errorDescription: String? {
             switch self {
-            case .invalidName: "名前は英小文字・数字・ハイフンで 1〜24 文字、先頭は英小文字にしてください。"
-            case .duplicateName: "同じ名前のネットワークが既にあります。"
-            case .invalidGateway: "ゲートウェイの IPv4 アドレスが正しくありません。"
-            case .gatewayIsNetworkOrBroadcast: "ゲートウェイにネットワークアドレスやブロードキャストアドレスは使えません（例: 192.168.200.1）。"
-            case .invalidPrefixLength: "プレフィックス長は /\(VirtualNetwork.prefixLengths.lowerBound)〜/\(VirtualNetwork.prefixLengths.upperBound) にしてください。"
-            case .notPrivate: "プライベートアドレス（10/8, 172.16/12, 192.168/16）の範囲にしてください。"
-            case .overlaps(let what): "\(what) とアドレス範囲が重なっています。"
-            case .invalidReservation(let why): "固定 IP: \(why)"
-            case .missingInterface: "ブリッジするインターフェースを選んでください。"
+            case .invalidName: String(localized: "名前は英小文字・数字・ハイフンで 1〜24 文字、先頭は英小文字にしてください。")
+            case .duplicateName: String(localized: "同じ名前のネットワークが既にあります。")
+            case .invalidGateway: String(localized: "ゲートウェイの IPv4 アドレスが正しくありません。")
+            case .gatewayIsNetworkOrBroadcast: String(localized: "ゲートウェイにネットワークアドレスやブロードキャストアドレスは使えません（例: 192.168.200.1）。")
+            case .invalidPrefixLength: String(localized: "プレフィックス長は /\(VirtualNetwork.prefixLengths.lowerBound)〜/\(VirtualNetwork.prefixLengths.upperBound) にしてください。")
+            case .notPrivate: String(localized: "プライベートアドレス（10/8, 172.16/12, 192.168/16）の範囲にしてください。")
+            case .overlaps(let what): String(localized: "\(what) とアドレス範囲が重なっています。")
+            case .invalidReservation(let why): String(localized: "固定 IP: \(why)")
+            case .missingInterface: String(localized: "ブリッジするインターフェースを選んでください。")
             }
         }
     }
 
     /// Subnets already used by Lima and macOS that a new network must not overlap.
     public static let reservedSubnets: [(name: String, subnet: IPv4Subnet)] = [
-        ("Lima のユーザーモードネットワーク", IPv4Subnet(cidr: "192.168.5.0/24")!),
-        ("vzNAT（macOS の既定 NAT）", IPv4Subnet(cidr: "192.168.64.0/24")!),
-        ("Lima の user-v2 ネットワーク", IPv4Subnet(cidr: "192.168.104.0/24")!),
-        ("Lima の shared ネットワーク", IPv4Subnet(cidr: "192.168.105.0/24")!),
-        ("Lima の host ネットワーク", IPv4Subnet(cidr: "192.168.106.0/24")!),
+        (String(localized: "Lima のユーザーモードネットワーク"), IPv4Subnet(cidr: "192.168.5.0/24")!),
+        (String(localized: "vzNAT（macOS の既定 NAT）"), IPv4Subnet(cidr: "192.168.64.0/24")!),
+        (String(localized: "Lima の user-v2 ネットワーク"), IPv4Subnet(cidr: "192.168.104.0/24")!),
+        (String(localized: "Lima の shared ネットワーク"), IPv4Subnet(cidr: "192.168.105.0/24")!),
+        (String(localized: "Lima の host ネットワーク"), IPv4Subnet(cidr: "192.168.106.0/24")!),
     ]
 
     /// Checks this network against the rules and the other existing networks.
@@ -134,7 +134,7 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
             errors.append(.overlaps(what))
         }
         for other in others where other.name != name {
-            if let os = other.subnet, subnet.overlaps(os) { errors.append(.overlaps("ネットワーク「\(other.name)」")) }
+            if let os = other.subnet, subnet.overlaps(os) { errors.append(.overlaps(String(localized: "ネットワーク「\(other.name)」"))) }
         }
         errors += reservationErrors(gateway: gw, subnet: subnet)
         return errors
@@ -145,18 +145,18 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         var macs = Set<String>(), ips = Set<IPv4>()
         for r in reservations {
             guard let mac = DHCPReservation.normalizedMAC(r.mac) else {
-                errors.append(.invalidReservation("MAC アドレス「\(r.mac)」が正しくありません。"))
+                errors.append(.invalidReservation(String(localized: "MAC アドレス「\(r.mac)」が正しくありません。")))
                 continue
             }
             guard let ip = IPv4(r.ip) else {
-                errors.append(.invalidReservation("IP アドレス「\(r.ip)」が正しくありません。"))
+                errors.append(.invalidReservation(String(localized: "IP アドレス「\(r.ip)」が正しくありません。")))
                 continue
             }
             if !subnet.contains(ip) || ip == subnet.network || ip == subnet.broadcast || ip == gateway {
-                errors.append(.invalidReservation("\(r.ip) は \(subnet) の中で、ゲートウェイ以外のアドレスにしてください。"))
+                errors.append(.invalidReservation(String(localized: "\(r.ip) は \(subnet.description) の中で、ゲートウェイ以外のアドレスにしてください。")))
             }
-            if !macs.insert(mac).inserted { errors.append(.invalidReservation("MAC アドレス \(mac) が重複しています。")) }
-            if !ips.insert(ip).inserted { errors.append(.invalidReservation("IP アドレス \(r.ip) が重複しています。")) }
+            if !macs.insert(mac).inserted { errors.append(.invalidReservation(String(localized: "MAC アドレス \(mac) が重複しています。"))) }
+            if !ips.insert(ip).inserted { errors.append(.invalidReservation(String(localized: "IP アドレス \(r.ip) が重複しています。"))) }
         }
         return errors
     }

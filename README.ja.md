@@ -126,6 +126,17 @@ E2E テストは `hanalima-e2e-*` という名前の VM と一時的なネット
 
 Mac の再起動後に `metal` が見つからずビルドに失敗する場合は、`swift package clean` してからビルドし直してください。
 
+### 多言語対応
+
+UI は英語と日本語に対応しています。元の文字列は日本語で、英訳は String Catalog（`Resources/Localizable.xcstrings`、Xcode でも開けます）にあります。SwiftPM でビルドしているため、文字列はスクリプトから Swift コンパイラーで抽出します。
+
+```bash
+scripts/update-strings.sh    # Sources/ から文字列を抽出してカタログに反映する
+scripts/check-strings.py     # 翻訳されない日本語のリテラルを一覧にする
+```
+
+SwiftUI にリテラルで渡す文字列（`Text("…")`、`Button("…")`）は自動で翻訳されます。コードで組み立てる文字列は `String(localized: "…")` にしてください。`LabeledContent(_:value:)` の value は翻訳されないので、`LabeledContent("…") { Text("…") }` を使います。
+
 設計上の判断とその理由は [docs/04-design.md](docs/04-design.md) にあります。
 
 ## コントリビューション

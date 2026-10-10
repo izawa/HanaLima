@@ -53,7 +53,7 @@ struct SnapshotTab: View {
                     }
                 }
                 TableColumn("メモリの状態") { s in
-                    Text(s.vmSize == "0 B" ? "なし（ディスクのみ）" : s.vmSize).foregroundStyle(.secondary)
+                    Text(s.vmSize == "0 B" ? String(localized: "なし（ディスクのみ）") : s.vmSize).foregroundStyle(.secondary)
                 }
             }
             .contextMenu(forSelectionType: LimaSnapshot.ID.self) { ids in
@@ -116,8 +116,8 @@ private struct CreateSnapshotSheet: View {
     @State private var tag = LimaSnapshot.suggestedTag()
 
     private var error: String? {
-        if !LimaSnapshot.isValidTag(tag) { return "英数字と . _ - で 64 文字以内にしてください（先頭は英数字）。" }
-        if existing.contains(tag) { return "同じタグのスナップショットがあります。" }
+        if !LimaSnapshot.isValidTag(tag) { return String(localized: "英数字と . _ - で 64 文字以内にしてください（先頭は英数字）。") }
+        if existing.contains(tag) { return String(localized: "同じタグのスナップショットがあります。") }
         return nil
     }
 

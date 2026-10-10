@@ -333,12 +333,12 @@ public struct ProvisionConfig: Hashable, Sendable, Identifiable {
 
     /// The first meaningful line of the script, or the data path.
     public var summary: String {
-        if mode == .data || mode == .yq { return path.isEmpty ? "（パス未設定）" : path }
+        if mode == .data || mode == .yq { return path.isEmpty ? String(localized: "（パス未設定）") : path }
         if let file = extra["file"] { return "file: \(file.stringValue ?? file["url"]?.stringValue ?? file.jsonText)" }
         let line = script.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first { !$0.isEmpty && !$0.hasPrefix("#!") && !$0.hasPrefix("set -") }
-        return line ?? "（空のスクリプト）"
+        return line ?? String(localized: "（空のスクリプト）")
     }
 
     public static func == (a: Self, b: Self) -> Bool { a.json == b.json }

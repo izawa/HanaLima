@@ -63,7 +63,7 @@ public struct LaunchAgentManager: Sendable {
         try? fm.removeItem(at: NetworkPaths.status(for: network.name))
         let out = launchctl(["bootstrap", domain, url.path])
         guard out.status == 0 else {
-            throw Failure(message: "launchctl bootstrap に失敗しました: \(out.output.trimmingCharacters(in: .whitespacesAndNewlines))")
+            throw Failure(message: String(localized: "launchctl bootstrap に失敗しました: \(out.output.trimmingCharacters(in: .whitespacesAndNewlines))"))
         }
         // launchd creates the socket asynchronously; wait so a VM started right away can connect.
         // The first registration of a new helper file can take several seconds (Background Task
@@ -73,7 +73,7 @@ public struct LaunchAgentManager: Sendable {
             Thread.sleep(forTimeInterval: 0.05)
         }
         guard fm.fileExists(atPath: socket) else {
-            throw Failure(message: "launchd がソケット \(socket) を作成しませんでした")
+            throw Failure(message: String(localized: "launchd がソケット \(socket) を作成しませんでした"))
         }
     }
 

@@ -14,6 +14,16 @@ struct LogTab: View {
         case hostAgent = "ホストエージェント"
         case serial = "シリアルコンソール"
         var id: String { rawValue }
+
+        /// rawValue stays Japanese: it's the identifier (also used by HANALIMA_SNAPSHOT_LOG).
+        var title: String {
+            switch self {
+            case .operation: String(localized: "コマンド出力")
+            case .events: String(localized: "イベント")
+            case .hostAgent: String(localized: "ホストエージェント")
+            case .serial: String(localized: "シリアルコンソール")
+            }
+        }
     }
 
     @State private var source: Source = Self.initialSource
@@ -72,7 +82,7 @@ struct LogTab: View {
     private var controls: some View {
         HStack(spacing: 10) {
             Picker("", selection: $source) {
-                ForEach(Source.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Source.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .fixedSize()
@@ -107,7 +117,7 @@ struct LogTab: View {
                 .fixedSize()
                 .help(fileURL.path)
             } else if source == .operation, let op = model.operations[name] {
-                Text("最後のコマンド: \(op.kind.label)\(op.isRunning ? "（実行中）" : "")")
+                Text(op.isRunning ? "最後のコマンド: \(op.kind.label)（実行中）" : "最後のコマンド: \(op.kind.label)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -140,14 +150,14 @@ struct LogTab: View {
     }
 
     private var emptyText: String {
-        if !query.isEmpty { return "「\(query)」を含む行はありません。" }
+        if !query.isEmpty { return String(localized: "「\(query)」を含む行はありません。") }
         switch source {
-        case .operation: return "このセッションで実行したコマンドはまだありません。"
-        case .events: return "イベントはまだありません。"
-        case .hostAgent: return "ホストエージェントのログはまだありません。"
+        case .operation: return String(localized: "このセッションで実行したコマンドはまだありません。")
+        case .events: return String(localized: "イベントはまだありません。")
+        case .hostAgent: return String(localized: "ホストエージェントのログはまだありません。")
         case .serial:
-            guard let file = fileURL?.lastPathComponent else { return "シリアルコンソールのログはありません。" }
-            return "\(file) は空です。ゲストによっては、このコンソールに何も出力しません。"
+            guard let file = fileURL?.lastPathComponent else { return String(localized: "シリアルコンソールのログはありません。") }
+            return String(localized: "\(file) は空です。ゲストによっては、このコンソールに何も出力しません。")
         }
     }
 

@@ -126,6 +126,17 @@ End-to-end tests create VMs named `hanalima-e2e-*` and temporary networks, and r
 
 If the build fails because `metal` cannot be found after a restart, run `swift package clean` and build again.
 
+### Localization
+
+The UI is available in English and Japanese. Source strings are Japanese; the English translations live in the String Catalog `Resources/Localizable.xcstrings` (Xcode can open it). Since the app is built with SwiftPM, strings are extracted by the Swift compiler through a script:
+
+```bash
+scripts/update-strings.sh    # extract strings from Sources/ and merge them into the catalog
+scripts/check-strings.py     # list Japanese literals that won't be translated
+```
+
+Text passed to SwiftUI as a literal (`Text("…")`, `Button("…")`) is localized automatically. Strings built in code need `String(localized: "…")`. `LabeledContent(_:value:)` takes a plain String; use `LabeledContent("…") { Text("…") }` instead.
+
 Design decisions and their reasons are in [docs/04-design.md](docs/04-design.md).
 
 ## Contributing

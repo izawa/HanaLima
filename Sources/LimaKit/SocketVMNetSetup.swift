@@ -118,11 +118,11 @@ public struct SocketVMNetSetup: Sendable {
         let tarName = "socket_vmnet-\(version)-\(Self.architecture).tar.gz"
         guard let tarball = release.assets.first(where: { $0.name == tarName }),
               let sums = release.assets.first(where: { $0.name == "SHA256SUMS" }) else {
-            throw SetupError("リリース \(release.tag_name) に \(tarName) または SHA256SUMS がありません。")
+            throw SetupError(String(localized: "リリース \(release.tag_name) に \(tarName) または SHA256SUMS がありません。"))
         }
         let (sumData, _) = try await session.data(from: sums.browser_download_url)
         guard let sha = Self.checksum(for: tarName, in: String(decoding: sumData, as: UTF8.self)) else {
-            throw SetupError("SHA256SUMS に \(tarName) のチェックサムがありません。")
+            throw SetupError(String(localized: "SHA256SUMS に \(tarName) のチェックサムがありません。"))
         }
         return Release(version: version, tarballURL: tarball.browser_download_url, sha256: sha, size: tarball.size)
     }
@@ -151,7 +151,7 @@ public struct SocketVMNetSetup: Sendable {
     static func verify(_ file: URL, sha256 expected: String) throws {
         let digest = SHA256.hash(data: try Data(contentsOf: file)).map { String(format: "%02x", $0) }.joined()
         guard digest == expected.lowercased() else {
-            throw SetupError("チェックサムが一致しません（期待値 \(expected)、実際 \(digest)）。ダウンロードが破損しているか改ざんされています。")
+            throw SetupError(String(localized: "チェックサムが一致しません（期待値 \(expected)、実際 \(digest)）。ダウンロードが破損しているか改ざんされています。"))
         }
     }
 
@@ -200,18 +200,18 @@ public struct SocketVMNetSetup: Sendable {
     public func install(tarball: URL, release: Release) async throws {
         try await Self.runPrivileged(Self.installScript,
                                      arguments: [tarball.path, release.sha256, NSUserName(), client.limactlURL.path],
-                                     prompt: "HanaLima が socket_vmnet を /opt/socket_vmnet にインストールし、/etc/sudoers.d/lima を設定します。")
+                                     prompt: String(localized: "HanaLima が socket_vmnet を /opt/socket_vmnet にインストールし、/etc/sudoers.d/lima を設定します。"))
     }
 
     public func regenerateSudoers() async throws {
         try await Self.runPrivileged(Self.sudoersScript,
                                      arguments: [NSUserName(), client.limactlURL.path],
-                                     prompt: "HanaLima がネットワーク設定に合わせて /etc/sudoers.d/lima を更新します。")
+                                     prompt: String(localized: "HanaLima がネットワーク設定に合わせて /etc/sudoers.d/lima を更新します。"))
     }
 
     public func uninstall() async throws {
         try await Self.runPrivileged(Self.uninstallScript, arguments: [],
-                                     prompt: "HanaLima が socket_vmnet と /etc/sudoers.d/lima を削除します。")
+                                     prompt: String(localized: "HanaLima が socket_vmnet と /etc/sudoers.d/lima を削除します。"))
     }
 
     /// AppleScript source that runs `script` with arguments as root after the standard
@@ -232,7 +232,7 @@ public struct SocketVMNetSetup: Sendable {
             _ = try await osa.run(["-e", appleScript(for: script, arguments: arguments, prompt: prompt)])
         } catch let error as CommandError {
             // -128 is "User canceled".
-            if error.stderr.contains("-128") { throw SetupError("キャンセルされました。", canceled: true) }
+            if error.stderr.contains("-128") { throw SetupError(String(localized: "キャンセルされました。"), canceled: true) }
             throw SetupError(error.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
         }
     }
@@ -282,7 +282,7 @@ public struct SocketVMNetSetup: Sendable {
         let text = try String(contentsOf: configURL, encoding: .utf8)
         guard var root = try Yams.compose(yaml: text), case .mapping(var top) = root,
               case .mapping(var nets)? = top["networks"], case .mapping(var bridged)? = nets["bridged"] else {
-            throw SetupError("networks.yaml に networks.bridged がありません。")
+            throw SetupError(String(localized: "networks.yaml に networks.bridged がありません。"))
         }
         bridged["interface"] = Node(interface)
         nets["bridged"] = .mapping(bridged)

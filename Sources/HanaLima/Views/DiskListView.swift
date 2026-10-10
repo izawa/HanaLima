@@ -135,8 +135,8 @@ struct CreateDiskSheet: View {
 
     private var nameError: String? {
         guard !name.isEmpty else { return nil }
-        if !CreateOptions.isValidName(name) { return "英数字と . _ - が使えます（記号は連続不可）。" }
-        if model.disks.contains(where: { $0.name == name }) { return "「\(name)」は既に存在します。" }
+        if !CreateOptions.isValidName(name) { return String(localized: "英数字と . _ - が使えます（記号は連続不可）。") }
+        if model.disks.contains(where: { $0.name == name }) { return String(localized: "「\(name)」は既に存在します。") }
         return nil
     }
 }

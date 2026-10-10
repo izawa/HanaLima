@@ -9,6 +9,17 @@ struct InstanceDetailView: View {
         case snapshots = "スナップ"   // segments are equal width; a long label overflows the toolbar
         case log = "ログ"
         var id: String { rawValue }
+
+        /// rawValue stays Japanese: it's the identifier (also used by HANALIMA_SNAPSHOT_TAB).
+        var title: String {
+            switch self {
+            case .overview: String(localized: "概要")
+            case .console: String(localized: "コンソール")
+            case .config: String(localized: "設定")
+            case .snapshots: String(localized: "スナップ")
+            case .log: String(localized: "ログ")
+            }
+        }
     }
 
     @Environment(AppModel.self) private var model
@@ -51,11 +62,11 @@ struct InstanceDetailView: View {
             model.consoleRequest = nil
         }
         .navigationTitle(name)
-        .navigationSubtitle(instance?.status.label ?? "作成中")
+        .navigationSubtitle(instance?.status.label ?? String(localized: "作成中"))
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Picker("表示", selection: $tab) {
-                    ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(Tab.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()   // otherwise it fills the toolbar and pushes the actions into overflow
@@ -98,8 +109,8 @@ struct InstanceDetailView: View {
 
     private func deleteTitle(_ instance: LimaInstance?) -> String {
         instance?.isRunning == true
-            ? "実行中の「\(name)」を強制停止して削除しますか？"
-            : "「\(name)」を削除しますか？"
+            ? String(localized: "実行中の「\(name)」を強制停止して削除しますか？")
+            : String(localized: "「\(name)」を削除しますか？")
     }
 }
 
@@ -113,7 +124,7 @@ private struct OperationBanner: View {
         HStack(spacing: 10) {
             if operation.isRunning {
                 ProgressView().controlSize(.small)
-                Text("\(operation.kind.label)中")
+                Text(operation.kind.progressLabel)
                     .fontWeight(.medium)
                 if let dl = operation.download {
                     DownloadProgressView(progress: dl)

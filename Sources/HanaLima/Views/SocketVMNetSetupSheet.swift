@@ -21,7 +21,7 @@ struct SocketVMNetSetupSheet: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    Text("ブリッジ接続（VM を LAN に直接参加させる）には socket_vmnet が必要です。macOS の新しい vmnet はブリッジに対応していないためです。インストールには管理者パスワードの入力が 1 回必要です。")
+                    Text("従来方式のブリッジ（lima:bridged、VM を LAN に直接参加させる）には socket_vmnet が必要です。インストールには管理者パスワードの入力が 1 回必要です。HanaLima のブリッジネットワークには不要です。")
                         .font(.callout)
                 }
                 Section("状態") {
@@ -29,16 +29,16 @@ struct SocketVMNetSetupSheet: View {
                         CheckRow(ok: status.binaryInstalled && status.binarySecure,
                                  title: "socket_vmnet",
                                  detail: status.binaryInstalled
-                                     ? (status.binarySecure ? status.binaryPath : "\(status.binaryPath) が root 所有になっていません")
-                                     : "未インストール")
-                        CheckRow(ok: status.sudoersUpToDate, title: "sudoers（\(SocketVMNetSetup.sudoersPath)）",
-                                 detail: !status.sudoersInstalled ? "未設定"
-                                     : status.sudoersUpToDate ? "設定済み"
-                                     : !status.sudoersReadable ? "権限の都合で内容を確認できません。「sudoers を更新」で修正されます"
-                                     : "networks.yaml と一致していません（更新が必要）")
-                        CheckRow(ok: status.userInGroup, title: "グループ「\(status.group)」",
-                                 detail: status.userInGroup ? "\(NSUserName()) は所属しています"
-                                     : "\(NSUserName()) が所属していません。networks.yaml の group を変更するか、ユーザーをグループに追加してください")
+                                     ? (status.binarySecure ? status.binaryPath : String(localized: "\(status.binaryPath) が root 所有になっていません"))
+                                     : String(localized: "未インストール"))
+                        CheckRow(ok: status.sudoersUpToDate, title: String(localized: "sudoers（\(SocketVMNetSetup.sudoersPath)）"),
+                                 detail: !status.sudoersInstalled ? String(localized: "未設定")
+                                     : status.sudoersUpToDate ? String(localized: "設定済み")
+                                     : !status.sudoersReadable ? String(localized: "権限の都合で内容を確認できません。「sudoers を更新」で修正されます")
+                                     : String(localized: "networks.yaml と一致していません（更新が必要）"))
+                        CheckRow(ok: status.userInGroup, title: String(localized: "グループ「\(status.group)」"),
+                                 detail: status.userInGroup ? String(localized: "\(NSUserName()) は所属しています")
+                                     : String(localized: "\(NSUserName()) が所属していません。networks.yaml の group を変更するか、ユーザーをグループに追加してください"))
                     } else {
                         ProgressView().controlSize(.small)
                     }
@@ -110,7 +110,7 @@ struct SocketVMNetSetupSheet: View {
             let needsBinary = !(status.binaryInstalled && status.binarySecure)
             if needsBinary {
                 if let release {
-                    LabeledContent("インストールする版", value: "socket_vmnet \(release.version)（\(SocketVMNetSetup.architecture)）")
+                    LabeledContent("インストールする版") { Text("socket_vmnet \(release.version)（\(SocketVMNetSetup.architecture)）") }
                     LabeledContent("入手元") {
                         Text(release.tarballURL.absoluteString).font(.caption.monospaced()).textSelection(.enabled)
                     }
@@ -150,16 +150,16 @@ struct SocketVMNetSetupSheet: View {
         selectedInterface = st.bridgedInterface ?? "en0"
         if interfaces.isEmpty { interfaces = await SocketVMNetSetup.bridgeableInterfaces() }
         if !(st.binaryInstalled && st.binarySecure), release == nil {
-            await perform("最新版を確認しています…") { release = try await setup.latestRelease() }
+            await perform(String(localized: "最新版を確認しています…")) { release = try await setup.latestRelease() }
         }
     }
 
     private func install() {
         guard let setup, let release else { return }
         Task {
-            await perform("ダウンロードしています…") {
+            await perform(String(localized: "ダウンロードしています…")) {
                 let tarball = try await setup.download(release)
-                busy = "管理者パスワードの入力を待っています…"
+                busy = String(localized: "管理者パスワードの入力を待っています…")
                 try await setup.install(tarball: tarball, release: release)
             }
             await reload()
@@ -169,7 +169,7 @@ struct SocketVMNetSetupSheet: View {
     private func regenerate() {
         guard let setup else { return }
         Task {
-            await perform("管理者パスワードの入力を待っています…") { try await setup.regenerateSudoers() }
+            await perform(String(localized: "管理者パスワードの入力を待っています…")) { try await setup.regenerateSudoers() }
             await reload()
         }
     }
@@ -178,7 +178,7 @@ struct SocketVMNetSetupSheet: View {
         guard let setup else { return }
         let iface = selectedInterface
         Task {
-            await perform("管理者パスワードの入力を待っています…") {
+            await perform(String(localized: "管理者パスワードの入力を待っています…")) {
                 try SocketVMNetSetup.setBridgedInterface(iface)
                 try await setup.regenerateSudoers()
             }
@@ -189,7 +189,7 @@ struct SocketVMNetSetupSheet: View {
     private func uninstall() {
         guard let setup else { return }
         Task {
-            await perform("管理者パスワードの入力を待っています…") { try await setup.uninstall() }
+            await perform(String(localized: "管理者パスワードの入力を待っています…")) { try await setup.uninstall() }
             await reload()
         }
     }

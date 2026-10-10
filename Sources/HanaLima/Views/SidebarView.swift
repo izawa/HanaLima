@@ -88,8 +88,8 @@ private struct SidebarRow: View {
     }
 
     private func subtitle(_ instance: LimaInstance?) -> String {
-        if let op = model.operations[name], op.isRunning { return "\(op.kind.label)中…" }
-        guard let instance else { return "作成中…" }
+        if let op = model.operations[name], op.isRunning { return op.kind.progressLabel + "…" }
+        guard let instance else { return String(localized: "作成中…") }
         var parts = [instance.status.label]
         if let vm = instance.vmType { parts.append(vm.uppercased()) }
         return parts.joined(separator: " · ")

@@ -4,13 +4,13 @@ import SwiftUI
 extension ProvisionConfig.Mode {
     var label: String {
         switch self {
-        case .system: "システム（root で実行）"
-        case .user: "ユーザー（一般ユーザーで実行）"
-        case .boot: "起動初期（boot）"
-        case .dependency: "依存パッケージ（dependency）"
-        case .data: "ファイルの配置（data）"
-        case .yq: "ファイルの編集（yq）"
-        case .ansible: "Ansible（非推奨）"
+        case .system: String(localized: "システム（root で実行）")
+        case .user: String(localized: "ユーザー（一般ユーザーで実行）")
+        case .boot: String(localized: "起動初期（boot）")
+        case .dependency: String(localized: "依存パッケージ（dependency）")
+        case .data: String(localized: "ファイルの配置（data）")
+        case .yq: String(localized: "ファイルの編集（yq）")
+        case .ansible: String(localized: "Ansible（非推奨）")
         }
     }
 
@@ -35,7 +35,7 @@ extension ProvisionConfig.Mode {
         case .data:
             ProvisionConfig(mode: .data, path: "/etc/example.conf", content: "")
         case .boot:
-            ProvisionConfig(mode: .boot, script: "# /bin/sh で実行されます（#! は不要）\n")
+            ProvisionConfig(mode: .boot, script: String(localized: "# /bin/sh で実行されます（#! は不要）\n"))
         default:
             ProvisionConfig(mode: self, script: "#!/bin/sh\nset -eux\n\n")
         }
@@ -120,9 +120,9 @@ private struct ProvisionEditorSheet: View {
 
     private var error: String? {
         if entry.mode == .data {
-            if !entry.path.hasPrefix("/") && !entry.path.hasPrefix("{{") { return "ゲスト内の絶対パスを指定してください。" }
+            if !entry.path.hasPrefix("/") && !entry.path.hasPrefix("{{") { return String(localized: "ゲスト内の絶対パスを指定してください。") }
         } else if entry.script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "スクリプトを入力してください。"
+            return String(localized: "スクリプトを入力してください。")
         }
         return nil
     }
@@ -176,11 +176,11 @@ private struct ProvisionEditorSheet: View {
 
     private var description: String {
         switch entry.mode {
-        case .system: "root 権限で実行されるスクリプトです。パッケージのインストールや設定ファイルの変更に使います。"
-        case .user: "一般ユーザー（Mac と同じユーザー名）で実行されるスクリプトです。"
-        case .boot: "起動のごく初期（cloud-init の bootcmd）に /bin/sh で実行されます。"
-        case .dependency: "Lima が依存パッケージを導入する前に実行されます。リポジトリの追加などに使います。"
-        case .data: "ゲストにファイルを書き込みます（実行はしません）。所有者は root:root、権限は 644 が既定です。"
+        case .system: String(localized: "root 権限で実行されるスクリプトです。パッケージのインストールや設定ファイルの変更に使います。")
+        case .user: String(localized: "一般ユーザー（Mac と同じユーザー名）で実行されるスクリプトです。")
+        case .boot: String(localized: "起動のごく初期（cloud-init の bootcmd）に /bin/sh で実行されます。")
+        case .dependency: String(localized: "Lima が依存パッケージを導入する前に実行されます。リポジトリの追加などに使います。")
+        case .data: String(localized: "ゲストにファイルを書き込みます（実行はしません）。所有者は root:root、権限は 644 が既定です。")
         case .yq, .ansible: ""
         }
     }

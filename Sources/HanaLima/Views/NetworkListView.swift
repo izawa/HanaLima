@@ -34,16 +34,16 @@ struct NetworkListView: View {
             }
 
             Section {
-                BuiltinRow(name: "ユーザーモード NAT", detail: "192.168.5.0/24・全 VM に常に存在・ホストからゲスト IP へは届かない",
+                BuiltinRow(name: String(localized: "ユーザーモード NAT"), detail: String(localized: "192.168.5.0/24・全 VM に常に存在・ホストからゲスト IP へは届かない"),
                            icon: "network")
-                BuiltinRow(name: "vzNAT", detail: "VZ 専用の NAT・サブネット指定不可（通常 192.168.64.0/24）",
+                BuiltinRow(name: "vzNAT", detail: String(localized: "VZ 専用の NAT・サブネット指定不可（通常 192.168.64.0/24）"),
                            icon: "network")
                 ForEach(model.networks.networks) { net in
                     BuiltinRow(name: "lima:\(net.name)",
                                detail: limaDetail(net),
                                icon: net.mode == "bridged" ? "cable.connector" : "network",
                                warning: net.needsSocketVMNet && !model.networks.socketVMNetInstalled
-                                   ? "socket_vmnet が未インストール" : nil)
+                                   ? String(localized: "socket_vmnet が未インストール") : nil)
                 }
             } header: {
                 HStack {
@@ -108,10 +108,10 @@ struct NetworkListView: View {
 
     private func limaDetail(_ net: LimaNetworks.Network) -> String {
         switch net.mode {
-        case "shared": "socket_vmnet の NAT・\(net.gateway ?? "")"
-        case "host": "socket_vmnet のホストオンリー・\(net.gateway ?? "")"
-        case "bridged": "socket_vmnet のブリッジ・\(net.interface ?? "")"
-        case "user-v2": "VM 間ネットワーク（root 不要）・\(net.gateway ?? "")"
+        case "shared": String(localized: "socket_vmnet の NAT・\(net.gateway ?? "")")
+        case "host": String(localized: "socket_vmnet のホストオンリー・\(net.gateway ?? "")")
+        case "bridged": String(localized: "socket_vmnet のブリッジ・\(net.interface ?? "")")
+        case "user-v2": String(localized: "VM 間ネットワーク（root 不要）・\(net.gateway ?? "")")
         default: net.mode
         }
     }
@@ -122,9 +122,9 @@ private struct NetworkRow: View {
     let network: VirtualNetwork
 
     private var failureText: String {
-        let detail = LaunchAgentManager().lastError(of: network.name) ?? "詳細はログを確認してください"
+        let detail = LaunchAgentManager().lastError(of: network.name) ?? String(localized: "詳細はログを確認してください")
         if detail.contains("vmnet_network_create: 1001") {
-            return "macOS がこのサブネットを使用中として扱っているため、ネットワークを作成できません。サブネットを変更するか、Mac を再起動してください。（\(detail)）"
+            return String(localized: "macOS がこのサブネットを使用中として扱っているため、ネットワークを作成できません。サブネットを変更するか、Mac を再起動してください。（\(detail)）")
         }
         return detail
     }
@@ -194,10 +194,10 @@ private struct StateBadge: View {
 
     private var label: String {
         switch state {
-        case .running: clients > 0 ? "稼働中（\(clients) 台接続）" : "稼働中"
-        case .failed: "エラー"
-        case .waiting: "待機中"
-        case .notLoaded: "未登録"
+        case .running: clients > 0 ? String(localized: "稼働中（\(clients) 台接続）") : String(localized: "稼働中")
+        case .failed: String(localized: "エラー")
+        case .waiting: String(localized: "待機中")
+        case .notLoaded: String(localized: "未登録")
         case nil: "—"
         }
     }
@@ -322,7 +322,7 @@ struct NetworkEditorSheet: View {
             }
             if let subnet = draft.subnet {
                 LabeledContent("サブネット", value: subnet.description)
-                LabeledContent("DHCP", value: "ゲートウェイ以外のアドレスを VM に自動で割り当てます")
+                LabeledContent("DHCP") { Text("ゲートウェイ以外のアドレスを VM に自動で割り当てます") }
             }
         }
     }
@@ -407,7 +407,7 @@ struct NetworkEditorSheet: View {
     private var interfaceChoices: [SocketVMNetSetup.HostInterface] {
         var list = interfaces
         if !draft.bridgedInterface.isEmpty, !list.contains(where: { $0.device == draft.bridgedInterface }) {
-            list.append(.init(device: draft.bridgedInterface, displayName: "\(draft.bridgedInterface)（現在は見つかりません）"))
+            list.append(.init(device: draft.bridgedInterface, displayName: String(localized: "\(draft.bridgedInterface)（現在は見つかりません）")))
         }
         return list
     }
@@ -416,10 +416,10 @@ struct NetworkEditorSheet: View {
         Section {
             Picker("接続先", selection: $draft.bridgedInterface) {
                 ForEach(interfaceChoices, id: \.device) { i in
-                    Text(i.displayName == i.device ? i.device : "\(i.displayName)（\(i.device)）").tag(i.device)
+                    Text(i.displayName == i.device ? i.device : String(localized: "\(i.displayName)（\(i.device)）")).tag(i.device)
                 }
             }
-            LabeledContent("IP アドレス", value: "LAN の DHCP サーバーから取得します")
+            LabeledContent("IP アドレス") { Text("LAN の DHCP サーバーから取得します") }
         } header: {
             Text("ブリッジ")
         } footer: {

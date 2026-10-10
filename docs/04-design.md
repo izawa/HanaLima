@@ -43,6 +43,15 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 - **コードの編集は `CodeEditor`（NSTextView）で行う。** SwiftUI の TextEditor はシステム設定に従ってスマート引用符やダッシュに置き換えるため、スクリプトや YAML が壊れる。
 - **メイン画面はメニューバーのアイコンから開く。** ウィンドウを閉じた状態で終了すると、ウィンドウの復元で「ウィンドウなし」が戻り、`.defaultLaunchBehavior(.presented)` や `.restorationBehavior(.disabled)` でも開かなかった。常に存在するメニューバーのラベルが、起動時にウィンドウがなければ `openWindow` で開き、`bootstrap()`（1 回だけ実行）も始める。
 
+## 多言語対応
+
+- **String Catalog（`Resources/Localizable.xcstrings`）を使い、元の言語は日本語。** キーは日本語の原文で、英訳をカタログに持つ。
+- **文字列の抽出は Swift コンパイラーで行う**（`scripts/update-strings.sh`）。SwiftPM のビルドには Xcode のような自動抽出がない。`xcstringstool extract`（軽量な構文解析）は引数の型が分からず `%arg` を出すので、実行時のキー（`%@`、`%lld`）と一致しない。`-emit-localized-strings` でコンパイルすると正しいキーが得られる。別の scratch path でビルドするので、通常のビルドを壊さない。
+- **`scripts/check-strings.py` で漏れを調べる。** コードで組み立てた文字列（`String(localized:)` が必要）、`LabeledContent(_:value:)` の value（翻訳されない）、文の一部だけを三項演算子で切り替えるもの（語順が言語で違うので文全体を書き分ける）が漏れやすい。
+- **アプリの既定の言語は英語**（`CFBundleDevelopmentRegion = en`）。日本語でも英語でもない環境では英語になる。その代わり、日本語の訳がないキーは英語の表（複数形の規則も）を探しに行くので、`update-strings.sh` がすべてのキーに日本語の値を明示する。
+- **「停止」のように、日本語では同じでも英語で訳し分けるものは、別のキーにする**（`vm-status.stopped`、`defaultValue: "停止"`）。
+- **操作名に「中」を付けるような組み立てはしない。** 英語では語尾を付けられないので、`progressLabel`（「起動中」「Starting」）を別に持つ。
+
 ## macOS vmnet の既知の不具合（2026-10, macOS 27.0.1）
 
 - アイドルになった `vmnet_network` は、ref を保持していても DHCP 予約とポート転送規則を失う（[フォーラム 847642](https://developer.apple.com/forums/thread/847642), FB24895271）。

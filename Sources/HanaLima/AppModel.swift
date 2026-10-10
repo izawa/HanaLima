@@ -11,15 +11,31 @@ struct Operation: Sendable {
 
         var label: String {
             switch self {
-            case .create: "作成"
-            case .start: "起動"
-            case .stop: "停止"
-            case .restart: "再起動"
-            case .delete: "削除"
-            case .edit: "設定変更"
-            case .snapshotCreate: "スナップショット作成"
-            case .snapshotApply: "スナップショットの復元"
-            case .snapshotDelete: "スナップショット削除"
+            case .create: String(localized: "作成")
+            case .start: String(localized: "起動")
+            case .stop: String(localized: "停止")
+            case .restart: String(localized: "再起動")
+            case .delete: String(localized: "削除")
+            case .edit: String(localized: "設定変更")
+            case .snapshotCreate: String(localized: "スナップショット作成")
+            case .snapshotApply: String(localized: "スナップショットの復元")
+            case .snapshotDelete: String(localized: "スナップショット削除")
+            }
+        }
+
+        /// "Starting", "Creating"… A separate string rather than label + suffix: English can't
+        /// build these by appending (Japanese adds 中).
+        var progressLabel: String {
+            switch self {
+            case .create: String(localized: "作成中")
+            case .start: String(localized: "起動中")
+            case .stop: String(localized: "停止中")
+            case .restart: String(localized: "再起動中")
+            case .delete: String(localized: "削除中")
+            case .edit: String(localized: "設定変更中")
+            case .snapshotCreate: String(localized: "スナップショット作成中")
+            case .snapshotApply: String(localized: "スナップショットの復元中")
+            case .snapshotDelete: String(localized: "スナップショット削除中")
             }
         }
     }
@@ -321,8 +337,8 @@ final class AppModel {
                 guard let self else { return }
                 await self.loadSnapshots(name)
                 if ok && !(self.snapshots[name] ?? []).contains(where: { $0.tag == tag }) {
-                    self.alert = AlertMessage(title: "スナップショット「\(tag)」を作成できませんでした",
-                                              message: "limactl はエラーを返しませんでしたが、一覧に見つかりません。ログタブの「コマンド出力」を確認してください。")
+                    self.alert = AlertMessage(title: String(localized: "スナップショット「\(tag)」を作成できませんでした"),
+                                              message: String(localized: "limactl はエラーを返しませんでしたが、一覧に見つかりません。ログタブの「コマンド出力」を確認してください。"))
                 }
             }
         }
@@ -347,7 +363,10 @@ final class AppModel {
         do {
             try await client.setAutostart(name, enabled: enabled)
         } catch {
-            alert = AlertMessage(title: "「\(name)」の自動起動を\(enabled ? "有効" : "無効")にできませんでした",
+            // Whole sentences, not a switched word: word order differs between languages.
+            alert = AlertMessage(title: enabled
+                                     ? String(localized: "「\(name)」の自動起動を有効にできませんでした")
+                                     : String(localized: "「\(name)」の自動起動を無効にできませんでした"),
                                  message: error.localizedDescription)
         }
         await refresh()
@@ -377,17 +396,17 @@ final class AppModel {
 
     func createDisk(_ name: String, sizeGiB: Int, format: String) async -> Bool {
         guard let client else { return false }
-        return await runDiskCommand("ディスク「\(name)」の作成", client.createDisk(name, size: ByteSize.gib(sizeGiB), format: format))
+        return await runDiskCommand(String(localized: "ディスク「\(name)」の作成"), client.createDisk(name, size: ByteSize.gib(sizeGiB), format: format))
     }
 
     func resizeDisk(_ name: String, sizeGiB: Int) async -> Bool {
         guard let client else { return false }
-        return await runDiskCommand("ディスク「\(name)」のサイズ変更", client.resizeDisk(name, size: ByteSize.gib(sizeGiB)))
+        return await runDiskCommand(String(localized: "ディスク「\(name)」のサイズ変更"), client.resizeDisk(name, size: ByteSize.gib(sizeGiB)))
     }
 
     func deleteDisk(_ name: String) async -> Bool {
         guard let client else { return false }
-        return await runDiskCommand("ディスク「\(name)」の削除", client.deleteDisk(name))
+        return await runDiskCommand(String(localized: "ディスク「\(name)」の削除"), client.deleteDisk(name))
     }
 
     private func runDiskCommand(_ title: String, _ stream: AsyncThrowingStream<LogEntry, Error>) async -> Bool {
@@ -398,7 +417,7 @@ final class AppModel {
             await refresh()
             return true
         } catch {
-            alert = AlertMessage(title: "\(title)に失敗しました", message: error.localizedDescription)
+            alert = AlertMessage(title: String(localized: "\(title)に失敗しました"), message: error.localizedDescription)
             await refresh()
             return false
         }
@@ -437,7 +456,7 @@ final class AppModel {
             } catch {
                 ok = false
                 operations[name]?.error = error.localizedDescription
-                alert = AlertMessage(title: "\(name) の\(kind.label)に失敗しました",
+                alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"),
                                      message: error.localizedDescription)
             }
             monitor?.cancel()

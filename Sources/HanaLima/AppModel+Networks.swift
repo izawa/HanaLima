@@ -16,7 +16,7 @@ extension AppModel {
         do {
             virtualNetworks = try NetworkStore.load()
         } catch {
-            alert = AlertMessage(title: "ネットワーク設定を読み込めませんでした", message: error.localizedDescription)
+            alert = AlertMessage(title: String(localized: "ネットワーク設定を読み込めませんでした"), message: error.localizedDescription)
             return
         }
         let networks = virtualNetworks
@@ -25,7 +25,7 @@ extension AppModel {
             var problems: [String] = []
             if let helper {
                 do { try HelperInstaller.installIfNeeded(from: helper) }
-                catch { problems.append("ヘルパーの配置に失敗しました: \(error.localizedDescription)") }
+                catch { problems.append(String(localized: "ヘルパーの配置に失敗しました: \(error.localizedDescription)")) }
             }
             let agents = LaunchAgentManager()
             for n in networks where !agents.isInstalled(n.name) {
@@ -37,7 +37,7 @@ extension AppModel {
             return problems
         }.value
         if !problems.isEmpty {
-            alert = AlertMessage(title: "仮想ネットワークの準備で問題が発生しました", message: problems.joined(separator: "\n"))
+            alert = AlertMessage(title: String(localized: "仮想ネットワークの準備で問題が発生しました"), message: problems.joined(separator: "\n"))
         }
         await refreshNetworkStates()
     }
@@ -100,8 +100,8 @@ extension AppModel {
     @discardableResult
     func saveVirtualNetwork(_ network: VirtualNetwork) async -> Bool {
         guard Self.bundledHelper != nil || FileManager.default.isExecutableFile(atPath: NetworkPaths.installedHelper.path) else {
-            alert = AlertMessage(title: "ヘルパーが見つかりません",
-                                 message: "hanalima-netd がアプリに同梱されていません。scripts/build-app.sh でビルドした HanaLima.app から起動してください。")
+            alert = AlertMessage(title: String(localized: "ヘルパーが見つかりません"),
+                                 message: String(localized: "hanalima-netd がアプリに同梱されていません。scripts/build-app.sh でビルドした HanaLima.app から起動してください。"))
             return false
         }
         var updated = virtualNetworks.filter { $0.name != network.name }
@@ -113,7 +113,7 @@ extension AppModel {
             try await Task.detached { try LaunchAgentManager().install(network) }.value
             virtualNetworks = updated
         } catch {
-            alert = AlertMessage(title: "ネットワーク「\(network.name)」を保存できませんでした", message: error.localizedDescription)
+            alert = AlertMessage(title: String(localized: "ネットワーク「\(network.name)」を保存できませんでした"), message: error.localizedDescription)
             virtualNetworks = (try? NetworkStore.load()) ?? virtualNetworks
             return false
         }
@@ -126,7 +126,7 @@ extension AppModel {
         do {
             try NetworkStore.save(remaining)
         } catch {
-            alert = AlertMessage(title: "ネットワーク「\(name)」を削除できませんでした", message: error.localizedDescription)
+            alert = AlertMessage(title: String(localized: "ネットワーク「\(name)」を削除できませんでした"), message: error.localizedDescription)
             return
         }
         await Task.detached { LaunchAgentManager().uninstall(name) }.value

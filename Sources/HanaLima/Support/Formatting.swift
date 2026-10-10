@@ -11,12 +11,12 @@ enum Formatting {
 extension InstanceStatus {
     var label: String {
         switch self {
-        case .running: "実行中"
-        case .stopped: "停止"
-        case .broken: "異常"
-        case .installing: "インストール中"
-        case .uninitialized: "未初期化"
-        case .unknown(let s): s.isEmpty ? "不明" : s
+        case .running: String(localized: "実行中")
+        case .stopped: String(localized: "vm-status.stopped", defaultValue: "停止")  // "停止" alone is the Stop button
+        case .broken: String(localized: "異常")
+        case .installing: String(localized: "インストール中")
+        case .uninitialized: String(localized: "未初期化")
+        case .unknown(let s): s.isEmpty ? String(localized: "不明") : s
         }
     }
 

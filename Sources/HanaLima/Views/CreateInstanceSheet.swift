@@ -46,7 +46,7 @@ struct CreateInstanceSheet: View {
 
                 Section("ハードウェア") {
                     Stepper(value: $cpus, in: 1...HostInfo.cpuCount) {
-                        LabeledContent("仮想 CPU", value: "\(cpus) コア")
+                        LabeledContent("仮想 CPU") { Text("\(cpus) コア") }
                     }
                     Stepper(value: $memoryGiB, in: 1...HostInfo.memoryGiB) {
                         LabeledContent("メモリ", value: "\(memoryGiB) GiB")
@@ -63,7 +63,7 @@ struct CreateInstanceSheet: View {
                 }
 
                 Section("ネットワーク") {
-                    LabeledContent("NIC 0", value: "ユーザーモード NAT（常に有効）")
+                    LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
                     Picker("NIC 1", selection: $extraNIC) {
                         Text("なし").tag(ExtraNIC.none)
                         ForEach(model.virtualNetworks) { n in
@@ -137,9 +137,9 @@ struct CreateInstanceSheet: View {
     private var nameError: String? {
         let n = effectiveName
         if !CreateOptions.isValidName(n) {
-            return "英数字と . _ - が使えます（記号は連続不可、先頭と末尾は英数字）。"
+            return String(localized: "英数字と . _ - が使えます（記号は連続不可、先頭と末尾は英数字）。")
         }
-        if model.sidebarNames.contains(n) { return "「\(n)」は既に存在します。" }
+        if model.sidebarNames.contains(n) { return String(localized: "「\(n)」は既に存在します。") }
         return nil
     }
 

@@ -30,8 +30,8 @@ public enum NetworkConflict {
         public var message: String {
             let legacy = legacyNetworks.map { "lima:\($0)" }.joined(separator: ", ")
             let virtual = virtualNetworks.joined(separator: ", ")
-            let who = runningVMs.isEmpty ? "「\(vm)」自身の NIC で" : "実行中の VM（\(runningVMs.joined(separator: ", "))）と"
-            return "\(who)、socket_vmnet のネットワーク（\(legacy)）と HanaLima の仮想ネットワーク（\(virtual)）が同時に使われます。HanaLima はこの組み合わせで動作を確認していますが、macOS の不具合（FB25122122）により、ほかの仮想化ツールが vmnet のネットワークを使い回すと、ブリッジの通信や Mac 本体の IPv4 接続が切れることがあります。その場合は VM を止めて、システム設定で DHCP リースを更新するか Mac を再起動してください。"
+            let who = runningVMs.isEmpty ? String(localized: "「\(vm)」自身の NIC で") : String(localized: "実行中の VM（\(runningVMs.joined(separator: ", "))）と")
+            return String(localized: "\(who)、socket_vmnet のネットワーク（\(legacy)）と HanaLima の仮想ネットワーク（\(virtual)）が同時に使われます。HanaLima はこの組み合わせで動作を確認していますが、macOS の不具合（FB25122122）により、ほかの仮想化ツールが vmnet のネットワークを使い回すと、ブリッジの通信や Mac 本体の IPv4 接続が切れることがあります。その場合は VM を止めて、システム設定で DHCP リースを更新するか Mac を再起動してください。")
         }
     }
 

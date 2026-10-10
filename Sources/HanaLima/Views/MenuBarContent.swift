@@ -77,8 +77,8 @@ struct MenuBarContent: View {
     }
 
     private func statusText(_ instance: LimaInstance) -> String {
-        if let op = model.operations[instance.name], op.isRunning { return "\(op.kind.label)中" }
-        if instance.isRunning && !model.isReady(instance.name) { return "起動処理中" }
+        if let op = model.operations[instance.name], op.isRunning { return op.kind.progressLabel }
+        if instance.isRunning && !model.isReady(instance.name) { return String(localized: "起動処理中") }
         return instance.status.label
     }
 
