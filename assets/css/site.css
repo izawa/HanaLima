@@ -250,6 +250,7 @@ td.hl, th.hl { background: color-mix(in srgb, var(--hana) 7%, var(--panel)); }
 .status { position: absolute; top: 18px; right: 18px; font: 600 10.5px var(--mono); padding: 2px 7px; border-radius: 5px; }
 .status.done { background: var(--lime-soft); color: var(--lime); }
 .status.next { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.status.later { background: var(--panel-2); color: var(--faint); border: 1px dashed var(--line); }
 
 /* Battle scars */
 .scars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -281,6 +282,8 @@ td.hl, th.hl { background: color-mix(in srgb, var(--hana) 7%, var(--panel)); }
 .milestone .bar { height: 4px; border-radius: 2px; background: var(--line); margin-bottom: 16px; }
 .milestone.done .bar { background: var(--grad); }
 .milestone.next .bar { background: linear-gradient(90deg, var(--amber), transparent); }
+.milestone.later .bar { background: repeating-linear-gradient(90deg, var(--faint) 0 6px, transparent 6px 12px); opacity: .6; }
+.milestone.later h3, .milestone.later ul { color: var(--faint); }
 .milestone h3 { font: 700 15px var(--mono); }
 .milestone ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
 @media (max-width: 900px) { .milestone { padding: 0 0 22px; } }
