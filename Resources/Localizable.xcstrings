@@ -4872,6 +4872,22 @@
         }
       }
     },
+    "仮想マシンの実行中は変更できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't be changed while the virtual machine is running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの実行中は変更できません。"
+          }
+        }
+      }
+    },
     "仮想マシンの実行中は設定を変更できません。": {
       "localizations": {
         "en": {
@@ -6880,6 +6896,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "表示"
+          }
+        }
+      }
+    },
+    "表示…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示…"
           }
         }
       }

@@ -45,6 +45,7 @@ extension ProvisionConfig.Mode {
 /// `provision:` entries of lima.yaml.
 struct ProvisionSection: View {
     @Binding var provision: [ProvisionConfig]
+    var isLocked = false
     @State private var editing: ProvisionConfig?
 
     var body: some View {
@@ -67,13 +68,14 @@ struct ProvisionSection: View {
                     }
                     Spacer()
                     if entry.isEditable {
-                        Button("編集…") { editing = entry }
+                        Button(isLocked ? "表示…" : "編集…") { editing = entry }
                     } else {
                         Text("YAML で編集")
                             .font(.caption).foregroundStyle(.secondary)
                             .help("この項目は YAML モードで編集してください")
                     }
                     RemoveButton { provision.removeAll { $0.id == entry.id } }
+                        .disabled(isLocked)
                 }
             }
             Menu("プロビジョニングを追加", systemImage: "plus") {
@@ -83,6 +85,7 @@ struct ProvisionSection: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
+            .disabled(isLocked)
         } header: {
             Text("プロビジョニング")
         } footer: {
@@ -95,7 +98,8 @@ struct ProvisionSection: View {
         }
         #endif
         .sheet(item: $editing) { entry in
-            ProvisionEditorSheet(entry: entry, isNew: !provision.contains { $0.id == entry.id }) { saved in
+            ProvisionEditorSheet(entry: entry, isNew: !provision.contains { $0.id == entry.id },
+                                 isReadOnly: isLocked) { saved in
                 if let i = provision.firstIndex(where: { $0.id == saved.id }) {
                     provision[i] = saved
                 } else {
@@ -110,11 +114,14 @@ private struct ProvisionEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State var entry: ProvisionConfig
     let isNew: Bool
+    /// Viewing while the VM runs: everything shown, nothing editable, only a Close button.
+    var isReadOnly = false
     let onSave: (ProvisionConfig) -> Void
 
-    init(entry: ProvisionConfig, isNew: Bool, onSave: @escaping (ProvisionConfig) -> Void) {
+    init(entry: ProvisionConfig, isNew: Bool, isReadOnly: Bool = false, onSave: @escaping (ProvisionConfig) -> Void) {
         _entry = State(initialValue: entry)
         self.isNew = isNew
+        self.isReadOnly = isReadOnly
         self.onSave = onSave
     }
 
@@ -133,6 +140,7 @@ private struct ProvisionEditorSheet: View {
                 ForEach(ProvisionConfig.Mode.editable) { Text($0.label).tag($0) }
             }
             .fixedSize()
+            .disabled(isReadOnly)
             Text(description)
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -140,15 +148,17 @@ private struct ProvisionEditorSheet: View {
                 TextField("パス", text: $entry.path, prompt: Text("/etc/example.conf"))
                     .font(.body.monospaced())
                     .textFieldStyle(.roundedBorder)
+                    .disabled(isReadOnly)
                 Text("内容").font(.callout)
-                CodeEditor(text: $entry.content)
+                CodeEditor(text: $entry.content, isEditable: !isReadOnly)
                     .border(.separator)
             } else {
-                CodeEditor(text: $entry.script)
+                CodeEditor(text: $entry.script, isEditable: !isReadOnly)
                     .border(.separator)
                 if entry.mode == .dependency {
                     Toggle("Lima 標準のパッケージ導入を行わない（skipDefaultDependencyResolution）",
                            isOn: $entry.skipDefaultDependencyResolution)
+                        .disabled(isReadOnly)
                 }
             }
             Text("使えるテンプレート変数: {{.Home}}  {{.Name}}  {{.Hostname}}  {{.UID}}  {{.User}}  {{.Param.キー}}")
@@ -160,14 +170,21 @@ private struct ProvisionEditorSheet: View {
                         .font(.callout).foregroundStyle(.red)
                 }
                 Spacer()
-                Button("キャンセル", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button(isNew ? "追加" : "完了") {
-                    onSave(entry)
-                    dismiss()
+                if isReadOnly {
+                    Text("仮想マシンの実行中は変更できません。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    Button("閉じる") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("キャンセル", role: .cancel) { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                    Button(isNew ? "追加" : "完了") {
+                        onSave(entry)
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(error != nil)
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(error != nil)
             }
         }
         .padding(20)

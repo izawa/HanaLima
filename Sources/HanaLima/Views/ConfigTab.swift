@@ -57,8 +57,9 @@ struct ConfigTab: View {
                 switch mode {
                 case .form:
                     if let draftBinding = Binding($draft), let original {
-                        ConfigForm(config: draftBinding, original: original, vmType: instance.vmType)
-                            .disabled(isLocked)
+                        // Locked per section, not on the Form: a disabled Form can't even scroll.
+                        ConfigForm(config: draftBinding, original: original, vmType: instance.vmType,
+                                   isLocked: isLocked)
                     }
                 case .yaml:
                     CodeEditor(text: $yamlDraft, isEditable: !isLocked)
@@ -184,15 +185,21 @@ private struct ConfigForm: View {
     @Binding var config: InstanceConfig
     let original: InstanceConfig
     let vmType: String?
+    /// Read-only while the VM runs: the controls are disabled, but the form still scrolls.
+    var isLocked = false
 
     var body: some View {
         Form {
-            HardwareSection(config: $config, original: original, vmType: vmType)
-            NetworkSection(networks: $config.networks, vmType: vmType)
-            MountSection(mounts: $config.mounts)
-            PortForwardSection(portForwards: $config.portForwards)
-            DiskSection(disks: $config.additionalDisks)
-            ProvisionSection(provision: $config.provision)
+            Group {
+                HardwareSection(config: $config, original: original, vmType: vmType)
+                NetworkSection(networks: $config.networks, vmType: vmType)
+                MountSection(mounts: $config.mounts)
+                PortForwardSection(portForwards: $config.portForwards)
+                DiskSection(disks: $config.additionalDisks)
+            }
+            .disabled(isLocked)
+            // Handles the lock itself, so the scripts can still be opened read-only.
+            ProvisionSection(provision: $config.provision, isLocked: isLocked)
         }
         .formStyle(.grouped)
     }
