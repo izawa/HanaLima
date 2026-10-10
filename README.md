@@ -14,7 +14,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 > **HanaLima is an unofficial, independent project.** It is not affiliated with, endorsed by, or supported by the Lima project or the Cloud Native Computing Foundation (CNCF). "Lima" is used only to describe what this app works with. Please report HanaLima problems here, not to the Lima project.
 
 > [!WARNING]
-> HanaLima is in early development. There are no signed or notarized releases yet; build it from source. The UI is currently in Japanese.
+> HanaLima is in early development. There are no signed or notarized releases yet; build it from source.
 
 ## Features
 
@@ -30,6 +30,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Screen thumbnails** (VZ VMs with a display): a live view of the VM's screen on the overview.
 - **Logs**: the host agent log and serial consoles, followed live, with search.
 - **Provisioning**: edit the scripts and data files Lima applies on every boot.
+- **English and Japanese UI**: follows your macOS language.
 
 ## Requirements
 
@@ -71,9 +72,17 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    scripts/make-app.sh --install --open
    ```
 
-5. Click **＋ 新規仮想マシン** (New VM) at the bottom of the sidebar, pick a template (for example `default` or `alpine`), and create it. The first start downloads the OS image.
+5. Click **＋ New VM** at the bottom of the sidebar, pick a template (for example `default` or `alpine`), and create it. The first start downloads the OS image.
 
-To use a fixed IP or a bridged network, open **ネットワーク** (Networks) in the sidebar, create a network with **＋**, then add a NIC for it in the VM's **設定 → ネットワーク** (Settings → Network) tab.
+To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab.
+
+### Language
+
+HanaLima shows its UI in Japanese when Japanese is your preferred language, and in English otherwise. To use a different language for HanaLima only, choose it under System Settings → General → Language & Region → Applications, or launch it once with:
+
+```bash
+open build/HanaLima.app --args -AppleLanguages '(en)'
+```
 
 ## How it works
 
