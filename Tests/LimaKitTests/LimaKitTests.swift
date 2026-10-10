@@ -233,3 +233,48 @@ import Testing
         #expect(o.arguments == ["create", "--name=vm", "--set", #".networks += [{"socket":"/s"}]"#, "template:alpine"])
     }
 }
+
+@Suite struct LogFileFollowerTests {
+    private func tempFile() -> URL {
+        FileManager.default.temporaryDirectory.appending(path: "hanalima-follow-\(UUID().uuidString).log")
+    }
+
+    @Test func returnsOnlyNewCompleteLines() throws {
+        let url = tempFile()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let f = LogFileFollower(url: url)
+        #expect(f.readNewLines() == nil)
+
+        try Data("one\ntwo\npart".utf8).write(to: url)
+        #expect(f.readNewLines() == .init(reset: true, lines: ["one", "two"]))
+        #expect(f.readNewLines() == .init(reset: false, lines: []))
+
+        let h = try FileHandle(forWritingTo: url)
+        try h.seekToEnd()
+        try h.write(contentsOf: Data("ial\r\nthree\n".utf8))
+        try h.close()
+        #expect(f.readNewLines() == .init(reset: false, lines: ["partial", "three"]))
+
+        // Lima recreates the file on the next start.
+        try FileManager.default.removeItem(at: url)
+        try Data("fresh\n".utf8).write(to: url)
+        #expect(f.readNewLines() == .init(reset: true, lines: ["fresh"]))
+    }
+
+    @Test func startsNearTheEndOfLargeFiles() throws {
+        let url = tempFile()
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data((1...1000).map { "line \($0)\n" }.joined().utf8).write(to: url)
+        let chunk = try #require(LogFileFollower(url: url, initialBytes: 40).readNewLines())
+        // The cut-off first line is skipped; only whole lines from the tail remain.
+        #expect(chunk.reset)
+        #expect(chunk.lines.last == "line 1000")
+        #expect(chunk.lines.allSatisfy { $0.hasPrefix("line ") })
+        #expect(chunk.lines.count < 6)
+    }
+
+    @Test func stripsANSI() {
+        #expect(LogFileFollower.stripANSI("\u{1B}[1;32mOK\u{1B}[0m done\u{1B}[?25h") == "OK done")
+        #expect(LogFileFollower.stripANSI("\u{1B}[=3h\u{1B}[=3hBdsDxe") == "BdsDxe")
+    }
+}
