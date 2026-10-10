@@ -457,10 +457,12 @@ final class AppModel {
             do {
                 for try await entry in stream {
                     appendLog(entry, to: name)
-                    // Any further output means the previous download (if any) is finished.
-                    monitor?.cancel()
-                    operations[name]?.download = nil
+                    // Lima logs "Attempting to download the image" (with the URL), then prints
+                    // "Downloading the image (<file>)", so other output doesn't mean it's done:
+                    // the monitor ends by itself when the temp file is renamed into place.
                     if entry.message.hasPrefix("Attempting to download"), let location = entry.fields["location"] {
+                        monitor?.cancel()
+                        operations[name]?.download = nil
                         monitor = monitorDownload(location, for: name)
                     }
                     // Status flips (Installing → Running etc.) happen mid-command.
@@ -488,6 +490,7 @@ final class AppModel {
                 guard !Task.isCancelled else { return }
                 operations[name]?.download = progress
             }
+            if !Task.isCancelled { operations[name]?.download = nil }
         }
     }
 

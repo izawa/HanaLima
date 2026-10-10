@@ -309,3 +309,22 @@ import Testing
         #expect(DownloadMonitor.totalLength(fromContentRange: "bytes 0-0/*") == nil)
     }
 }
+
+@Suite struct DownloadMonitorFileTests {
+    @Test func ignoresStaleTempFilesAndEndsWhenRenamed() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "hanalima-dl-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remote = "https://example.com/os.img"
+        let dir = DownloadMonitor.cacheDirectory(for: remote, cacheRoot: root)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let stale = dir.appending(path: "data.tmp.111.1")
+        try Data(count: 10).write(to: stale)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: -3600)], ofItemAtPath: stale.path)
+        let now = Date(timeIntervalSinceNow: -5)
+        #expect(DownloadMonitor.partialSize(for: remote, since: now, cacheRoot: root) == nil)
+        try Data(count: 20).write(to: dir.appending(path: "data.tmp.222.1"))
+        #expect(DownloadMonitor.partialSize(for: remote, since: now, cacheRoot: root) == 20)
+        try FileManager.default.moveItem(at: dir.appending(path: "data.tmp.222.1"), to: dir.appending(path: "data"))
+        #expect(DownloadMonitor.partialSize(for: remote, since: now, cacheRoot: root) == nil)
+    }
+}

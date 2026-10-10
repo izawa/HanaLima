@@ -67,7 +67,9 @@ public enum DownloadMonitor {
     }
 
     /// Size of the most recently modified temp file for `remote`, if a download is in progress.
-    public static func partialSize(for remote: String, cacheRoot: URL = cacheRoot) -> Int64? {
+    /// `since` skips temp files left behind by an earlier, interrupted download.
+    public static func partialSize(for remote: String, since: Date = .distantPast,
+                                   cacheRoot: URL = cacheRoot) -> Int64? {
         let dir = cacheDirectory(for: remote, cacheRoot: cacheRoot)
         let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey]
         guard let files = try? FileManager.default.contentsOfDirectory(
@@ -75,7 +77,7 @@ public enum DownloadMonitor {
         let temps = files.filter { $0.lastPathComponent.hasPrefix("data.tmp.") }
             .compactMap { url -> (Date, Int64)? in
                 guard let v = try? url.resourceValues(forKeys: Set(keys)),
-                      let date = v.contentModificationDate, let size = v.fileSize else { return nil }
+                      let date = v.contentModificationDate, date >= since, let size = v.fileSize else { return nil }
                 return (date, Int64(size))
             }
         return temps.max { $0.0 < $1.0 }?.1
@@ -106,7 +108,9 @@ public enum DownloadMonitor {
         return total
     }
 
-    /// Emits progress about once a second until the consuming task is cancelled.
+    /// Emits progress about once a second. Finishes when the download is done (the temp file it
+    /// was writing is gone) or when the consuming task is cancelled. A cached file never shows a
+    /// temp file, so then nothing is emitted until cancellation.
     public static func progress(for remote: String, interval: Duration = .seconds(1)) -> AsyncStream<DownloadProgress> {
         AsyncStream { continuation in
             let task = Task {
@@ -114,12 +118,17 @@ public enum DownloadMonitor {
                     continuation.finish()
                     return
                 }
+                let began = Date().addingTimeInterval(-5)
                 let total = await contentLength(of: url)
                 var meter = SpeedMeter()
                 let clock = ContinuousClock()
                 let start = clock.now
+                var seen = false
                 while !Task.isCancelled {
-                    if let size = partialSize(for: remote) {
+                    let size = partialSize(for: remote, since: began)
+                    if size == nil, seen { break }  // renamed to `data`: complete (or abandoned)
+                    if let size {
+                        seen = true
                         let elapsed = start.duration(to: clock.now) / .seconds(1)
                         let speed = meter.add(time: elapsed, bytes: size)
                         continuation.yield(DownloadProgress(remote: url, received: size, total: total,
