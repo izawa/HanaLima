@@ -2,7 +2,7 @@
 
 A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root.
 
-[日本語版 README](README.ja.md)
+**Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
 
 > [!IMPORTANT]
 > **HanaLima is an unofficial, independent project.** It is not affiliated with, endorsed by, or supported by the Lima project or the Cloud Native Computing Foundation (CNCF). "Lima" is used only to describe what this app works with. Please report HanaLima problems here, not to the Lima project.

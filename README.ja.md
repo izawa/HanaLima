@@ -2,7 +2,7 @@
 
 [Lima](https://lima-vm.io/) の仮想マシンを、GUI でかんたんに作成・運用できる macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作できます。仮想 NAT、ホストオンリー、ブリッジのネットワークも、管理者権限なしで作れます。
 
-[English README](README.md)
+**Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
 
 > [!IMPORTANT]
 > **HanaLima は非公式の個人プロジェクトです。** Lima プロジェクトおよび Cloud Native Computing Foundation (CNCF) とは関係がなく、公認も支援も受けていません。「Lima」の名前は、このアプリが扱う対象を説明するためだけに使っています。HanaLima の問題は、Lima プロジェクトではなく、このリポジトリに報告してください。
