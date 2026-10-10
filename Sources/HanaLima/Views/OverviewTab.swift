@@ -25,8 +25,8 @@ struct OverviewTab: View {
             Section("状態") {
                 LabeledContent("状態") {
                     HStack(spacing: 6) {
-                        StatusDot(color: instance.status.color)
-                        Text(instance.status.label)
+                        StatusDot(color: model.isBusy(instance.name) ? .orange : instance.status.color)
+                        Text(model.statusText(of: instance.name))
                     }
                 }
                 if let message = instance.message, !message.isEmpty {

@@ -212,6 +212,12 @@ final class AppModel {
 
     func isBusy(_ name: String) -> Bool { operations[name]?.isRunning == true }
 
+    /// "作成中" while a command runs (Lima lists a VM being created as stopped), else the state.
+    func statusText(of name: String) -> String {
+        if let op = operations[name], op.isRunning { return op.kind.progressLabel }
+        return instance(named: name)?.status.label ?? String(localized: "作成中")
+    }
+
     func isReady(_ name: String) -> Bool { readyInstances.contains(name) }
 
     func refresh() async {

@@ -62,7 +62,7 @@ struct InstanceDetailView: View {
             model.consoleRequest = nil
         }
         .navigationTitle(name)
-        .navigationSubtitle(instance?.status.label ?? String(localized: "作成中"))
+        .navigationSubtitle(model.statusText(of: name))
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Picker("表示", selection: $tab) {
