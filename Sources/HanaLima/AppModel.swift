@@ -121,6 +121,11 @@ final class AppModel {
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
+    /// A start/restart of an instance whose NIC points at a deleted HanaLima network.
+    var pendingDeletedNetworkStart: ConflictPrompt?
+    /// Running instances whose HanaLima network was changed or deleted since they started:
+    /// instance name → network names. They keep the old setup until restarted.
+    var restartNeeded: [String: Set<String>] = [:]
 
     struct ConflictPrompt: Identifiable {
         let id = UUID()
@@ -227,6 +232,7 @@ final class AppModel {
             for inst in list {
                 if !inst.isRunning {
                     readyInstances.remove(inst.name)
+                    restartNeeded[inst.name] = nil
                 } else if !hasListedOnce && !isBusy(inst.name) {
                     // Already running when the app launched: assume it finished booting.
                     // (The console retries if it turns out it hasn't.)
@@ -308,7 +314,8 @@ final class AppModel {
     /// Starts `name`. If it would mix socket_vmnet and HanaLima networks, asks first
     /// (see NetworkConflict) unless `confirmed`.
     func start(_ name: String, confirmed: Bool = false) {
-        guard let client, confirmed || !askIfConflicting(name, restart: false) else { return }
+        guard let client, confirmed || !askIfDeletedNetworks(name, restart: false) else { return }
+        guard confirmed || !askIfConflicting(name, restart: false) else { return }
         run(.start, on: name, client.start(name))
     }
 
@@ -330,7 +337,8 @@ final class AppModel {
     }
 
     func restart(_ name: String, confirmed: Bool = false) {
-        guard let client, confirmed || !askIfConflicting(name, restart: true) else { return }
+        guard let client, confirmed || !askIfDeletedNetworks(name, restart: true) else { return }
+        guard confirmed || !askIfConflicting(name, restart: true) else { return }
         run(.restart, on: name, client.restart(name))
     }
 
@@ -450,7 +458,7 @@ final class AppModel {
         if operations[name]?.isRunning == false { operations[name] = nil }
     }
 
-    private func run(_ kind: Operation.Kind, on name: String,
+    func run(_ kind: Operation.Kind, on name: String,
                      _ stream: AsyncThrowingStream<LogEntry, Error>,
                      completion: (@MainActor (Bool) -> Void)? = nil) {
         guard !isBusy(name) else { return }
@@ -484,7 +492,10 @@ final class AppModel {
             operations[name]?.download = nil
             operations[name]?.isRunning = false
             // `limactl start` only returns after the instance reports READY.
-            if ok && (kind == .start || kind == .restart) { readyInstances.insert(name) }
+            if ok && (kind == .start || kind == .restart) {
+                readyInstances.insert(name)
+                restartNeeded[name] = nil
+            }
             await refresh()
             completion?(ok)
         }

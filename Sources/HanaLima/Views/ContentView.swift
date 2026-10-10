@@ -21,6 +21,18 @@ struct ContentView: View {
                 NavigationSplitView {
                     SidebarView(showCreate: $showCreate)
                         .navigationSplitViewColumnWidth(min: 220, ideal: 250)
+                        // On its own view: SwiftUI shows only one .alert per view.
+                        .alert("削除したネットワークを指す NIC があります",
+                               isPresented: Binding(get: { model.pendingDeletedNetworkStart != nil },
+                                                    set: { if !$0 { model.pendingDeletedNetworkStart = nil } }),
+                               presenting: model.pendingDeletedNetworkStart) { prompt in
+                            Button(prompt.restart ? "NIC を外して再起動" : "NIC を外して起動") {
+                                model.removeDeletedNICs(prompt.name, thenStart: true)
+                            }
+                            Button("キャンセル", role: .cancel) {}
+                        } message: { prompt in
+                            Text(prompt.message)
+                        }
                 } detail: {
                     switch model.selection {
                     case .instance(let name):

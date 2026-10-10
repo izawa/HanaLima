@@ -79,7 +79,7 @@ struct NetworkListView: View {
             }
         } message: {
             if let n = deleting, !model.instances(using: n).isEmpty {
-                Text("次の仮想マシンがこのネットワークを使っています: \(model.instances(using: n).map(\.name).joined(separator: ", "))。削除すると、これらは設定から NIC を外すまで起動できなくなります。")
+                Text("次の仮想マシンがこのネットワークを使っています: \(model.instances(using: n).map(\.name).joined(separator: ", "))。削除すると、実行中のものはこのネットワークで通信できなくなり、次の起動前にこの NIC を外すことになります（起動するときに外すかどうかを尋ねます）。")
             } else {
                 Text("この操作は取り消せません。")
             }
@@ -361,11 +361,22 @@ struct NetworkEditorSheet: View {
                         }
                     }
                 }
-                if let original, !model.instances(using: original).isEmpty, draft != original {
-                    Section {
-                        Label("保存するとネットワークが再起動します。接続中の VM（\(model.instances(using: original).map(\.name).joined(separator: ", "))）は、再起動するまでこのネットワークで通信できなくなります。",
-                              systemImage: "exclamationmark.triangle")
-                            .font(.callout).foregroundStyle(.orange)
+                if let original, draft != original {
+                    let users = model.instances(using: original)
+                    let running = users.filter(\.isRunning).map(\.name)
+                    let stopped = users.filter { !$0.isRunning }.map(\.name)
+                    if !running.isEmpty {
+                        Section {
+                            Label("保存するとネットワークが作り直されます。実行中の仮想マシン（\(running.joined(separator: ", "))）は、再起動するまでこのネットワークで通信できなくなります。保存したあと、再起動を案内します。",
+                                  systemImage: "exclamationmark.triangle")
+                                .font(.callout).foregroundStyle(.orange)
+                        }
+                    } else if !stopped.isEmpty {
+                        Section {
+                            Label("このネットワークを使う仮想マシン（\(stopped.joined(separator: ", "))）は、次の起動から新しい設定を使います。",
+                                  systemImage: "info.circle")
+                                .font(.callout).foregroundStyle(.secondary)
+                        }
                     }
                 }
             }

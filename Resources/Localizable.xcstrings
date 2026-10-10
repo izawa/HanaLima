@@ -139,6 +139,22 @@
         }
       }
     },
+    "%@ の NIC が、削除したネットワーク %@ を指しています。このままでは起動できません。その NIC を設定から外して起動しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A NIC of %1$@ points to the deleted network %2$@, so it can't start. Remove that NIC from its settings and start?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ の NIC が、削除したネットワーク %2$@ を指しています。このままでは起動できません。その NIC を設定から外して起動しますか？"
+          }
+        }
+      }
+    },
     "%@ の%@に失敗しました": {
       "localizations": {
         "en": {
@@ -1269,6 +1285,86 @@
         }
       }
     },
+    "NIC が、削除したネットワーク %@ を指しています。このままでは起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A NIC points to the deleted network %@, so this virtual machine can't start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC が、削除したネットワーク %@ を指しています。このままでは起動できません。"
+          }
+        }
+      }
+    },
+    "NIC の接続先なし": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC Has No Network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC の接続先なし"
+          }
+        }
+      }
+    },
+    "NIC を外して再起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove NIC and Restart"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC を外して再起動"
+          }
+        }
+      }
+    },
+    "NIC を外して起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove NIC and Start"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC を外して起動"
+          }
+        }
+      }
+    },
+    "NIC を外す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove NIC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC を外す"
+          }
+        }
+      }
+    },
     "NIC を追加": {
       "localizations": {
         "en": {
@@ -1795,6 +1891,23 @@
         }
       }
     },
+    "list-separator": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", "
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "、"
+          }
+        }
+      }
+    },
     "macOS がこのサブネットを使用中として扱っているため、ネットワークを作成できません。サブネットを変更するか、Mac を再起動してください。（%@）": {
       "localizations": {
         "en": {
@@ -2216,6 +2329,22 @@
         }
       }
     },
+    "「%@」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」"
+          }
+        }
+      }
+    },
     "「%@」の実行中はサイズを変更できません。": {
       "localizations": {
         "en": {
@@ -2404,6 +2533,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "このセッションで実行したコマンドはまだありません。"
+          }
+        }
+      }
+    },
+    "このネットワークは削除されています。この NIC を外してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This network was deleted. Remove this NIC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークは削除されています。この NIC を外してください。"
+          }
+        }
+      }
+    },
+    "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual machines on this network (%@) use the new settings from their next start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
           }
         }
       }
@@ -3864,6 +4025,22 @@
         }
       }
     },
+    "ネットワーク %@ の設定を変更しました。再起動すると新しい設定で通信します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The settings of network %@ changed. Restart to use the new settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワーク %@ の設定を変更しました。再起動すると新しい設定で通信します。"
+          }
+        }
+      }
+    },
     "ネットワーク「%@」": {
       "localizations": {
         "en": {
@@ -5306,7 +5483,24 @@
         }
       }
     },
+    "保存するとネットワークが作り直されます。実行中の仮想マシン（%@）は、再起動するまでこのネットワークで通信できなくなります。保存したあと、再起動を案内します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving recreates the network. Running virtual machines (%@) can't use it until they restart; HanaLima will offer the restart after you save."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存するとネットワークが作り直されます。実行中の仮想マシン（%@）は、再起動するまでこのネットワークで通信できなくなります。保存したあと、再起動を案内します。"
+          }
+        }
+      }
+    },
     "保存するとネットワークが再起動します。接続中の VM（%@）は、再起動するまでこのネットワークで通信できなくなります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5562,6 +5756,22 @@
         }
       }
     },
+    "再起動が必要": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs Restart"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再起動が必要"
+          }
+        }
+      }
+    },
     "再起動中": {
       "localizations": {
         "en": {
@@ -5638,6 +5848,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "削除…"
+          }
+        }
+      }
+    },
+    "削除したネットワーク「%@」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted network “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除したネットワーク「%@」"
+          }
+        }
+      }
+    },
+    "削除したネットワークを指す NIC があります": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A NIC Points to a Deleted Network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除したネットワークを指す NIC があります"
           }
         }
       }
@@ -6647,6 +6889,7 @@
       }
     },
     "次の仮想マシンがこのネットワークを使っています: %@。削除すると、これらは設定から NIC を外すまで起動できなくなります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6658,6 +6901,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "次の仮想マシンがこのネットワークを使っています: %@。削除すると、これらは設定から NIC を外すまで起動できなくなります。"
+          }
+        }
+      }
+    },
+    "次の仮想マシンがこのネットワークを使っています: %@。削除すると、実行中のものはこのネットワークで通信できなくなり、次の起動前にこの NIC を外すことになります（起動するときに外すかどうかを尋ねます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These virtual machines use this network: %@. After deleting it, running ones lose this network, and the NIC must be removed before their next start (HanaLima asks when you start them)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の仮想マシンがこのネットワークを使っています: %@。削除すると、実行中のものはこのネットワークで通信できなくなり、次の起動前にこの NIC を外すことになります（起動するときに外すかどうかを尋ねます）。"
           }
         }
       }

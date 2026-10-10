@@ -104,6 +104,7 @@ extension AppModel {
                                  message: String(localized: "hanalima-netd がアプリに同梱されていません。scripts/build-app.sh でビルドした HanaLima.app から起動してください。"))
             return false
         }
+        let previous = virtualNetworks.first { $0.name == network.name }
         var updated = virtualNetworks.filter { $0.name != network.name }
         updated.append(network)
         updated.sort { $0.name < $1.name }
@@ -117,11 +118,14 @@ extension AppModel {
             virtualNetworks = (try? NetworkStore.load()) ?? virtualNetworks
             return false
         }
+        // The helper restarts with the new settings; running VMs keep a dead link until restarted.
+        if let previous, previous != network { markRestartNeeded(using: previous) }
         await refreshNetworkStates()
         return true
     }
 
     func deleteVirtualNetwork(_ name: String) async {
+        if let network = virtualNetworks.first(where: { $0.name == name }) { markRestartNeeded(using: network) }
         let remaining = virtualNetworks.filter { $0.name != name }
         do {
             try NetworkStore.save(remaining)
@@ -133,6 +137,78 @@ extension AppModel {
         virtualNetworks = remaining
         networkStates[name] = nil
         networkStatuses[name] = nil
+    }
+
+    // MARK: - After a network changes
+
+    private func markRestartNeeded(using network: VirtualNetwork) {
+        for inst in instances(using: network) where inst.isRunning {
+            restartNeeded[inst.name, default: []].insert(network.name)
+        }
+    }
+
+    /// NICs (socket paths) that point at a HanaLima network that no longer exists.
+    func deletedNetworkSockets(of instance: LimaInstance) -> [String] {
+        (instance.networks ?? []).compactMap(\.socket).filter(isDeletedNetworkSocket)
+    }
+
+    func isDeletedNetworkSocket(_ path: String) -> Bool {
+        path.hasPrefix(NetworkPaths.socketDirectory.path + "/") && virtualNetwork(forSocket: path) == nil
+    }
+
+    /// 「demo」、「lan」 / “demo”, “lan”
+    static func quotedNames(_ names: [String]) -> String {
+        names.map { String(localized: "「\($0)」") }.joined(separator: String(localized: "list-separator", defaultValue: "、"))
+    }
+
+    /// "demo" for `…/HanaLima/net/demo.sock`.
+    static func networkName(ofSocket path: String) -> String {
+        URL(filePath: path).deletingPathExtension().lastPathComponent
+    }
+
+    /// Returns true (and asks the user) if `name` would fail to start on a deleted network.
+    func askIfDeletedNetworks(_ name: String, restart: Bool) -> Bool {
+        guard let inst = instance(named: name) else { return false }
+        let names = deletedNetworkSockets(of: inst).map(Self.networkName(ofSocket:))
+        guard !names.isEmpty else { return false }
+        let list = Self.quotedNames(names)
+        pendingDeletedNetworkStart = ConflictPrompt(
+            name: name, restart: restart,
+            message: String(localized: "\(name) の NIC が、削除したネットワーク \(list) を指しています。このままでは起動できません。その NIC を設定から外して起動しますか？"))
+        return true
+    }
+
+    /// Removes the NICs that point at deleted networks, then (if asked) starts the VM again.
+    /// `limactl edit` needs the VM stopped, so a running one is stopped first.
+    func removeDeletedNICs(_ name: String, thenStart: Bool) {
+        guard let client, let inst = instance(named: name) else { return }
+        let paths = deletedNetworkSockets(of: inst)
+        guard !paths.isEmpty else { return }
+        let keep = paths.map { #".socket != "\#($0)""# }.joined(separator: " and ")
+        let expression = ".networks |= map(select(\(keep)))"
+        var steps: [@Sendable () -> AsyncThrowingStream<LogEntry, Error>] = []
+        if inst.isRunning { steps.append { client.stop(name) } }
+        steps.append { client.edit(name, set: [expression]) }
+        if thenStart { steps.append { client.start(name) } }
+        let kind: Operation.Kind = thenStart ? (inst.isRunning ? .restart : .start) : .edit
+        run(kind, on: name, Self.sequence(steps))
+    }
+
+    /// Runs the streams one after another as one operation; stops at the first failure.
+    static func sequence(_ steps: [@Sendable () -> AsyncThrowingStream<LogEntry, Error>]) -> AsyncThrowingStream<LogEntry, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for step in steps {
+                        for try await entry in step() { continuation.yield(entry) }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     // MARK: - Conflicts between socket_vmnet and HanaLima networks

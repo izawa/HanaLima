@@ -39,6 +39,8 @@ struct InstanceDetailView: View {
         VStack(spacing: 0) {
             if let op = model.operations[name], op.isRunning || op.error != nil {
                 OperationBanner(name: name, operation: op)
+            } else if let instance {
+                NetworkChangeBanner(instance: instance)
             }
             Group {
                 if let instance {
@@ -149,6 +151,47 @@ private struct OperationBanner: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+}
+
+/// After a HanaLima network was changed or deleted: what the VM needs, with the one-click fix.
+private struct NetworkChangeBanner: View {
+    @Environment(AppModel.self) private var model
+    let instance: LimaInstance
+
+    var body: some View {
+        let deleted = model.deletedNetworkSockets(of: instance).map(AppModel.networkName(ofSocket:))
+        let changed = (model.restartNeeded[instance.name] ?? []).subtracting(deleted).sorted()
+        if !deleted.isEmpty {
+            banner(icon: "exclamationmark.triangle.fill", color: .red,
+                   text: String(localized: "NIC が、削除したネットワーク \(quoted(deleted)) を指しています。このままでは起動できません。")) {
+                Button(instance.isRunning ? "NIC を外して再起動" : "NIC を外す") {
+                    model.removeDeletedNICs(instance.name, thenStart: instance.isRunning)
+                }
+            }
+        } else if instance.isRunning, !changed.isEmpty {
+            banner(icon: "arrow.triangle.2.circlepath", color: .orange,
+                   text: String(localized: "ネットワーク \(quoted(changed)) の設定を変更しました。再起動すると新しい設定で通信します。")) {
+                Button("再起動") { model.restart(instance.name) }
+            }
+        }
+    }
+
+    private func quoted(_ names: [String]) -> String { AppModel.quotedNames(names) }
+
+    private func banner(icon: String, color: Color, text: String,
+                        @ViewBuilder action: () -> some View) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon).foregroundStyle(color)
+            Text(text).lineLimit(2)
+            Spacer(minLength: 8)
+            action()
+        }
+        .font(.callout)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.1))
         .overlay(alignment: .bottom) { Divider() }
     }
 }

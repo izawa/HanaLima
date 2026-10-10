@@ -89,7 +89,7 @@ struct MenuBarContent: View {
 
     /// The socket_vmnet + virtual network confirmation is an alert in the main window.
     private func showWindowIfConfirming() {
-        if model.pendingConflictStart != nil { showMainWindow() }
+        if model.pendingConflictStart != nil || model.pendingDeletedNetworkStart != nil { showMainWindow() }
     }
 
     private func showMainWindow() {

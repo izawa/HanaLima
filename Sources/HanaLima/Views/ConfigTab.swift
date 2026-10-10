@@ -334,6 +334,9 @@ private struct NetworkSection: View {
             if let vn = model.virtualNetwork(forSocket: path) {
                 return vn.menuDescription
             }
+            if model.isDeletedNetworkSocket(path) {
+                return String(localized: "削除したネットワーク「\(AppModel.networkName(ofSocket: path))」")
+            }
             return "socket:\(path)"
         }
     }
@@ -351,6 +354,9 @@ private struct NetworkSection: View {
             }
             return nil
         case .socket(let path):
+            if model.isDeletedNetworkSocket(path) {
+                return String(localized: "このネットワークは削除されています。この NIC を外してください。")
+            }
             if model.virtualNetwork(forSocket: path) == nil, !FileManager.default.fileExists(atPath: path) {
                 return String(localized: "ソケット \(path) が見つかりません。")
             }

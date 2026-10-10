@@ -10,6 +10,9 @@ struct OverviewTab: View {
         if let path = net.socket, let vn = model.virtualNetwork(forSocket: path) {
             return vn.menuDescription
         }
+        if let path = net.socket, model.isDeletedNetworkSocket(path) {
+            return String(localized: "削除したネットワーク「\(AppModel.networkName(ofSocket: path))」")
+        }
         return net.kindDescription
     }
 
