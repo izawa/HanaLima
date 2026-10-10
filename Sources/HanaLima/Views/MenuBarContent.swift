@@ -92,3 +92,22 @@ struct MenuBarContent: View {
         NSApp.activate()
     }
 }
+
+/// The menu bar icon. It exists for the whole life of the app, so it also takes care of launch.
+struct MenuBarLabel: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Image(systemName: "server.rack")
+            .task {
+                // If the app last quit with its window closed, window restoration brings back
+                // "no window" (and .defaultLaunchBehavior doesn't override that), leaving only
+                // this icon. Open the main window on launch in that case.
+                if !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
+                    openWindow(id: "main")
+                }
+                await model.bootstrap()
+            }
+    }
+}

@@ -42,6 +42,9 @@ enum DebugSnapshot {
     private static func capture(prefix: String) {
         let windows = NSApp.windows.filter { $0.isVisible && $0.contentView != nil }
         if env["HANALIMA_SNAPSHOT_DUMP"] == "1" {
+            for w in NSApp.windows {
+                print("window \(type(of: w)) title=\(w.title) visible=\(w.isVisible) frame=\(w.frame)")
+            }
             for w in windows { dumpTables(w.contentView?.superview) }
         }
         for (i, window) in windows.enumerated() {

@@ -6,6 +6,7 @@ struct InstanceDetailView: View {
         case overview = "概要"
         case console = "コンソール"
         case config = "設定"
+        case snapshots = "スナップ"   // segments are equal width; a long label overflows the toolbar
         case log = "ログ"
         var id: String { rawValue }
     }
@@ -34,6 +35,7 @@ struct InstanceDetailView: View {
                     case .overview: OverviewTab(instance: instance)
                     case .console: ConsoleTab(instance: instance)
                     case .config: ConfigTab(instance: instance)
+                    case .snapshots: SnapshotTab(instance: instance)
                     case .log: LogTab(name: name)
                     }
                 } else {
@@ -56,6 +58,7 @@ struct InstanceDetailView: View {
                     ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
+                .fixedSize()   // otherwise it fills the toolbar and pushes the actions into overflow
                 .disabled(instance == nil)
             }
             ToolbarItemGroup(placement: .primaryAction) {

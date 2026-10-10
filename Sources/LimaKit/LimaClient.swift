@@ -155,6 +155,25 @@ public struct LimaClient: Sendable {
         logStream(["delete"] + (force ? ["--force"] : []) + [name])
     }
 
+    // MARK: - Snapshots (QEMU only; see LimaSnapshot)
+
+    public func snapshots(_ name: String) async throws -> [LimaSnapshot] {
+        LimaSnapshot.parseList(try await runner.run(["snapshot", "list", name, "--tty=false"]).stdoutString)
+    }
+
+    public func createSnapshot(_ name: String, tag: String) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["snapshot", "create", name, "--tag", tag])
+    }
+
+    /// Restores the main disk to `tag`. Changes made after the snapshot are lost.
+    public func applySnapshot(_ name: String, tag: String) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["snapshot", "apply", name, "--tag", tag])
+    }
+
+    public func deleteSnapshot(_ name: String, tag: String) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["snapshot", "delete", name, "--tag", tag])
+    }
+
     // MARK: - Start at login (`limactl autostart`)
 
     /// The LaunchAgent `limactl autostart enable` writes. Lima itself treats an instance as

@@ -2,6 +2,34 @@ import Foundation
 import Testing
 @testable import LimaKit
 
+@Suite struct SnapshotParsingTests {
+    @Test func parsesQemuImgTable() {
+        let text = """
+        ID      TAG               VM_SIZE                DATE        VM_CLOCK     ICOUNT
+        1       s1                    0 B 2026-10-10 14:58:15  0000:00:00.000          0
+        2       before upgrade    1.2 GiB 2026-10-11 09:00:01  0001:02:03.456
+        """
+        let list = LimaSnapshot.parseList(text)
+        #expect(list.map(\.tag) == ["s1", "before upgrade"])
+        #expect(list[0].number == 1)
+        #expect(list[0].vmSize == "0 B")
+        #expect(list[1].vmSize == "1.2 GiB")
+        let c = Calendar(identifier: .gregorian).dateComponents(in: .current, from: list[0].date!)
+        #expect([c.year, c.month, c.day, c.hour, c.minute, c.second] == [2026, 10, 10, 14, 58, 15])
+        #expect(LimaSnapshot.parseList("").isEmpty)
+    }
+
+    @Test func validatesTags() {
+        #expect(LimaSnapshot.isValidTag("snap-20261010-153012"))
+        #expect(LimaSnapshot.isValidTag("v1.2_ok"))
+        #expect(!LimaSnapshot.isValidTag(""))
+        #expect(!LimaSnapshot.isValidTag("-leading"))
+        #expect(!LimaSnapshot.isValidTag("has space"))
+        #expect(!LimaSnapshot.isValidTag(String(repeating: "a", count: 65)))
+        #expect(LimaSnapshot.isValidTag(LimaSnapshot.suggestedTag()))
+    }
+}
+
 @Suite struct AutostartPathTests {
     @Test func matchesLimaLaunchAgentName() {
         #expect(LimaClient.autostartPlist(for: "dev", home: "/Users/u").path

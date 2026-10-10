@@ -7,6 +7,7 @@ import Observation
 struct Operation: Sendable {
     enum Kind: String, Sendable {
         case create, start, stop, restart, delete, edit
+        case snapshotCreate, snapshotApply, snapshotDelete
 
         var label: String {
             switch self {
@@ -16,6 +17,9 @@ struct Operation: Sendable {
             case .restart: "再起動"
             case .delete: "削除"
             case .edit: "設定変更"
+            case .snapshotCreate: "スナップショット作成"
+            case .snapshotApply: "スナップショットの復元"
+            case .snapshotDelete: "スナップショット削除"
             }
         }
     }
@@ -83,6 +87,9 @@ final class AppModel {
     /// or from `limactl start` returning.
     private(set) var readyInstances: Set<String> = []
     @ObservationIgnored private var hasListedOnce = false
+    @ObservationIgnored private var bootstrapStarted = false
+    /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).
+    private(set) var snapshots: [String: [LimaSnapshot]] = [:]
     /// Instances registered to start at login (`limactl autostart`).
     private(set) var autostartInstances: Set<String> = []
     var selection: SidebarItem?
@@ -112,8 +119,10 @@ final class AppModel {
 
     // MARK: - Lifecycle
 
+    /// Called by both the main window and the menu bar item; only the first call does the work.
     func bootstrap() async {
-        guard client == nil else { return }
+        guard !bootstrapStarted else { return }
+        bootstrapStarted = true
         availability = .checking
         guard let url = LimaClient.locate() else {
             availability = .missing
@@ -148,6 +157,7 @@ final class AppModel {
     func retryBootstrap() async {
         stopBackgroundTasks()
         client = nil
+        bootstrapStarted = false
         await bootstrap()
     }
 
@@ -293,6 +303,43 @@ final class AppModel {
     func openConsole(_ name: String) {
         selection = .instance(name)
         consoleRequest = name
+    }
+
+    // MARK: - Snapshots
+
+    func loadSnapshots(_ name: String) async {
+        guard let client else { return }
+        let list = (try? await client.snapshots(name)) ?? []
+        if snapshots[name] != list { snapshots[name] = list }
+    }
+
+    /// limactl can exit 0 without creating anything (see LimaSnapshot), so check the list afterwards.
+    func createSnapshot(_ name: String, tag: String) {
+        guard let client else { return }
+        run(.snapshotCreate, on: name, client.createSnapshot(name, tag: tag)) { [weak self] ok in
+            Task { @MainActor in
+                guard let self else { return }
+                await self.loadSnapshots(name)
+                if ok && !(self.snapshots[name] ?? []).contains(where: { $0.tag == tag }) {
+                    self.alert = AlertMessage(title: "スナップショット「\(tag)」を作成できませんでした",
+                                              message: "limactl はエラーを返しませんでしたが、一覧に見つかりません。ログタブの「コマンド出力」を確認してください。")
+                }
+            }
+        }
+    }
+
+    func applySnapshot(_ name: String, tag: String) {
+        guard let client else { return }
+        run(.snapshotApply, on: name, client.applySnapshot(name, tag: tag)) { [weak self] _ in
+            Task { await self?.loadSnapshots(name) }
+        }
+    }
+
+    func deleteSnapshot(_ name: String, tag: String) {
+        guard let client else { return }
+        run(.snapshotDelete, on: name, client.deleteSnapshot(name, tag: tag)) { [weak self] _ in
+            Task { await self?.loadSnapshots(name) }
+        }
     }
 
     func setAutostart(_ name: String, enabled: Bool) async {

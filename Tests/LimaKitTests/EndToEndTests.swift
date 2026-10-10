@@ -178,3 +178,47 @@ struct AutostartEndToEndTests {
         return out
     }
 }
+
+/// Snapshots on a stopped QEMU VM: create, restore (a file written later disappears), delete.
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["HANALIMA_E2E"] == "1"))
+struct SnapshotEndToEndTests {
+    let name = "hanalima-e2e-snapshot"
+    let client = LimaClient(limactlURL: LimaClient.locate()!)
+
+    @Test(.timeLimit(.minutes(15)))
+    func createRestoreDelete() async throws {
+        _ = try? await drain(client.delete(name, force: true))
+        _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1,
+                                                        diskGiB: 10, vmType: .qemu)))
+        defer { Task { [client, name] in _ = try? await drain(client.delete(name, force: true)) } }
+        _ = try await drain(client.start(name))
+        _ = try await client.runner.run(["shell", name, "sh", "-c", "echo before > $HOME/marker; sync"])
+        _ = try await drain(client.stop(name))
+
+        _ = try await drain(client.createSnapshot(name, tag: "e2e1"))
+        #expect(try await client.snapshots(name).map(\.tag) == ["e2e1"])
+
+        _ = try await drain(client.start(name))
+        _ = try await client.runner.run(["shell", name, "sh", "-c", "echo after > $HOME/marker; sync"])
+        _ = try await drain(client.stop(name))
+        _ = try await drain(client.applySnapshot(name, tag: "e2e1"))
+        _ = try await drain(client.start(name))
+        let marker = try await client.runner.run(["shell", name, "sh", "-c", "cat $HOME/marker"]).stdoutString
+        #expect(marker.trimmingCharacters(in: .whitespacesAndNewlines) == "before")
+        _ = try await drain(client.stop(name))
+
+        // Restoring a tag that doesn't exist fails (while stopped).
+        await #expect(throws: (any Error).self) { try await drain(client.applySnapshot(name, tag: "missing")) }
+
+        _ = try await drain(client.deleteSnapshot(name, tag: "e2e1"))
+        #expect(try await client.snapshots(name).isEmpty)
+        _ = try await drain(client.delete(name))
+    }
+
+    @discardableResult
+    private func drain(_ s: AsyncThrowingStream<LogEntry, Error>) async throws -> [LogEntry] {
+        var out: [LogEntry] = []
+        for try await e in s { out.append(e) }
+        return out
+    }
+}

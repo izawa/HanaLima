@@ -32,7 +32,8 @@ struct HanaLimaApp: App {
             MenuBarContent()
                 .environment(model)
         } label: {
-            Image(systemName: "server.rack")
+            MenuBarLabel()
+                .environment(model)
         }
         .menuBarExtraStyle(.menu)
 
