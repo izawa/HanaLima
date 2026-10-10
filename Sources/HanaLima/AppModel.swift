@@ -85,7 +85,7 @@ final class AppModel {
 
     private(set) var availability: Availability = .checking
     private(set) var instances: [LimaInstance] = []
-    private(set) var templates: [String] = []
+    private(set) var templates: [LimaTemplate] = []
     private(set) var operations: [String: Operation] = [:]
     private(set) var events: [String: [EventRecord]] = [:]
     private(set) var disks: [LimaDisk] = []

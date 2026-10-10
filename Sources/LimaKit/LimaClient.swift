@@ -54,9 +54,21 @@ public struct LimaClient: Sendable {
         return try LimaInstance.decodeList(out.stdout)
     }
 
-    public func templates() async throws -> [String] {
-        let out = try await runner.run(["create", "--list-templates", "--tty=false"])
-        return out.stdoutString.split(whereSeparator: \.isNewline).map(String.init)
+    /// The templates `limactl create` accepts, with their files (from `limactl info`, which lists
+    /// the same names as `--list-templates` plus the internal `_images/`, `_default/` ones).
+    /// "Latest" templates are resolved to the versioned image they use now.
+    public func templates() async throws -> [LimaTemplate] {
+        struct Info: Decodable {
+            struct Template: Decodable { var name: String; var location: String? }
+            var templates: [Template]
+        }
+        let out = try await runner.run(["info"])
+        let info = try JSONDecoder().decode(Info.self, from: out.stdout)
+        return info.templates.filter { !$0.name.hasPrefix("_") }.map { t in
+            var template = LimaTemplate(name: t.name, location: t.location.map { URL(filePath: $0) })
+            template.resolvedImage = TemplateCatalog.resolveImage(of: template)
+            return template
+        }
     }
 
     /// Reads the instance's `lima.yaml` as written by `limactl create`.

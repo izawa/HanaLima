@@ -32,12 +32,19 @@ struct CreateInstanceSheet: View {
                         Text(nameError).font(.caption).foregroundStyle(.red)
                     }
                     Picker("テンプレート", selection: $template) {
-                        ForEach(stableTemplates, id: \.self) { Text($0).tag($0) }
-                        if !experimentalTemplates.isEmpty {
-                            Divider()
-                            ForEach(experimentalTemplates, id: \.self) { Text($0).tag($0) }
+                        if templateGroups.isEmpty {
+                            Text("標準").tag("default")
+                        }
+                        ForEach(templateGroups) { group in
+                            Section(group.title) {
+                                ForEach(group.templates) { Text($0.displayName).tag($0.name) }
+                            }
                         }
                     }
+                    LabeledContent("Lima のテンプレート") {
+                        Text(verbatim: "template:\(template)").monospaced().textSelection(.enabled)
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
                     Picker("仮想化方式", selection: $vmType) {
                         Text("VZ (Virtualization.framework)").tag(CreateOptions.VMType.vz)
                         Text("QEMU").tag(CreateOptions.VMType.qemu)
@@ -143,14 +150,7 @@ struct CreateInstanceSheet: View {
         return nil
     }
 
-    private var stableTemplates: [String] {
-        let list = model.templates.filter { !$0.hasPrefix("experimental/") }
-        return list.isEmpty ? ["default"] : list
-    }
-
-    private var experimentalTemplates: [String] {
-        model.templates.filter { $0.hasPrefix("experimental/") }
-    }
+    private var templateGroups: [TemplateGroup] { TemplateCatalog.groups(model.templates) }
 
     private var options: CreateOptions {
         CreateOptions(

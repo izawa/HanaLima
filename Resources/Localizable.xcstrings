@@ -315,6 +315,38 @@
         }
       }
     },
+    "%@（最新: %@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (Latest: %2$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@（最新: %2$@）"
+          }
+        }
+      }
+    },
+    "%@（最新）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (Latest)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（最新）"
+          }
+        }
+      }
+    },
     "%@（現在は見つかりません）": {
       "localizations": {
         "en": {
@@ -501,6 +533,22 @@
         }
       }
     },
+    "Alpine（ISO 起動）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alpine (ISO Boot)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alpine（ISO 起動）"
+          }
+        }
+      }
+    },
     "Ansible（非推奨）": {
       "localizations": {
         "en": {
@@ -517,12 +565,44 @@
         }
       }
     },
+    "Apptainer（rootful）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apptainer (rootful)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apptainer（rootful）"
+          }
+        }
+      }
+    },
     "DHCP": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
             "value": "DHCP"
+          }
+        }
+      }
+    },
+    "Docker（rootful）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Docker (rootful)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Docker（rootful）"
           }
         }
       }
@@ -681,6 +761,38 @@
         }
       }
     },
+    "Homebrew（Linux）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew (Linux)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew（Linux）"
+          }
+        }
+      }
+    },
+    "Homebrew（macOS）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew (macOS)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew（macOS）"
+          }
+        }
+      }
+    },
     "IP アドレス": {
       "localizations": {
         "en": {
@@ -735,6 +847,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "IP: %@"
+          }
+        }
+      }
+    },
+    "Kubernetes（kubeadm）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kubernetes (kubeadm)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kubernetes（kubeadm）"
           }
         }
       }
@@ -825,6 +953,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima の user-v2 ネットワーク"
+          }
+        }
+      }
+    },
+    "Lima のテンプレート": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima Template"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima のテンプレート"
           }
         }
       }
@@ -1061,6 +1205,22 @@
         }
       }
     },
+    "Podman（rootful）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podman (rootful)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podman（rootful）"
+          }
+        }
+      }
+    },
     "QEMU": {
       "localizations": {
         "ja": {
@@ -1181,6 +1341,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "UDP"
+          }
+        }
+      }
+    },
+    "Ubuntu LTS（最新: %@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu LTS (Latest: %@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu LTS（最新: %@）"
+          }
+        }
+      }
+    },
+    "Ubuntu LTS（最新）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu LTS (Latest)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu LTS（最新）"
+          }
+        }
+      }
+    },
+    "Ubuntu（開発版）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu (Development)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubuntu（開発版）"
           }
         }
       }
@@ -2232,6 +2440,22 @@
         }
       }
     },
+    "よく使う": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Popular"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "よく使う"
+          }
+        }
+      }
+    },
     "アドレス": {
       "localizations": {
         "en": {
@@ -2708,6 +2932,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "コンソールを開く"
+          }
+        }
+      }
+    },
+    "コンテナと開発ツール": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Containers & Developer Tools"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテナと開発ツール"
           }
         }
       }
@@ -5908,6 +6148,38 @@
         }
       }
     },
+    "標準": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準"
+          }
+        }
+      }
+    },
+    "標準（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準（%@）"
+          }
+        }
+      }
+    },
     "権限の都合で内容を確認できません。「sudoers を更新」で修正されます": {
       "localizations": {
         "en": {
@@ -6368,6 +6640,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定済み"
+          }
+        }
+      }
+    },
+    "試験的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimental"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試験的"
           }
         }
       }

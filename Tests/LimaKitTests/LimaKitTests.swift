@@ -177,7 +177,10 @@ import Testing
         #expect(version.first?.isNumber == true)
         _ = try await client.list()
         let templates = try await client.templates()
-        #expect(templates.contains("default"))
+        #expect(templates.contains { $0.name == "default" })
+        #expect(!templates.contains { $0.name.hasPrefix("_") })
+        // "default" and "ubuntu-lts" follow a versioned Ubuntu image.
+        #expect(templates.first { $0.name == "ubuntu-lts" }?.resolvedImage?.hasPrefix("ubuntu-") == true)
     }
 }
 
