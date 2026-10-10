@@ -123,6 +123,10 @@ html.lang-en .lang-toggle [data-lang="en"], html.lang-ja .lang-toggle [data-lang
 }
 .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
 @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; } }
+.hero-icon { display: block; width: 96px; height: 96px; margin-bottom: 18px; filter: drop-shadow(0 12px 28px rgba(255, 95, 162, .28)); }
+.name-grid { display: grid; grid-template-columns: 200px 1fr; gap: 40px; align-items: center; }
+.name-grid img { width: 200px; height: 200px; filter: drop-shadow(0 18px 40px rgba(255, 95, 162, .25)); }
+@media (max-width: 760px) { .name-grid { grid-template-columns: 1fr; } .name-grid img { width: 140px; height: 140px; } }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 8px; font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase;
   color: var(--lime); padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent); border-radius: 999px;
