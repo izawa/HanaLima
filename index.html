@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HanaLima — Lima VMs, VMware-style. Bridges without sudo.</title>
+<title>HanaLima — Lima VMs, point and click. Bridges without sudo.</title>
 <meta name="description" content="HanaLima is an unofficial native macOS GUI for Lima: create and run VMs, and build NAT, host-only and bridged networks without root.">
-<meta property="og:title" content="HanaLima — Lima VMs, VMware-style">
+<meta property="og:title" content="HanaLima — Lima VMs, point and click">
 <meta property="og:description" content="Native macOS GUI for Lima with rootless NAT, host-only and bridged networks.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://izawa.github.io/HanaLima/">
@@ -60,8 +60,8 @@
     <div>
       <span class="eyebrow">● macOS 26+ · Lima 2.2+ · MIT</span>
       <h1>
-        <span class="en">Lima VMs,<br>VMware-style.<br><span class="grad">Bridges without sudo.</span></span>
-        <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">VMware のように。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
+        <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
+        <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
       </h1>
       <p class="lead">
         <span class="en">HanaLima is a native SwiftUI app that drives <code>limactl</code>. Size your CPUs, memory and disks, wire up NAT, host-only and <strong>bridged</strong> networks with fixed IPs, and live in a real console — no root, no socket_vmnet, no sudoers file.</span>
@@ -391,7 +391,7 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
   <div class="wrap">
     <div class="kicker">// features</div>
     <h2><span class="en">Everything you'd expect from a VM manager</span><span class="ja">VM 管理ソフトに期待するものを、ひととおり</span></h2>
-    <p class="section-lead"><span class="en">The UI is in Japanese for now; the concepts are the ones you know from VMware Fusion.</span><span class="ja">VMware Fusion などでおなじみの操作を、Lima の上で。</span></p>
+    <p class="section-lead"><span class="en">Size the hardware, wire the networks, open a console — all from windows and forms, no YAML required (it's still there when you want it). The UI is in Japanese for now.</span><span class="ja">ハードウェアの割り当ても、ネットワークの配線も、コンソールも、すべてウィンドウとフォームで。YAML を書く必要はありません（書きたいときは書けます）。</span></p>
     <div class="grid">
       <!-- To add a feature: copy a .card, set status "done" or "next". -->
       <div class="card reveal"><span class="status done">v0.1</span>
