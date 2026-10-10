@@ -244,6 +244,8 @@ struct NetworkEditorSheet: View {
 
     @State private var draft = VirtualNetwork(name: "")
     @State private var isSaving = false
+    /// Shown in the sheet: an alert from the main window would sit behind it.
+    @State private var saveError: String?
     @State private var interfaces: [SocketVMNetSetup.HostInterface] = []
 
     private var isNew: Bool { original == nil }
@@ -361,6 +363,17 @@ struct NetworkEditorSheet: View {
                         }
                     }
                 }
+                if let saveError {
+                    Section {
+                        Label {
+                            Text("保存できませんでした（変更前の設定に戻しました）: \(saveError)")
+                                .textSelection(.enabled)
+                        } icon: {
+                            Image(systemName: "xmark.octagon.fill")
+                        }
+                        .font(.callout).foregroundStyle(.red)
+                    }
+                }
                 if let original, draft != original {
                     let users = model.instances(using: original)
                     let running = users.filter(\.isRunning).map(\.name)
@@ -383,16 +396,20 @@ struct NetworkEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                if isSaving { ProgressView().controlSize(.small) }
+                if isSaving {
+                    ProgressView().controlSize(.small)
+                    Text("ネットワークを作り直しています…").font(.callout).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("キャンセル", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button(isNew ? "作成" : "保存") {
                     isSaving = true
+                    saveError = nil
                     Task {
-                        let ok = await model.saveVirtualNetwork(draft)
+                        saveError = await model.saveVirtualNetwork(draft)
                         isSaving = false
-                        if ok { dismiss() }
+                        if saveError == nil { dismiss() }
                     }
                 }
                 .keyboardShortcut(.defaultAction)

@@ -1892,7 +1892,6 @@
       }
     },
     "list-separator": {
-      "extractionState": "extracted_with_value",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4058,6 +4057,7 @@
       }
     },
     "ネットワーク「%@」を保存できませんでした": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4101,6 +4101,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ネットワーク「%@」を削除できませんでした"
+          }
+        }
+      }
+    },
+    "ネットワークを作り直しています…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recreating the network…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークを作り直しています…"
           }
         }
       }
@@ -4394,6 +4410,7 @@
       }
     },
     "ヘルパーが見つかりません": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5512,6 +5529,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存するとネットワークが再起動します。接続中の VM（%@）は、再起動するまでこのネットワークで通信できなくなります。"
+          }
+        }
+      }
+    },
+    "保存できませんでした（変更前の設定に戻しました）: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save, so the previous settings were restored: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できませんでした（変更前の設定に戻しました）: %@"
           }
         }
       }

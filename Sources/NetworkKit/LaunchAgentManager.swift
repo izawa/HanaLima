@@ -57,11 +57,15 @@ public struct LaunchAgentManager: Sendable {
                                                       format: .xml, options: 0)
         try data.write(to: url, options: .atomic)
 
-        bootout(network.name)
+        bootoutAndWait(network.name)
         // launchd refuses to bind over a stale socket file.
         try? fm.removeItem(at: NetworkPaths.socket(for: network.name))
         try? fm.removeItem(at: NetworkPaths.status(for: network.name))
-        let out = launchctl(["bootstrap", domain, url.path])
+        var out = launchctl(["bootstrap", domain, url.path])
+        for _ in 0..<5 where out.status != 0 {
+            Thread.sleep(forTimeInterval: 0.5)
+            out = launchctl(["bootstrap", domain, url.path])
+        }
         guard out.status == 0 else {
             throw Failure(message: String(localized: "launchctl bootstrap に失敗しました: \(out.output.trimmingCharacters(in: .whitespacesAndNewlines))"))
         }
@@ -79,7 +83,7 @@ public struct LaunchAgentManager: Sendable {
 
     /// Unloads the agent and removes its plist, socket and status file.
     public func uninstall(_ name: String) {
-        bootout(name)
+        bootoutAndWait(name)
         let fm = FileManager.default
         try? fm.removeItem(at: NetworkPaths.launchAgentPlist(for: name))
         try? fm.removeItem(at: NetworkPaths.socket(for: name))
@@ -155,6 +159,17 @@ public struct LaunchAgentManager: Sendable {
 
     private func bootout(_ name: String) {
         _ = launchctl(["bootout", "\(domain)/\(NetworkPaths.launchLabel(for: name))"])
+    }
+
+    /// `bootout` can return while the job is still exiting: a helper with VMs attached stops its
+    /// vmnet interfaces on SIGTERM first. Bootstrapping the same label meanwhile fails with
+    /// "Bootstrap failed: 5: Input/output error", so wait (up to 10 s) until launchd forgets it.
+    private func bootoutAndWait(_ name: String) {
+        bootout(name)
+        let service = "\(domain)/\(NetworkPaths.launchLabel(for: name))"
+        for _ in 0..<200 where launchctl(["print", service]).status == 0 {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
     }
 
     @discardableResult

@@ -59,6 +59,14 @@ struct NetworkEndToEndTests {
         let ping = try await client.runner.run(["shell", vm, "ping", "-c", "2", "-W", "2", network.gateway])
         #expect(ping.stdoutString.contains("2 packets received"))
 
+        // Saving the network while the VM is attached re-registers the agent. bootout returns
+        // before the helper has stopped its interface; bootstrapping must wait, not fail with 5.
+        var edited = network
+        edited.comment = "edited while attached"
+        try agents.install(edited)
+        try agents.install(network)
+        #expect(agents.state(of: network.name) != .notLoaded)
+
         _ = try await drain(client.stop(vm))
         _ = try await drain(client.delete(vm))
     }

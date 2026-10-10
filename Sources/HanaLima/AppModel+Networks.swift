@@ -96,16 +96,15 @@ extension AppModel {
         }
     }
 
-    /// Adds or updates a network and (re)registers its LaunchAgent. Returns false on failure.
-    @discardableResult
-    func saveVirtualNetwork(_ network: VirtualNetwork) async -> Bool {
+    /// Adds or updates a network and (re)registers its LaunchAgent. Returns an error message on
+    /// failure, after putting the previous network back (file and agent), so nothing is half-saved.
+    func saveVirtualNetwork(_ network: VirtualNetwork) async -> String? {
         guard Self.bundledHelper != nil || FileManager.default.isExecutableFile(atPath: NetworkPaths.installedHelper.path) else {
-            alert = AlertMessage(title: String(localized: "ヘルパーが見つかりません"),
-                                 message: String(localized: "hanalima-netd がアプリに同梱されていません。scripts/build-app.sh でビルドした HanaLima.app から起動してください。"))
-            return false
+            return String(localized: "hanalima-netd がアプリに同梱されていません。scripts/build-app.sh でビルドした HanaLima.app から起動してください。")
         }
-        let previous = virtualNetworks.first { $0.name == network.name }
-        var updated = virtualNetworks.filter { $0.name != network.name }
+        let before = virtualNetworks
+        let previous = before.first { $0.name == network.name }
+        var updated = before.filter { $0.name != network.name }
         updated.append(network)
         updated.sort { $0.name < $1.name }
         do {
@@ -114,14 +113,20 @@ extension AppModel {
             try await Task.detached { try LaunchAgentManager().install(network) }.value
             virtualNetworks = updated
         } catch {
-            alert = AlertMessage(title: String(localized: "ネットワーク「\(network.name)」を保存できませんでした"), message: error.localizedDescription)
-            virtualNetworks = (try? NetworkStore.load()) ?? virtualNetworks
-            return false
+            try? NetworkStore.save(before)
+            if let previous {
+                _ = try? await Task.detached { try LaunchAgentManager().install(previous) }.value
+            } else {
+                await Task.detached { LaunchAgentManager().uninstall(network.name) }.value
+            }
+            virtualNetworks = before
+            await refreshNetworkStates()
+            return error.localizedDescription
         }
         // The helper restarts with the new settings; running VMs keep a dead link until restarted.
         if let previous, previous != network { markRestartNeeded(using: previous) }
         await refreshNetworkStates()
-        return true
+        return nil
     }
 
     func deleteVirtualNetwork(_ name: String) async {
