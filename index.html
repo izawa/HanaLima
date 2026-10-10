@@ -382,6 +382,16 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
         <p><span class="en">Overwrite the helper with a new build and the already-registered LaunchAgent fails to spawn (exit 78, EX_CONFIG) — while the old process keeps running, so you won't notice until it restarts.</span><span class="ja">ヘルパーを新しいビルドで上書きすると、登録済みの LaunchAgent が起動できなくなります（終了コード 78）。古いプロセスは動き続けるので、再起動するまで気づきません。</span></p>
         <p class="fix"><span class="en">Content-addressed copies (<code>hanalima-netd-&lt;hash&gt;</code>); agents move over only while idle.</span><span class="ja">内容のハッシュ付きの名前で別々に置き、エージェントはアイドルのときだけ移す。</span></p>
       </div>
+      <div class="scar reveal">
+        <h3><span class="en">A live snapshot that "succeeds" but saves nothing</span><span class="ja">成功したのに何も保存されないスナップショット</span></h3>
+        <p><span class="en">On a running QEMU VM, Lima sends HMP <code>savevm</code>; QEMU refuses while a 9p share is mounted, yet <code>limactl</code> exits 0. And a failed <code>loadvm</code> leaves the VM frozen in <code>restore-vm</code> until someone sends QMP <code>cont</code>.</span><span class="ja">実行中の QEMU の VM では、Lima は HMP の <code>savevm</code> を送ります。9p の共有があると QEMU は拒否しますが、<code>limactl</code> は終了コード 0。さらに <code>loadvm</code> に失敗すると、QMP の <code>cont</code> を送るまで VM は <code>restore-vm</code> で止まったままです。</span></p>
+        <p class="fix"><span class="en">Snapshot only while stopped (<code>qemu-img</code> path), and verify the tag exists afterwards.</span><span class="ja">停止中（<code>qemu-img</code> の経路）だけで操作し、作成後にタグがあるかを確かめる。</span></p>
+      </div>
+      <div class="scar reveal">
+        <h3><span class="en">Window restoration wins over <code>.defaultLaunchBehavior</code></span><span class="ja">ウィンドウの復元は <code>.defaultLaunchBehavior</code> より強い</span></h3>
+        <p><span class="en">Quit a menu-bar app with its window closed, and macOS faithfully restores "no window" next time — even with <code>.defaultLaunchBehavior(.presented)</code> and <code>.restorationBehavior(.disabled)</code>. The app looked like it never launched.</span><span class="ja">ウィンドウを閉じたままメニューバーのアプリを終了すると、次の起動で macOS は「ウィンドウなし」を忠実に復元します。<code>.defaultLaunchBehavior(.presented)</code> や <code>.restorationBehavior(.disabled)</code> を付けても同じで、起動していないように見えました。</span></p>
+        <p class="fix"><span class="en">The menu bar label — which always exists — opens the window on launch if none is visible.</span><span class="ja">常に存在するメニューバーのラベルが、起動時にウィンドウがなければ開く。</span></p>
+      </div>
     </div>
   </div>
 </section>
@@ -424,15 +434,20 @@ vmnet_start_interface(desc, queue) { status, params <span class="k">in</span> �
         <h3><span class="en">Rootless networks</span><span class="ja">root 不要のネットワーク</span></h3>
         <p><span class="en">NAT and host-only with your subnet and fixed IPs; bridged to en0. Classic socket_vmnet setup is one click if you still want it.</span><span class="ja">サブネットと固定 IP を指定できる NAT とホストオンリー、en0 へのブリッジ。従来の socket_vmnet も、必要ならワンクリックで導入。</span></p>
       </div>
-      <div class="card reveal"><span class="status next">next</span>
+      <div class="card reveal"><span class="status done">v0.4</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>
         <h3><span class="en">Snapshots &amp; thumbnails</span><span class="ja">スナップショットとサムネイル</span></h3>
-        <p><span class="en">Snapshots for QEMU VMs and live screen thumbnails via <code>limactl screenshot</code>.</span><span class="ja">QEMU の VM のスナップショットと、<code>limactl screenshot</code> による画面のサムネイル。</span></p>
+        <p><span class="en">Save, restore and delete disk snapshots of QEMU VMs (while stopped — see below). A live view of the screen for VZ VMs with a display, via <code>limactl screenshot</code>.</span><span class="ja">QEMU の VM のディスクを、停止中に保存・復元・削除（理由は下で）。画面を有効にした VZ の VM は、<code>limactl screenshot</code> で画面を概要に表示。</span></p>
       </div>
-      <div class="card reveal"><span class="status next">next</span>
+      <div class="card reveal"><span class="status done">v0.4</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
         <h3><span class="en">Logs &amp; provisioning</span><span class="ja">ログとプロビジョニング</span></h3>
-        <p><span class="en">A proper log viewer and an editor for provisioning scripts.</span><span class="ja">ログビューアと、プロビジョンスクリプトのエディタ。</span></p>
+        <p><span class="en">Follow the host agent log and serial consoles live, with search. Edit the provisioning scripts and data files Lima applies on every boot — in an editor that won't smart-quote your shell script.</span><span class="ja">ホストエージェントのログとシリアルコンソールを、検索しながらリアルタイムに。Lima が起動のたびに適用するスクリプトやファイルも、スマート引用符に化けないエディタで編集。</span></p>
+      </div>
+      <div class="card reveal"><span class="status next">next</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
+        <p><span class="en">Developer ID signing, notarization and auto-update, so you can skip building from source.</span><span class="ja">Developer ID の署名、公証、自動アップデート。ソースからビルドしなくても使えるように。</span></p>
       </div>
     </div>
   </div>
@@ -482,9 +497,9 @@ open build/HanaLima.app</pre>
         <ul><li><span class="en">Settings editor, disks</span><span class="ja">設定編集、ディスク</span></li><li><span class="en">Shares, port forwards</span><span class="ja">共有フォルダ、ポート転送</span></li><li><span class="en">Menu bar, start at login</span><span class="ja">メニューバー、自動起動</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.3</h3>
         <ul><li><span class="en">Rootless NAT / host-only</span><span class="ja">root 不要の NAT／ホストオンリー</span></li><li><span class="en">Fixed IPs</span><span class="ja">固定 IP</span></li><li><span class="en">Rootless bridge</span><span class="ja">root 不要のブリッジ</span></li></ul></div>
-      <div class="milestone next"><div class="bar"></div><h3>v0.4</h3>
+      <div class="milestone done"><div class="bar"></div><h3>v0.4</h3>
         <ul><li><span class="en">Snapshots (QEMU)</span><span class="ja">スナップショット（QEMU）</span></li><li><span class="en">Screen thumbnails</span><span class="ja">画面のサムネイル</span></li><li><span class="en">Log viewer, provisioning</span><span class="ja">ログビューア、プロビジョニング</span></li></ul></div>
-      <div class="milestone"><div class="bar"></div><h3><span class="en">Release</span><span class="ja">配布</span></h3>
+      <div class="milestone next"><div class="bar"></div><h3><span class="en">Release</span><span class="ja">配布</span></h3>
         <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">English UI</span><span class="ja">英語 UI</span></li></ul></div>
     </div>
   </div>
