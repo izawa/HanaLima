@@ -59,54 +59,6 @@
         }
       }
     },
-    "%@ が root 所有になっていません": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is not owned by root"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ が root 所有になっていません"
-          }
-        }
-      }
-    },
-    "%@ が所属していません。networks.yaml の group を変更するか、ユーザーをグループに追加してください": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is not a member. Change the group in networks.yaml, or add the user to the group"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ が所属していません。networks.yaml の group を変更するか、ユーザーをグループに追加してください"
-          }
-        }
-      }
-    },
-    "%@ と %@ を削除します。lima:shared / host / bridged を使う VM は起動できなくなります。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This removes %@ and %@. VMs using lima:shared / host / bridged will no longer start."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ と %2$@ を削除します。lima:shared / host / bridged を使う VM は起動できなくなります。"
-          }
-        }
-      }
-    },
     "%@ とアドレス範囲が重なっています。": {
       "localizations": {
         "en": {
@@ -183,22 +135,6 @@
           "stringUnit": {
             "state": "new",
             "value": "%1$@ は %2$@ の中で、ゲートウェイ以外のアドレスにしてください。"
-          }
-        }
-      }
-    },
-    "%@ は所属しています": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is a member"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ は所属しています"
           }
         }
       }
@@ -681,54 +617,6 @@
         }
       }
     },
-    "HanaLima が socket_vmnet と /etc/sudoers.d/lima を削除します。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima will remove socket_vmnet and /etc/sudoers.d/lima."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima が socket_vmnet と /etc/sudoers.d/lima を削除します。"
-          }
-        }
-      }
-    },
-    "HanaLima が socket_vmnet を /opt/socket_vmnet にインストールし、/etc/sudoers.d/lima を設定します。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima will install socket_vmnet into /opt/socket_vmnet and set up /etc/sudoers.d/lima."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima が socket_vmnet を /opt/socket_vmnet にインストールし、/etc/sudoers.d/lima を設定します。"
-          }
-        }
-      }
-    },
-    "HanaLima がネットワーク設定に合わせて /etc/sudoers.d/lima を更新します。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima will update /etc/sudoers.d/lima to match the network settings."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima がネットワーク設定に合わせて /etc/sudoers.d/lima を更新します。"
-          }
-        }
-      }
-    },
     "HanaLima について": {
       "localizations": {
         "en": {
@@ -745,18 +633,34 @@
         }
       }
     },
-    "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged には socket_vmnet が必要です。": {
+    "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "HanaLima virtual networks (NAT, host-only, bridged) and vzNAT work without administrator rights. lima:shared / host / bridged need socket_vmnet."
+            "value": "HanaLima's virtual networks (NAT, host-only, bridged) and vzNAT work without administrator rights."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged には socket_vmnet が必要です。"
+            "value": "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。"
+          }
+        }
+      }
+    },
+    "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged は Lima の従来方式（socket_vmnet）です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima's virtual networks (NAT, host-only, bridged) and vzNAT work without administrator rights. lima:shared, host and bridged are Lima's classic networks (socket_vmnet)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged は Lima の従来方式（socket_vmnet）です。"
           }
         }
       }
@@ -1037,6 +941,22 @@
         }
       }
     },
+    "Lima のドキュメント（vmnet）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima Documentation (vmnet)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima のドキュメント（vmnet）"
+          }
+        }
+      }
+    },
     "Lima のユーザーモードネットワーク": {
       "localizations": {
         "en": {
@@ -1049,22 +969,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima のユーザーモードネットワーク"
-          }
-        }
-      }
-    },
-    "Lima の公式手順と同じく、公式リリースを /opt/socket_vmnet に展開し、`limactl sudoers` の出力を /etc/sudoers.d/lima に配置します（visudo で検査してから配置）。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Following Lima's official steps: the official release is unpacked into /opt/socket_vmnet, and the output of `limactl sudoers` is installed as /etc/sudoers.d/lima (checked with visudo first)."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lima の公式手順と同じく、公式リリースを /opt/socket_vmnet に展開し、`limactl sudoers` の出力を /etc/sudoers.d/lima に配置します（visudo で検査してから配置）。"
           }
         }
       }
@@ -1439,32 +1343,6 @@
         }
       }
     },
-    "SHA-256": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SHA-256"
-          }
-        }
-      }
-    },
-    "SHA256SUMS に %@ のチェックサムがありません。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SHA256SUMS has no checksum for %@."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SHA256SUMS に %@ のチェックサムがありません。"
-          }
-        }
-      }
-    },
     "SSH": {
       "localizations": {
         "ja": {
@@ -1581,22 +1459,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ubuntu（開発版）"
-          }
-        }
-      }
-    },
-    "VM の「設定 → ネットワーク」で「lima:bridged」を NIC として追加すると、LAN の DHCP から IP が割り当てられます。IP が付かない場合は、macOS のファイアウォールで bootpd を許可してください。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add “lima:bridged” as a NIC in the VM's Settings → Network to get an IP from the LAN's DHCP server. If no IP is assigned, allow bootpd in the macOS firewall."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VM の「設定 → ネットワーク」で「lima:bridged」を NIC として追加すると、LAN の DHCP から IP が割り当てられます。IP が付かない場合は、macOS のファイアウォールで bootpd を許可してください。"
           }
         }
       }
@@ -1833,12 +1695,34 @@
         }
       }
     },
-    "lima:bridged": {
+    "lima:shared・host・bridged は Lima の従来方式（socket_vmnet、root で動作）です。新しく作るなら、root の要らない HanaLima の仮想ネットワークをどうぞ。": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lima:shared, host and bridged are Lima's classic networks (socket_vmnet, running as root). For new ones, try HanaLima's virtual networks: no root needed."
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "lima:bridged"
+            "value": "lima:shared・host・bridged は Lima の従来方式（socket_vmnet、root で動作）です。新しく作るなら、root の要らない HanaLima の仮想ネットワークをどうぞ。"
+          }
+        }
+      }
+    },
+    "lima:shared・host・bridged（Lima の従来方式）は、Lima の手順で socket_vmnet を入れると使えます。HanaLima の仮想ネットワークなら不要です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lima:shared, host and bridged (Lima's classic networks) work once socket_vmnet is installed by Lima's instructions. HanaLima's virtual networks don't need it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lima:shared・host・bridged（Lima の従来方式）は、Lima の手順で socket_vmnet を入れると使えます。HanaLima の仮想ネットワークなら不要です。"
           }
         }
       }
@@ -1939,38 +1823,6 @@
         }
       }
     },
-    "networks.yaml と一致していません（更新が必要）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Doesn't match networks.yaml (update needed)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "networks.yaml と一致していません（更新が必要）"
-          }
-        }
-      }
-    },
-    "networks.yaml に networks.bridged がありません。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "networks.yaml has no networks.bridged."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "networks.yaml に networks.bridged がありません。"
-          }
-        }
-      }
-    },
     "networks.yaml に「%@」が定義されていません。": {
       "localizations": {
         "en": {
@@ -2029,50 +1881,18 @@
         }
       }
     },
-    "socket_vmnet %@（%@）": {
+    "socket_vmnet が未インストールのため、このままでは起動に失敗します。HanaLima の仮想ネットワークに切り替えるか、Lima の手順で socket_vmnet を導入してください。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "socket_vmnet %1$@ (%2$@)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "socket_vmnet %1$@（%2$@）"
-          }
-        }
-      }
-    },
-    "socket_vmnet が未インストール": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet not installed"
+            "value": "socket_vmnet isn't installed, so this virtual machine won't start. Switch to a HanaLima virtual network, or install socket_vmnet by following Lima's instructions."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "socket_vmnet が未インストール"
-          }
-        }
-      }
-    },
-    "socket_vmnet が未インストールのため、このままでは起動に失敗します。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet isn't installed, so the VM will fail to start."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet が未インストールのため、このままでは起動に失敗します。"
+            "value": "socket_vmnet が未インストールのため、このままでは起動に失敗します。HanaLima の仮想ネットワークに切り替えるか、Lima の手順で socket_vmnet を導入してください。"
           }
         }
       }
@@ -2153,86 +1973,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "socket_vmnet のホストオンリー・%@"
-          }
-        }
-      }
-    },
-    "socket_vmnet をアンインストール…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uninstall socket_vmnet…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet をアンインストール…"
-          }
-        }
-      }
-    },
-    "socket_vmnet をアンインストールしますか？": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uninstall socket_vmnet?"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet をアンインストールしますか？"
-          }
-        }
-      }
-    },
-    "socket_vmnet（従来方式）の設定…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet (Classic) Setup…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "socket_vmnet（従来方式）の設定…"
-          }
-        }
-      }
-    },
-    "sudoers を更新": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Update sudoers"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sudoers を更新"
-          }
-        }
-      }
-    },
-    "sudoers（%@）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sudoers (%@)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sudoers（%@）"
           }
         }
       }
@@ -2760,22 +2500,6 @@
         }
       }
     },
-    "アンインストール": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uninstall"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アンインストール"
-          }
-        }
-      }
-    },
     "アーキテクチャ": {
       "localizations": {
         "en": {
@@ -2820,38 +2544,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "イベントはまだありません。"
-          }
-        }
-      }
-    },
-    "インストール": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インストール"
-          }
-        }
-      }
-    },
-    "インストールする版": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version to Install"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インストールする版"
           }
         }
       }
@@ -2948,38 +2640,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "キャンセル"
-          }
-        }
-      }
-    },
-    "キャンセルされました。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Canceled."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセルされました。"
-          }
-        }
-      }
-    },
-    "グループ「%@」": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Group “%@”"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "グループ「%@」"
           }
         }
       }
@@ -3640,22 +3300,6 @@
         }
       }
     },
-    "セットアップ…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Set Up…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップ…"
-          }
-        }
-      }
-    },
     "ソケット %@ が見つかりません。": {
       "localizations": {
         "en": {
@@ -3736,38 +3380,6 @@
         }
       }
     },
-    "ダウンロードしています…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Downloading…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードしています…"
-          }
-        }
-      }
-    },
-    "ダウンロードしてインストール": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download and Install"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードしてインストール"
-          }
-        }
-      }
-    },
     "ダウンロード中: %@": {
       "localizations": {
         "en": {
@@ -3780,22 +3392,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "ダウンロード中: %@"
-          }
-        }
-      }
-    },
-    "チェックサムが一致しません（期待値 %@、実際 %@）。ダウンロードが破損しているか改ざんされています。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Checksum mismatch (expected %1$@, got %2$@). The download is corrupt or has been tampered with."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "チェックサムが一致しません（期待値 %1$@、実際 %2$@）。ダウンロードが破損しているか改ざんされています。"
           }
         }
       }
@@ -4056,23 +3652,6 @@
         }
       }
     },
-    "ネットワーク「%@」を保存できませんでした": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't save network “%@”"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ネットワーク「%@」を保存できませんでした"
-          }
-        }
-      }
-    },
     "ネットワーク「%@」を削除しますか？": {
       "localizations": {
         "en": {
@@ -4265,38 +3844,6 @@
         }
       }
     },
-    "ブリッジ先": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bridge To"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブリッジ先"
-          }
-        }
-      }
-    },
-    "ブリッジ先を変更（管理者パスワードが必要）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Change Bridge Interface (Requires Administrator Password)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブリッジ先を変更（管理者パスワードが必要）"
-          }
-        }
-      }
-    },
     "ブリッジ（LAN に直接接続）": {
       "localizations": {
         "en": {
@@ -4405,23 +3952,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "プロビジョニングを追加"
-          }
-        }
-      }
-    },
-    "ヘルパーが見つかりません": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Helper Not Found"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ヘルパーが見つかりません"
           }
         }
       }
@@ -4810,22 +4340,6 @@
         }
       }
     },
-    "リリース %@ に %@ または SHA256SUMS がありません。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Release %1$@ has no %2$@ or SHA256SUMS."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "リリース %1$@ に %2$@ または SHA256SUMS がありません。"
-          }
-        }
-      }
-    },
     "ログ": {
       "localizations": {
         "en": {
@@ -5162,23 +4676,6 @@
         }
       }
     },
-    "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your virtual machines keep working. Images are downloaded again the next time you create a virtual machine."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仮想マシンはそのまま使えます。次に仮想マシンを作るときに、イメージをダウンロードし直します。"
-          }
-        }
-      }
-    },
     "仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。": {
       "localizations": {
         "en": {
@@ -5207,23 +4704,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンは停止しています"
-          }
-        }
-      }
-    },
-    "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only files that no virtual machine or template refers to are deleted, such as images left behind by Lima updates."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仮想マシンやテンプレートが参照していないもの（Lima の更新で古くなったイメージなど）だけを削除します。"
           }
         }
       }
@@ -5516,23 +4996,6 @@
         }
       }
     },
-    "保存するとネットワークが再起動します。接続中の VM（%@）は、再起動するまでこのネットワークで通信できなくなります。": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saving restarts the network. Attached VMs (%@) can't use this network until they are restarted."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存するとネットワークが再起動します。接続中の VM（%@）は、再起動するまでこのネットワークで通信できなくなります。"
-          }
-        }
-      }
-    },
     "保存できませんでした（変更前の設定に戻しました）: %@": {
       "localizations": {
         "en": {
@@ -5625,22 +5088,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "元に戻す"
-          }
-        }
-      }
-    },
-    "入手元": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Source"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入手元"
           }
         }
       }
@@ -6349,22 +5796,6 @@
         }
       }
     },
-    "従来方式のブリッジ（lima:bridged、VM を LAN に直接参加させる）には socket_vmnet が必要です。インストールには管理者パスワードの入力が 1 回必要です。HanaLima のブリッジネットワークには不要です。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The classic way to bridge (put a VM directly on your LAN) with lima:bridged needs socket_vmnet. Installing it asks for your administrator password once. HanaLima's own bridged networks don't need it."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "従来方式のブリッジ（lima:bridged、VM を LAN に直接参加させる）には socket_vmnet が必要です。インストールには管理者パスワードの入力が 1 回必要です。HanaLima のブリッジネットワークには不要です。"
-          }
-        }
-      }
-    },
     "復元": {
       "localizations": {
         "en": {
@@ -6697,54 +6128,6 @@
         }
       }
     },
-    "最新版の情報を取得できませんでした。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't get the latest release information."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最新版の情報を取得できませんでした。"
-          }
-        }
-      }
-    },
-    "最新版を確認しています…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Checking for the latest release…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最新版を確認しています…"
-          }
-        }
-      }
-    },
-    "未インストール": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not installed"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未インストール"
-          }
-        }
-      }
-    },
     "未使用": {
       "localizations": {
         "en": {
@@ -6825,22 +6208,6 @@
         }
       }
     },
-    "未設定": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not set up"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未設定"
-          }
-        }
-      }
-    },
     "検索": {
       "localizations": {
         "en": {
@@ -6901,39 +6268,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "標準（%@）"
-          }
-        }
-      }
-    },
-    "権限の都合で内容を確認できません。「sudoers を更新」で修正されます": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't read it because of its permissions. “Update sudoers” fixes this"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "権限の都合で内容を確認できません。「sudoers を更新」で修正されます"
-          }
-        }
-      }
-    },
-    "次の仮想マシンがこのネットワークを使っています: %@。削除すると、これらは設定から NIC を外すまで起動できなくなります。": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "These VMs use this network: %@. After deleting it, they won't start until you remove the NIC from their settings."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "次の仮想マシンがこのネットワークを使っています: %@。削除すると、これらは設定から NIC を外すまで起動できなくなります。"
           }
         }
       }
@@ -7126,38 +6460,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "稼働中（%lld 台接続）"
-          }
-        }
-      }
-    },
-    "管理者として実行される処理": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "What Runs as Administrator"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "管理者として実行される処理"
-          }
-        }
-      }
-    },
-    "管理者パスワードの入力を待っています…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting for the administrator password…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "管理者パスワードの入力を待っています…"
           }
         }
       }
@@ -7398,22 +6700,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定変更中"
-          }
-        }
-      }
-    },
-    "設定済み": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Set up"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定済み"
           }
         }
       }

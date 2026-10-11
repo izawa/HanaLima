@@ -248,7 +248,6 @@ private struct NetworkSection: View {
     @Environment(AppModel.self) private var model
     @Binding var networks: [NetworkConfig]
     let vmType: String?
-    @State private var showSocketVMNetSetup = false
 
     var body: some View {
         Section {
@@ -267,14 +266,8 @@ private struct NetworkSection: View {
                     TextField("MAC アドレス", text: $nic.macAddress, prompt: Text("自動"))
                         .font(.callout.monospaced())
                     if let warning = warning(for: nic.kind) {
-                        HStack {
-                            Label(warning, systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
-                            if case .lima = nic.kind, !model.networks.socketVMNetInstalled {
-                                Button("セットアップ…") { showSocketVMNetSetup = true }
-                                    .buttonStyle(.link).font(.caption)
-                            }
-                        }
+                        Label(warning, systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
                     }
                 }
             }
@@ -294,10 +287,11 @@ private struct NetworkSection: View {
         } header: {
             Text("ネットワーク")
         } footer: {
-            Text("HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged には socket_vmnet が必要です。")
+            Text(model.networks.socketVMNetInstalled
+                 ? "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。lima:shared / host / bridged は Lima の従来方式（socket_vmnet）です。"
+                 : "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。")
                 .font(.caption).foregroundStyle(.secondary)
         }
-        .sheet(isPresented: $showSocketVMNetSetup) { SocketVMNetSetupSheet() }
     }
 
     private func attachment(_ nic: NetworkConfig) -> NetworkConflict.Attachment {
@@ -312,7 +306,9 @@ private struct NetworkSection: View {
         var options: [NetworkConfig.Kind] = []
         options += model.virtualNetworks.map { .socket($0.socketPath) }
         if vmType == "vz" { options.append(.vzNAT) }
-        options += model.networks.networks.map { .lima($0.name) }
+        options += model.networks.networks
+            .filter { !$0.needsSocketVMNet || model.networks.socketVMNetInstalled }
+            .map { .lima($0.name) }
         if let current, !options.contains(current) { options.append(current) }
         return options
     }
@@ -350,7 +346,7 @@ private struct NetworkSection: View {
                 return String(localized: "networks.yaml に「\(name)」が定義されていません。")
             }
             if net.needsSocketVMNet && !model.networks.socketVMNetInstalled {
-                return String(localized: "socket_vmnet が未インストールのため、このままでは起動に失敗します。")
+                return String(localized: "socket_vmnet が未インストールのため、このままでは起動に失敗します。HanaLima の仮想ネットワークに切り替えるか、Lima の手順で socket_vmnet を導入してください。")
             }
             return nil
         case .socket(let path):

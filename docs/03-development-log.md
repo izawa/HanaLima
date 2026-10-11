@@ -90,6 +90,9 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 ## 16. Wi-Fi のブリッジ（2026-10-11）
 - 有線 en0 をつないだまま、Wi-Fi（en1）にブリッジする E2E を実行した。VM は LAN の DHCP からアドレスを取得し、ルーターへの ping も通った（3〜13 ms。電波を経由している）。ブリッジの E2E に、ルーターへの ping を足した。詳細は [02](02-networking-investigation.md)。
 
+## 17. socket_vmnet のセットアップ画面をやめた（2026-10-12）
+- 「socket_vmnet ならできて、HanaLima のネットワークではできないこと」を洗い出した。機能面ではなく、残るのは Lima 標準との互換（HanaLima なしでも動く `lima.yaml`、Lima の手順との一致）だけだった。導入（root、sudoers）は Lima の手順に任せ、セットアップ画面を削除した。既存の `lima:*` NIC は引き続き表示・起動・編集でき、未導入のときは追加の選択肢に出さない。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。

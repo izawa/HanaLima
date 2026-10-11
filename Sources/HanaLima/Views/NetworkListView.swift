@@ -10,7 +10,6 @@ struct NetworkListView: View {
     @State private var editing: VirtualNetwork?
     @State private var isCreating = false
     @State private var deleting: VirtualNetwork?
-    @State private var showSocketVMNetSetup = false
 
     private var selected: VirtualNetwork? { model.virtualNetworks.first { $0.name == selection } }
 
@@ -38,21 +37,26 @@ struct NetworkListView: View {
                            icon: "network")
                 BuiltinRow(name: "vzNAT", detail: String(localized: "VZ 専用の NAT・サブネット指定不可（通常 192.168.64.0/24）"),
                            icon: "network")
-                ForEach(model.networks.networks) { net in
+                // lima:shared/host/bridged only when socket_vmnet is installed (Lima's own setup).
+                ForEach(model.networks.networks.filter { !$0.needsSocketVMNet || model.networks.socketVMNetInstalled }) { net in
                     BuiltinRow(name: "lima:\(net.name)",
                                detail: limaDetail(net),
-                               icon: net.mode == "bridged" ? "cable.connector" : "network",
-                               warning: net.needsSocketVMNet && !model.networks.socketVMNetInstalled
-                                   ? String(localized: "socket_vmnet が未インストール") : nil)
+                               icon: net.mode == "bridged" ? "cable.connector" : "network")
                 }
             } header: {
-                HStack {
-                    Text("組み込みのネットワーク（参考）")
-                    Spacer()
-                    Button("socket_vmnet（従来方式）の設定…") { showSocketVMNetSetup = true }
-                        .buttonStyle(.link)
-                        .font(.callout)
+                Text("組み込みのネットワーク（参考）")
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.networks.socketVMNetInstalled
+                         ? "lima:shared・host・bridged は Lima の従来方式（socket_vmnet、root で動作）です。新しく作るなら、root の要らない HanaLima の仮想ネットワークをどうぞ。"
+                         : "lima:shared・host・bridged（Lima の従来方式）は、Lima の手順で socket_vmnet を入れると使えます。HanaLima の仮想ネットワークなら不要です。")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2...4)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Link("Lima のドキュメント（vmnet）", destination: URL(string: "https://lima-vm.io/docs/config/network/vmnet/")!)
+                        .foregroundStyle(.tint)
                 }
+                .font(.caption)
             }
         }
         .navigationTitle("ネットワーク")
@@ -70,7 +74,6 @@ struct NetworkListView: View {
             }
         }
         .sheet(isPresented: $isCreating) { NetworkEditorSheet(original: nil) }
-        .sheet(isPresented: $showSocketVMNetSetup) { SocketVMNetSetupSheet() }
         .sheet(item: $editing) { NetworkEditorSheet(original: $0) }
         .confirmationDialog("ネットワーク「\(deleting?.name ?? "")」を削除しますか？",
                             isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
@@ -87,7 +90,6 @@ struct NetworkListView: View {
         .task {
             await model.refreshNetworkStates()
             #if DEBUG
-            if DebugSnapshot.env["HANALIMA_SNAPSHOT_SOCKETVMNET"] == "1" { showSocketVMNetSetup = true }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_NEWNET"] != nil { isCreating = true }
             if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_EDITNET"] {
                 editing = model.virtualNetworks.first { $0.name == name }
@@ -246,7 +248,7 @@ struct NetworkEditorSheet: View {
     @State private var isSaving = false
     /// Shown in the sheet: an alert from the main window would sit behind it.
     @State private var saveError: String?
-    @State private var interfaces: [SocketVMNetSetup.HostInterface] = []
+    @State private var interfaces: [HostInterface] = []
 
     private var isNew: Bool { original == nil }
 
@@ -428,11 +430,11 @@ struct NetworkEditorSheet: View {
             }
             #endif
         }
-        .task { interfaces = await SocketVMNetSetup.bridgeableInterfaces() }
+        .task { interfaces = await HostInterfaces.bridgeable() }
     }
 
     /// Interfaces vmnet can bridge to, plus the saved one if it's currently missing (e.g. unplugged).
-    private var interfaceChoices: [SocketVMNetSetup.HostInterface] {
+    private var interfaceChoices: [HostInterface] {
         var list = interfaces
         if !draft.bridgedInterface.isEmpty, !list.contains(where: { $0.device == draft.bridgedInterface }) {
             list.append(.init(device: draft.bridgedInterface, displayName: String(localized: "\(draft.bridgedInterface)（現在は見つかりません）")))

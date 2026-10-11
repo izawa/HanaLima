@@ -24,7 +24,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Additional disks**: create, resize, delete and attach (`limactl disk`).
 - **Storage usage**: where Lima keeps VMs, disks and downloaded images, the space each actually uses, which VM uses each downloaded image, and cleanup of the images no VM uses (or the whole cache with `limactl prune`).
 - **Virtual networks without root**: NAT and host-only networks with your own subnet and DHCP reservations (fixed IPs), and **bridged** networks to a host interface (e.g. `en0`), served by a small helper (`hanalima-netd`) on macOS 26 vmnet. No `sudo` and no socket_vmnet needed. After you change or delete a network, VMs using it are told what to do: a running VM shows a Restart button, and a NIC left pointing at a deleted network is offered for removal before the next start.
-- **socket_vmnet setup** (optional, the classic way): installs the official release and the Lima sudoers file with a single administrator prompt.
+- **Lima's classic networks**: VMs that use `lima:shared`, `lima:host` or `lima:bridged` (socket_vmnet, installed by following Lima's instructions) keep working and can be edited as usual. HanaLima itself doesn't install socket_vmnet; its own networks need no root.
 - **Menu bar item**: every VM with its state, start/stop, and quick access to the console. HanaLima keeps running in the menu bar when the window is closed.
 - **Start at login**: per-VM switch using `limactl autostart`.
 - **Snapshots** (QEMU VMs): save, restore and delete disk snapshots while the VM is stopped.

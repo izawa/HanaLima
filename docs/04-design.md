@@ -6,7 +6,7 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 
 | ターゲット | 役割 |
 |---|---|
-| `LimaKit` | `limactl` CLI のラッパー（UI 非依存）。`ProcessRunner`、`LimaClient`（list/watch/create/start/edit/disk/autostart、ログストリーム）、`InstanceConfig`（lima.yaml の差分を `--set` 式に変換）、`DownloadMonitor`、`SocketVMNetSetup` |
+| `LimaKit` | `limactl` CLI のラッパー（UI 非依存）。`ProcessRunner`、`LimaClient`（list/watch/create/start/edit/disk/autostart、ログストリーム）、`InstanceConfig`（lima.yaml の差分を `--set` 式に変換）、`DownloadMonitor`、`HostInterfaces`（ブリッジ先の一覧） |
 | `NetworkKit` | HanaLima 仮想ネットワーク: `VirtualNetwork`/`networks.json`、`LaunchAgentManager`、`HelperInstaller`、`DHCPClientIDFilter`、`DHCPLeases`、`NetworkConflict` |
 | `hanalima-netd` | ネットワークごとに 1 プロセス。Lima の `socket:` ネットワーク（socket_vmnet 互換の QEMU stream: 4 バイト長＋フレーム）を vmnet に中継する。root 不要（`com.apple.security.virtualization` が必須） |
 | `HanaLima` | SwiftUI アプリ。`AppModel`（@Observable, @MainActor）、`AppModel+Networks` |
@@ -27,7 +27,7 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 - **ネットワークは 3 系統。**
   1. HanaLima 仮想ネットワーク（NAT／ホストオンリー: サブネット指定、DHCP 予約。ブリッジ: 接続先インターフェースを指定）: root 不要。
   2. vzNAT: root 不要。サブネットは指定できない。
-  3. socket_vmnet（`lima:shared/host/bridged`）: 従来方式。セットアップ画面で公式リリースを入れ、管理者認証は 1 回だけ。
+  3. socket_vmnet（`lima:shared/host/bridged`）: Lima の従来方式。既存の VM のために表示・起動・編集はできるが、導入（root、sudoers）は HanaLima では行わず Lima の手順に任せる（2026-10-12 ユーザー判断）。未導入のときは NIC の追加メニューと組み込みの一覧に出さない。HanaLima のネットワークに機能面の不足はなく、socket_vmnet に残る利点は Lima 標準との互換（HanaLima なしでも動く `lima.yaml`）だけだったため。
 - **HanaLima のブリッジは、VM の接続ごとに従来 API のインターフェース（`vmnet_start_interface` + `VMNET_BRIDGED_MODE`）を作る。** entitlement 付きの署名なら root なしで動く（macOS 27.0.1 で確認）。2 台同時、仮想ネットワークとの同時使用、再起動の順序も実機で確認済み（docs/02）。`vmnet_network` を使わないので、同時使用の確認ダイアログの対象外。
 - **hanalima-netd の vmnet ネットワークは、最初の VM 接続時に作り、最後の VM が切断したら解放する。** 使い回すと、macOS の不具合で DHCP 予約が消え、ブリッジ番号も衝突する（下記）。
 - **すべての終了経路でインターフェースを止めてから終了する。** 止めずに終了すると、vmnet がそのサブネットを再起動まで予約したままになる。シグナルハンドラは `@Sendable` にすること（main.swift のトップレベルに書いたクロージャは main actor 扱いになり、別スレッドで動くと SIGTRAP で落ちる）。
