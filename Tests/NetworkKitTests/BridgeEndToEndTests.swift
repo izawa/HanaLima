@@ -45,6 +45,16 @@ struct BridgeEndToEndTests {
             #expect(hostAddress() == hostIP)
             let ping = try await client.runner.run(["shell", vm, "ping", "-c", "2", "-W", "2", hostIP])
             #expect(ping.stdoutString.contains("2 packets received"))
+            // Beyond the Mac: the LAN's router, through the bridged interface (on Wi-Fi this goes
+            // through the access point, which may refuse frames from a second MAC address).
+            let routes = try await client.runner.run(["shell", vm, "ip", "-4", "route", "show", "dev", "lima0"]).stdoutString
+            if let router = routes.firstMatch(of: /default via (\d+\.\d+\.\d+\.\d+)/).map({ String($0.1) }) {
+                let toRouter = try await client.runner.run(["shell", vm, "ping", "-c", "3", "-W", "2", "-I", "lima0", router])
+                print("boot \(boot): router \(router):", toRouter.stdoutString.split(separator: "\n").last.map(String.init) ?? "")
+                #expect(toRouter.stdoutString.contains("3 packets received"))
+            } else {
+                Issue.record("no default route on lima0: \(routes)")
+            }
             _ = try await drain(client.stop(vm))
         }
         _ = try await drain(client.delete(vm))

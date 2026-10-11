@@ -112,7 +112,7 @@ Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/
 
 - macOS 27.0.1's vmnet has bugs that HanaLima works around. In particular, reusing a vmnet network after its interface stopped can take over a bridged interface's `bridge100` and remove the Mac's own IPv4 address (reported to Apple as FB25122122). HanaLima never reuses networks, but other virtualization tools running at the same time might. If your Mac loses its IPv4 address, renew DHCP in System Settings (or run `sudo ipconfig set en0 DHCP`) or restart. Details: [docs/02-networking-investigation.md](docs/02-networking-investigation.md).
 - Lima 2.2 limits two features: snapshots work only for QEMU VMs (HanaLima operates on them while the VM is stopped, because live snapshots fail silently with 9p shares), and screenshots only for VZ VMs with a display whose window is open.
-- Bridging to Wi-Fi interfaces is untested.
+- Bridging to Wi-Fi works on our network (tested with a VM getting a LAN address over `en1`), but some access points refuse frames from more than one MAC address per client; if a VM on a Wi-Fi bridge gets no address, try a wired interface.
 
 ## Uninstalling
 

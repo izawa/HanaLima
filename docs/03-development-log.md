@@ -87,6 +87,9 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 ## 15. ディスクを外付けに置く調査（2026-10-11）
 - 一時的な VM の大きなファイルを外付けドライブに置けるかを調べた。VM のフォルダごとシンボリックリンクにすると `limactl list` に出なくなるので使えない。ディスクのファイル `disk` だけをリンクにすれば、VZ・QEMU とも動く（移すときは `rsync --sparse`）。詳細は [05](05-external-disk-investigation.md)。HanaLima の機能にするかは未定。
 
+## 16. Wi-Fi のブリッジ（2026-10-11）
+- 有線 en0 をつないだまま、Wi-Fi（en1）にブリッジする E2E を実行した。VM は LAN の DHCP からアドレスを取得し、ルーターへの ping も通った（3〜13 ms。電波を経由している）。ブリッジの E2E に、ルーターへの ping を足した。詳細は [02](02-networking-investigation.md)。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
