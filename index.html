@@ -126,8 +126,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <div class="stat"><b>0</b><span class="en">patches to Lima. It's all <code>limactl</code> and its JSON</span><span class="ja">Lima への改造。すべて <code>limactl</code> とその JSON で動く</span></div>
     </div>
     <p class="muted" style="font-size:13px;margin-top:10px">
-      <span class="en">* Tested on macOS 27.0.1 with an ad-hoc signed helper carrying <code>com.apple.security.virtualization</code>. The optional classic socket_vmnet setup still needs one admin prompt.</span>
-      <span class="ja">* macOS 27.0.1 で、<code>com.apple.security.virtualization</code> 付きの ad-hoc 署名のヘルパーで確認。任意の従来方式（socket_vmnet）を入れる場合だけ、管理者認証が 1 回必要です。</span>
+      <span class="en">* Tested on macOS 27.0.1 with an ad-hoc signed helper carrying <code>com.apple.security.virtualization</code>. Lima's classic socket_vmnet networks still work for VMs that use them, but HanaLima doesn't need or install socket_vmnet.</span>
+      <span class="ja">* macOS 27.0.1 で、<code>com.apple.security.virtualization</code> 付きの ad-hoc 署名のヘルパーで確認。Lima の従来方式（socket_vmnet）を使う VM もそのまま動きますが、HanaLima 自体は socket_vmnet を必要とせず、導入もしません。</span>
     </p>
   </div>
 </section>
@@ -359,7 +359,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <div class="card reveal"><span class="status done">v0.3</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 17M12 11.5l5.5 5.5"/></svg></div>
         <h3><span class="en">Rootless networks</span><span class="ja">root 不要のネットワーク</span></h3>
-        <p><span class="en">NAT and host-only with your subnet and fixed IPs; bridged to wired or Wi-Fi. Change or delete a network and each VM on it is told what to do next — restart, or drop a NIC that points nowhere. Classic socket_vmnet setup is one click if you still want it.</span><span class="ja">サブネットと固定 IP を指定できる NAT とホストオンリー、有線・Wi-Fi へのブリッジ。ネットワークを変更・削除すると、それを使う VM ごとに次の操作（再起動、行き先のない NIC の削除）を案内。従来の socket_vmnet も、必要ならワンクリックで導入。</span></p>
+        <p><span class="en">NAT and host-only with your subnet and fixed IPs; bridged to wired or Wi-Fi. Change or delete a network and each VM on it is told what to do next — restart, or drop a NIC that points nowhere. VMs on Lima's classic socket_vmnet networks keep working.</span><span class="ja">サブネットと固定 IP を指定できる NAT とホストオンリー、有線・Wi-Fi へのブリッジ。ネットワークを変更・削除すると、それを使う VM ごとに次の操作（再起動、行き先のない NIC の削除）を案内。Lima の従来方式（socket_vmnet）を使う VM もそのまま動きます。</span></p>
       </div>
       <div class="card reveal"><span class="status done">v0.4</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>
