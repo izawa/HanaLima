@@ -229,15 +229,13 @@ private struct OriginSection: View {
                     }
                 }
             }
+            // Saved as it's typed: switching VMs in the sidebar rebuilds this view without the
+            // field ever losing focus, so saving on focus loss or Return would drop the edit.
             TextField("メモ", text: $note, prompt: Text("この仮想マシンの用途や状態"))
                 .focused($editingNote)
-                .onSubmit { model.setNote(note, of: instance.name) }
-                .onChange(of: editingNote) { _, editing in
-                    if !editing { model.setNote(note, of: instance.name) }
-                }
+                .onChange(of: note) { _, new in model.setNote(new, of: instance.name) }
         }
-        .onChange(of: instance.name, initial: true) { old, name in
-            if editingNote, old != name { model.setNote(note, of: old) }
+        .onChange(of: instance.name, initial: true) { _, name in
             note = model.metadata[name]?.note ?? ""
         }
         .onChange(of: record?.note) { _, new in
