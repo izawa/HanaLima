@@ -31,7 +31,8 @@ When a feature ships on `main`:
 1. **Features** (`#features`): copy a `.card`, set its badge to the version (`<span class="status done">v0.4</span>`), or add a planned one with `class="status next"`. Keep the grid free of a lone card in the last row: with 3 columns, a closing card can take the full row with `class="card reveal wide"`.
 2. **Roadmap** (`#roadmap`): change the milestone's class from `next` to `done`, and mark the following one `next`. Postponed work uses `later` (cards: `class="status later"`).
 3. **How it works** (`#how`): if the feature relies on a non-obvious technique, add an `article.dive` with the next number — a short explanation on the left, a concept figure (`figure.fig`, a small inline SVG) on the right. Keep each figure to one idea, ideally a before/after contrast.
-4. **Comparison table** (`#networking`): add a row if the feature is network-related.
+4. **Comparison tables**: add a row to the one in `#networking` if the feature is network-related, or to "Compared with Lima on its own" at the end of `#how` if it adds to what Lima does by itself (disks, snapshots, copies).
+5. **Roadmap columns**: `.road` in `site.css` has one column per milestone (`repeat(6, 1fr)`); change it when adding a milestone, and bump `?v=`.
 
 Screenshots can go in `assets/img/` (prefer 2× PNG or WebP, with `width`/`height` attributes).
 
