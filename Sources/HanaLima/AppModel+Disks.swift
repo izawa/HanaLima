@@ -79,7 +79,7 @@ extension AppModel {
             var ok = true
             do {
                 try await work { fraction in
-                    Task { @MainActor [weak self] in self?.operations[name]?.fraction = fraction }
+                    Task { @MainActor in self.operations[name]?.fraction = fraction }
                 }
             } catch is CancellationError {
                 ok = false
