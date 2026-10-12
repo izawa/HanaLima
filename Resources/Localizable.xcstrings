@@ -1207,6 +1207,38 @@
         }
       }
     },
+    "Mac との共有": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing with the Mac"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac との共有"
+          }
+        }
+      }
+    },
+    "Mac のファイルは仮想マシンから見えません。必要なフォルダだけを、作成後に「設定」タブの共有フォルダで追加できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine can’t see any files on the Mac. You can share just the folders you need later, under Shared Folders in the Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac のファイルは仮想マシンから見えません。必要なフォルダだけを、作成後に「設定」タブの共有フォルダで追加できます。"
+          }
+        }
+      }
+    },
     "Mac の内蔵ディスクと同じディスクです。移しても空き容量は増えません。外付けドライブなど、別のディスクを選んでください。": {
       "localizations": {
         "en": {
@@ -4708,6 +4740,22 @@
         }
       }
     },
+    "ホームフォルダを共有（読み取り専用）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Home Folder (Read-Only)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホームフォルダを共有（読み取り専用）"
+          }
+        }
+      }
+    },
     "ポートフォワードを追加": {
       "localizations": {
         "en": {
@@ -5120,6 +5168,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシン"
+          }
+        }
+      }
+    },
+    "仮想マシンから Mac のホームフォルダ（~/.ssh などの認証情報を含む）を読めます。AI のエージェントなど、信頼しきれないものを動かすならオフにしてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine can read your home folder on the Mac, including credentials such as ~/.ssh. Turn this off if you run something you don’t fully trust, such as an AI agent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンから Mac のホームフォルダ（~/.ssh などの認証情報を含む）を読めます。AI のエージェントなど、信頼しきれないものを動かすならオフにしてください。"
           }
         }
       }

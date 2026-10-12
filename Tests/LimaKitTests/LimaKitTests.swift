@@ -117,6 +117,11 @@ import Testing
                                 "--vm-type=vz", "--network=vzNAT", "--rosetta", "template:ubuntu-24.04"])
     }
 
+    @Test func dropsMounts() {
+        #expect(CreateOptions(name: "ai", template: "macos", mountNone: true).arguments
+            == ["create", "--name=ai", "--mount-none", "template:macos"])
+    }
+
     @Test(arguments: [("default", true), ("my-vm.1", true), ("a_b", true), ("-x", false),
                       ("a--b", false), ("a b", false), ("", false), ("vm.yaml", false)])
     func validatesNames(name: String, valid: Bool) {

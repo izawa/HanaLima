@@ -19,13 +19,15 @@ public struct CreateOptions: Sendable, Hashable {
     public var networks: [String]
     public var rosetta: Bool
     public var video: Bool
+    /// Drop every mount from the template (`--mount-none`), so the guest can't see the host's home.
+    public var mountNone: Bool
     /// Extra yq expressions for `--set`, e.g. to attach `socket:` networks.
     public var setExpressions: [String]
 
     public init(name: String, template: String = "default", cpus: Int? = nil,
                 memoryGiB: Double? = nil, diskGiB: Double? = nil, vmType: VMType? = nil,
                 networks: [String] = [], rosetta: Bool = false, video: Bool = false,
-                setExpressions: [String] = []) {
+                mountNone: Bool = false, setExpressions: [String] = []) {
         self.name = name
         self.template = template
         self.cpus = cpus
@@ -35,6 +37,7 @@ public struct CreateOptions: Sendable, Hashable {
         self.networks = networks
         self.rosetta = rosetta
         self.video = video
+        self.mountNone = mountNone
         self.setExpressions = setExpressions
     }
 
@@ -48,6 +51,7 @@ public struct CreateOptions: Sendable, Hashable {
         for net in networks { args.append("--network=\(net)") }
         if rosetta { args.append("--rosetta") }
         if video { args.append("--video") }
+        if mountNone { args.append("--mount-none") }
         for expr in setExpressions { args += ["--set", expr] }
         args.append("template:\(template)")
         return args

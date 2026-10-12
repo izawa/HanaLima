@@ -22,6 +22,7 @@ struct CreateInstanceSheet: View {
     }
     @State private var rosetta = false
     @State private var startAfterCreate = true
+    @State private var shareHome = true
     @State private var diskOnOtherDrive = false
     @State private var diskFolder: URL? = ExternalFolderPicker.lastFolder
 
@@ -107,6 +108,17 @@ struct CreateInstanceSheet: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
+                Section {
+                    Toggle("ホームフォルダを共有（読み取り専用）", isOn: $shareHome)
+                } header: {
+                    Text("Mac との共有")
+                } footer: {
+                    Text(shareHome
+                         ? "仮想マシンから Mac のホームフォルダ（~/.ssh などの認証情報を含む）を読めます。AI のエージェントなど、信頼しきれないものを動かすならオフにしてください。"
+                         : "Mac のファイルは仮想マシンから見えません。必要なフォルダだけを、作成後に「設定」タブの共有フォルダで追加できます。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 Section("オプション") {
                     if HostInfo.isAppleSilicon {
                         Toggle("Rosetta で x86_64 バイナリを実行", isOn: $rosetta)
@@ -139,7 +151,7 @@ struct CreateInstanceSheet: View {
             }
             .padding()
         }
-        .frame(width: 560, height: 680)
+        .frame(width: 560, height: 720)
         .onChange(of: vmType) { _, new in
             if new != .vz {
                 if extraNIC == .vzNAT { extraNIC = .none }
@@ -193,6 +205,7 @@ struct CreateInstanceSheet: View {
             vmType: vmType,
             networks: extraNIC == .vzNAT ? ["vzNAT"] : [],
             rosetta: rosetta,
+            mountNone: !shareHome,
             setExpressions: virtualNetworkExpression)
     }
 
