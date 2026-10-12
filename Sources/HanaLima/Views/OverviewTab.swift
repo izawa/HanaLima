@@ -41,6 +41,8 @@ struct OverviewTab: View {
                 AutostartToggle(name: instance.name, title: String(localized: "ログイン時に自動で起動"))
             }
 
+            OriginSection(instance: instance)
+
             if instance.vmType?.lowercased() == "vz",
                let display = instance.config?["video"]?["display"]?.stringValue, display != "none" {
                 Section("画面") {
@@ -184,6 +186,62 @@ struct ScreenThumbnail: View {
             self.error = image == nil
                 ? String(localized: "画面を取得できません。仮想マシンの画面ウィンドウが開いていることを確認してください。")
                 : String(localized: "画面を更新できません（画面ウィンドウが閉じられた可能性があります）。")
+        }
+    }
+}
+
+/// Where the VM came from (a template or another VM), its copies, and a note.
+private struct OriginSection: View {
+    @Environment(AppModel.self) private var model
+    let instance: LimaInstance
+    @State private var note = ""
+    @FocusState private var editingNote: Bool
+
+    var body: some View {
+        let record = model.metadata[instance.name]
+        let children = model.lineage.children(of: instance.name)
+        Section("由来とメモ") {
+            if let parent = record?.parent {
+                LabeledContent("コピー元") {
+                    HStack(spacing: 4) {
+                        if let current = model.lineage.parentName(of: instance.name) {
+                            Button(current) { model.selection = .instance(current) }.buttonStyle(.link)
+                        } else {
+                            Text("\(parent.name)（削除済み）").foregroundStyle(.secondary)
+                        }
+                        Text(parent.copiedAt.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.secondary)
+                    }
+                }
+            } else if let template = record?.template {
+                LabeledContent("作成元") {
+                    Text(verbatim: "template:\(template)").monospaced()
+                }
+            }
+            if let created = record?.createdAt, record?.parent == nil {
+                LabeledContent("作成日時") { Text(created.formatted(date: .abbreviated, time: .shortened)) }
+            }
+            if !children.isEmpty {
+                LabeledContent("この仮想マシンのコピー") {
+                    HStack(spacing: 8) {
+                        ForEach(children, id: \.self) { child in
+                            Button(child) { model.selection = .instance(child) }.buttonStyle(.link)
+                        }
+                    }
+                }
+            }
+            TextField("メモ", text: $note, prompt: Text("この仮想マシンの用途や状態"))
+                .focused($editingNote)
+                .onSubmit { model.setNote(note, of: instance.name) }
+                .onChange(of: editingNote) { _, editing in
+                    if !editing { model.setNote(note, of: instance.name) }
+                }
+        }
+        .onChange(of: instance.name, initial: true) { old, name in
+            if editingNote, old != name { model.setNote(note, of: old) }
+            note = model.metadata[name]?.note ?? ""
+        }
+        .onChange(of: record?.note) { _, new in
+            if !editingNote { note = new ?? "" }
         }
     }
 }

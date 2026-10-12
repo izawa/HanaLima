@@ -9,6 +9,7 @@ struct Operation: Sendable {
         case create, start, stop, restart, delete, edit
         case snapshotCreate, snapshotApply, snapshotDelete
         case moveDisk, moveDiskBack, separateDisk
+        case clone
 
         var label: String {
             switch self {
@@ -24,6 +25,7 @@ struct Operation: Sendable {
             case .moveDisk: String(localized: "ディスクの移動")
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻す処理")
             case .separateDisk: String(localized: "ディスクの独立")
+            case .clone: String(localized: "複製")
             }
         }
 
@@ -43,6 +45,7 @@ struct Operation: Sendable {
             case .moveDisk: String(localized: "ディスクを移動中")
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻しています")
             case .separateDisk: String(localized: "ディスクを独立させています")
+            case .clone: String(localized: "複製中")
             }
         }
     }
@@ -127,6 +130,8 @@ final class AppModel {
     var consoleRequest: String?
     /// Set by the menu bar and the File menu to open the create sheet; ContentView clears it.
     var createRequested = false
+    /// The VM to copy, from a menu or the toolbar; the window shows the copy sheet for it.
+    var copyRequest: CopyRequest?
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -140,6 +145,8 @@ final class AppModel {
     /// Where each instance's disk is. Kept as state (not read from the file system while
     /// drawing) so every view updates when a drive is plugged in or out.
     var diskPlacements: [String: DiskPlacement] = [:]
+    /// HanaLima's record of each VM (id, parent, note), by name. See `InstanceMetadata`.
+    var metadata: [String: InstanceMetadata] = [:]
     /// VMs whose disk link points to another VM's moved disk (a `limactl clone` copies the link),
     /// with the VM that owns it.
     var sharedDiskOwners: [String: String] = [:]
@@ -230,7 +237,7 @@ final class AppModel {
     /// Names shown in the sidebar: real instances plus ones still being created.
     var sidebarNames: [String] {
         let existing = Set(instances.map(\.name))
-        let pending = operations.filter { $0.value.kind == .create && !existing.contains($0.key) }.keys
+        let pending = operations.filter { [.create, .clone].contains($0.value.kind) && !existing.contains($0.key) }.keys
         return instances.map(\.name) + pending.sorted()
     }
 
@@ -262,6 +269,7 @@ final class AppModel {
             hasListedOnce = true
             if list != instances { instances = list }
             updateDiskPlacements()
+            updateMetadata(list)
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {
@@ -330,6 +338,7 @@ final class AppModel {
         selection = .instance(options.name)
         run(.create, on: options.name, client.create(options)) { [weak self] ok in
             guard let self, ok else { return }
+            self.recordCreation(of: options.name, template: options.template)
             if let diskFolder {
                 Task {
                     await self.refresh()  // moveDisk needs the instance listed
@@ -494,8 +503,11 @@ final class AppModel {
         if operations[name]?.isRunning == false { operations[name] = nil }
     }
 
+    /// Runs a limactl command for `name`, showing its progress. `keepBusy` leaves the operation
+    /// running (and skips the refresh) for a `completion` that has more to do and ends it.
     func run(_ kind: Operation.Kind, on name: String,
                      _ stream: AsyncThrowingStream<LogEntry, Error>,
+                     keepBusy: Bool = false,
                      completion: (@MainActor (Bool) -> Void)? = nil) {
         guard !isBusy(name) else { return }
         operations[name] = Operation(kind: kind)
@@ -526,6 +538,10 @@ final class AppModel {
             }
             monitor?.cancel()
             operations[name]?.download = nil
+            if keepBusy && ok {
+                completion?(ok)
+                return
+            }
             operations[name]?.isRunning = false
             // `limactl start` only returns after the instance reports READY.
             if ok && (kind == .start || kind == .restart) {

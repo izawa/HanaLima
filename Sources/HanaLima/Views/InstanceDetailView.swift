@@ -113,6 +113,11 @@ struct InstanceDetailView: View {
                 .help("起動")
                 .disabled(busy || instance == nil)
         }
+        Button { model.copyRequest = CopyRequest(source: name) } label: {
+            Label("複製", systemImage: "plus.square.on.square")
+        }
+        .help(model.copyBlocker(name) ?? String(localized: "この仮想マシンを複製"))
+        .disabled(model.copyBlocker(name) != nil)
         Button(role: .destructive) { confirmDelete = true } label: {
             Label("削除", systemImage: "trash")
         }

@@ -123,6 +123,22 @@
         }
       }
     },
+    "%@ の複製に失敗しました": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Copy %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ の複製に失敗しました"
+          }
+        }
+      }
+    },
     "%@ は %@ の中で、ゲートウェイ以外のアドレスにしてください。": {
       "localizations": {
         "en": {
@@ -311,6 +327,22 @@
           "stringUnit": {
             "state": "new",
             "value": "%1$@（ブリッジ %2$@）"
+          }
+        }
+      }
+    },
+    "%@（削除済み）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (deleted)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（削除済み）"
           }
         }
       }
@@ -2420,6 +2452,22 @@
         }
       }
     },
+    "「%@」を複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を複製"
+          }
+        }
+      }
+    },
     "「%@」自身の NIC で": {
       "localizations": {
         "en": {
@@ -2628,6 +2676,22 @@
         }
       }
     },
+    "この仮想マシンのコピー": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copies of This VM"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンのコピー"
+          }
+        }
+      }
+    },
     "この仮想マシンのディスクは「%@」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「%@」のディスクを書き換えるため、起動できません。": {
       "localizations": {
         "en": {
@@ -2640,6 +2704,22 @@
           "stringUnit": {
             "state": "new",
             "value": "この仮想マシンのディスクは「%1$@」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「%2$@」のディスクを書き換えるため、起動できません。"
+          }
+        }
+      }
+    },
+    "この仮想マシンの用途や状態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What this virtual machine is for, or its state"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンの用途や状態"
           }
         }
       }
@@ -2672,6 +2752,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この仮想マシンは、ログイン時に自動で起動する設定です。ログインの時点でドライブが接続されていないと、起動に失敗します。"
+          }
+        }
+      }
+    },
+    "この仮想マシンを複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy this virtual machine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンを複製"
           }
         }
       }
@@ -3236,6 +3332,22 @@
         }
       }
     },
+    "コピーで変わること": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What Changes in the Copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーで変わること"
+          }
+        }
+      }
+    },
     "コピーに失敗しました: %@": {
       "localizations": {
         "en": {
@@ -3248,6 +3360,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "コピーに失敗しました: %@"
+          }
+        }
+      }
+    },
+    "コピー元": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied From"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピー元"
           }
         }
       }
@@ -3652,6 +3780,22 @@
         }
       }
     },
+    "スナップショットもコピーに含まれます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots are copied too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショットもコピーに含まれます。"
+          }
+        }
+      }
+    },
     "スナップショット作成": {
       "localizations": {
         "en": {
@@ -3956,6 +4100,22 @@
         }
       }
     },
+    "ディスクのある外付けドライブを接続すると複製できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect the external drive with the disk to copy it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクのある外付けドライブを接続すると複製できます。"
+          }
+        }
+      }
+    },
     "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してから、もう一度起動してください。": {
       "localizations": {
         "en": {
@@ -4164,6 +4324,22 @@
         }
       }
     },
+    "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copies the whole virtual machine, disk included, and adds it to the sidebar as a new virtual machine. The original and the copy run independently."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。"
+          }
+        }
+      }
+    },
     "ディスクを戻せませんでした: %@": {
       "localizations": {
         "en": {
@@ -4304,6 +4480,38 @@
           "stringUnit": {
             "state": "new",
             "value": "ディスク（%1$@）を Mac の内蔵ディスクにコピーします。外付けドライブ上のディスクは「%2$@」のものなので残します。内蔵の空き: %3$@。"
+          }
+        }
+      }
+    },
+    "ディスク（今 %@）は APFS のクローンでコピーするので、すぐに終わり、最初は容量をほとんど使いません（どちらかが書き込んだ分だけ増えます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk (%@ now) is copied as an APFS clone, so it finishes at once and takes almost no space at first (it grows only as either one writes)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスク（今 %@）は APFS のクローンでコピーするので、すぐに終わり、最初は容量をほとんど使いません（どちらかが書き込んだ分だけ増えます）。"
+          }
+        }
+      }
+    },
+    "ディスク（今 %@）は、同じ外付けドライブ（%@）の上にコピーします。APFS のクローンなので、すぐに終わり、最初は容量をほとんど使いません（どちらかが書き込んだ分だけ増えます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk (%@ now) is copied on the same external drive (%@). It’s an APFS clone, so it finishes at once and takes almost no space at first (it grows only as either one writes)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "ディスク（今 %1$@）は、同じ外付けドライブ（%2$@）の上にコピーします。APFS のクローンなので、すぐに終わり、最初は容量をほとんど使いません（どちらかが書き込んだ分だけ増えます）。"
           }
         }
       }
@@ -5008,6 +5216,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "メモ"
+          }
+        }
+      }
+    },
+    "メモを保存できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Save the Note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモを保存できませんでした"
           }
         }
       }
@@ -5781,6 +6005,22 @@
         }
       }
     },
+    "作成元": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created From"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成元"
+          }
+        }
+      }
+    },
     "作成後すぐに起動": {
       "localizations": {
         "en": {
@@ -5889,6 +6129,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "使用量"
+          }
+        }
+      }
+    },
+    "例: 検証用のクリーンな状態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Clean state for testing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例: 検証用のクリーンな状態"
           }
         }
       }
@@ -6017,6 +6273,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "停止"
+          }
+        }
+      }
+    },
+    "停止すると複製できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop it to copy it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止すると複製できます。"
           }
         }
       }
@@ -6277,6 +6549,22 @@
         }
       }
     },
+    "処理中は複製できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It can’t be copied while a task is running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中は複製できません。"
+          }
+        }
+      }
+    },
     "切断": {
       "localizations": {
         "en": {
@@ -6485,6 +6773,22 @@
         }
       }
     },
+    "名前、ホスト名（lima-%@）、MAC アドレス、SSH の鍵は新しくなります。ディスクの中身（インストールしたソフトやファイル）はそのままです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name, host name (lima-%@), MAC addresses and SSH keys are new. What’s on the disk (installed software and files) stays the same."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前、ホスト名（lima-%@）、MAC アドレス、SSH の鍵は新しくなります。ディスクの中身（インストールしたソフトやファイル）はそのままです。"
+          }
+        }
+      }
+    },
     "名前は VM の設定から参照されるため変更できません。": {
       "localizations": {
         "en": {
@@ -6561,6 +6865,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "固定 IP: %@"
+          }
+        }
+      }
+    },
+    "固定 IP（DHCP の予約）とログイン時の自動起動は引き継ぎません。必要ならコピーに設定し直してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed IPs (DHCP reservations) and starting at login aren’t carried over. Set them up again on the copy if needed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定 IP（DHCP の予約）とログイン時の自動起動は引き継ぎません。必要ならコピーに設定し直してください。"
           }
         }
       }
@@ -7441,6 +7761,22 @@
         }
       }
     },
+    "由来とメモ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Origin and Note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由来とメモ"
+          }
+        }
+      }
+    },
     "画面": {
       "localizations": {
         "en": {
@@ -7837,6 +8173,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "表示している間は、ウィンドウを閉じても HanaLima はメニューバーで動き続けます。"
+          }
+        }
+      }
+    },
+    "複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製"
+          }
+        }
+      }
+    },
+    "複製…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製…"
+          }
+        }
+      }
+    },
+    "複製した仮想マシンは、コピー元と共有している部分も、それぞれの使用量に数えています（APFS のクローンの共有分は調べられないため）。実際の合計は、表示より少なくなります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each copied virtual machine is counted in full, including what it still shares with its original (the shared part of an APFS clone can’t be measured). The actual total is less than shown."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製した仮想マシンは、コピー元と共有している部分も、それぞれの使用量に数えています（APFS のクローンの共有分は調べられないため）。実際の合計は、表示より少なくなります。"
+          }
+        }
+      }
+    },
+    "複製中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copying"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製中"
+          }
+        }
+      }
+    },
+    "複製後すぐに起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start After Copying"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製後すぐに起動"
           }
         }
       }

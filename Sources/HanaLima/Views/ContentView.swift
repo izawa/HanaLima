@@ -72,6 +72,7 @@ struct ContentView: View {
         .sheet(isPresented: $showCreate) {
             CreateInstanceSheet()
         }
+        .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source) }
         // A request made before limactl was found waits until it is.
         .onChange(of: model.createRequested && model.client != nil, initial: true) { _, ready in
             guard ready else { return }
@@ -82,6 +83,10 @@ struct ContentView: View {
         .task {
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] == "1" { model.createRequested = true }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_SETTINGS"] == "1" { openSettings() }
+            if let source = DebugSnapshot.env["HANALIMA_SNAPSHOT_COPY"] {
+                try? await Task.sleep(for: .seconds(1))  // the list must be loaded
+                model.copyRequest = CopyRequest(source: source)
+            }
         }
         #endif
         .alert(item: $model.alert) { alert in

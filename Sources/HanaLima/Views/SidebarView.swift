@@ -127,6 +127,8 @@ struct InstanceActionsMenu: View {
         } else {
             Button("起動") { model.start(name) }.disabled(busy || instance == nil)
         }
+        Button("複製…") { model.copyRequest = CopyRequest(source: name) }
+            .disabled(model.copyBlocker(name) != nil)
         Divider()
         if let instance {
             Button("Finder で表示") {

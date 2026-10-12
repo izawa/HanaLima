@@ -165,6 +165,11 @@ public struct LimaClient: Sendable {
         logStream(options.arguments)
     }
 
+    /// `limactl clone` (the source must be stopped). See `InstanceCopy`.
+    public func clone(_ source: String, as name: String, set expressions: [String] = []) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["clone", "--tty=false"] + expressions.flatMap { ["--set", $0] } + [source, name])
+    }
+
     public func start(_ name: String) -> AsyncThrowingStream<LogEntry, Error> {
         logStream(["start", name])
     }

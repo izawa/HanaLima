@@ -87,10 +87,15 @@ struct StorageView: View {
                     Text(Formatting.bytes(report.limaTotal)).monospacedDigit()
                 }
             } footer: {
+                VStack(alignment: .leading, spacing: 4) {
                 Text(report.externalTotal > 0
                      ? "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。「外部」は、外付けドライブなどへ移したディスクで、Mac の空き容量は使いません。"
                      : "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。一時的な仮想マシンのディスクは、「設定」タブから外付けドライブなどへ移せます。")
-                    .font(.caption).foregroundStyle(.secondary)
+                if model.metadata.values.contains(where: { $0.parent != nil }) {
+                    Text("複製した仮想マシンは、コピー元と共有している部分も、それぞれの使用量に数えています（APFS のクローンの共有分は調べられないため）。実際の合計は、表示より少なくなります。")
+                }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
