@@ -25,8 +25,8 @@ public enum DiskPlacement: Equatable, Sendable {
 /// takes its place. Lima follows the link for start, edit (including resizing) and QEMU
 /// snapshots; `limactl delete` removes only the link (see docs/05).
 ///
-/// Copies use `rsync --sparse`: across volumes, `cp`, `ditto` and `mv` fill in the holes of the
-/// sparse image, so a 230 MB disk with a 10 GB size would take 10 GB.
+/// Copies keep the image sparse (see `copySparse`): across volumes, `cp`, `ditto` and `mv` fill
+/// in the holes, so a 230 MB disk with a 10 GB size would take 10 GB.
 public enum ExternalDisk {
     public static let folderName = "HanaLima Disks"
     static let markerName = "hanalima.json"
@@ -43,11 +43,16 @@ public enum ExternalDisk {
         return FileManager.default.fileExists(atPath: url.path) ? .external(url) : .missing(url)
     }
 
-    /// `<folder>/HanaLima Disks/<name>/disk`
+    /// `<folder>/HanaLima Disks/<name>/disk`, or `<folder>/<name>/disk` when the chosen folder is
+    /// already such a folder ("HanaLima Disks", "HanaLimaDisks", "hanalima-disks"…).
     public static func target(in folder: URL, name: String) -> URL {
-        folder.appending(path: folderName, directoryHint: .isDirectory)
-            .appending(path: name, directoryHint: .isDirectory)
-            .appending(path: "disk")
+        let base = isDisksFolder(folder) ? folder : folder.appending(path: folderName, directoryHint: .isDirectory)
+        return base.appending(path: name, directoryHint: .isDirectory).appending(path: "disk")
+    }
+
+    static func isDisksFolder(_ folder: URL) -> Bool {
+        let letters = folder.lastPathComponent.lowercased().filter { $0.isLetter }
+        return letters == "hanalimadisks"
     }
 
     // MARK: Checking a destination
@@ -142,7 +147,9 @@ public enum ExternalDisk {
                 throw Failure(message: String(localized: "ディスクをリンクに置き換えられませんでした: \(String(cString: strerror(errno)))"))
             }
         } catch {
-            if placement(instanceDir: instanceDir) == .local { try? fm.removeItem(at: folder) }
+            if placement(instanceDir: instanceDir) == .local, !removeExternalFolder(of: target) {
+                try? fm.removeItem(at: folder)
+            }
             throw error
         }
     }
@@ -172,16 +179,15 @@ public enum ExternalDisk {
     public static func removeExternalFolder(of disk: URL) -> Bool {
         let folder = disk.deletingLastPathComponent()
         guard FileManager.default.fileExists(atPath: folder.appending(path: markerName).path) else { return false }
-        return (try? FileManager.default.removeItem(at: folder)) != nil
-    }
-
-    /// rsync writes into `.<name>.XXXXXX` next to the destination; a stopped copy leaves it behind.
-    private static func removeRsyncTemporaries(of destination: URL) {
-        let folder = destination.deletingLastPathComponent()
-        let prefix = "." + destination.lastPathComponent + "."
-        for file in (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [] where file.hasPrefix(prefix) {
-            try? FileManager.default.removeItem(at: folder.appending(path: file))
+        guard (try? FileManager.default.removeItem(at: folder)) != nil else { return false }
+        // Tidy up the "HanaLima Disks" folder HanaLima made, once nothing is left in it.
+        let parent = folder.deletingLastPathComponent()
+        if isDisksFolder(parent),
+           let rest = try? FileManager.default.contentsOfDirectory(atPath: parent.path),
+           rest.allSatisfy({ $0 == ".DS_Store" }) {
+            try? FileManager.default.removeItem(at: parent)
         }
+        return true
     }
 
     private static func writeMarker(in folder: URL, name: String, instanceDir: URL) throws {
@@ -195,34 +201,72 @@ public enum ExternalDisk {
         try data.write(to: folder.appending(path: markerName))
     }
 
-    /// `rsync --sparse`, reporting progress from the space the copy has taken so far (rsync
-    /// writes a temporary file next to the destination, so the whole folder is measured).
+    /// Copies only the data extents (`copyfile` with `COPYFILE_DATA_SPARSE`, which walks the file
+    /// with SEEK_DATA/SEEK_HOLE), so the copy takes exactly the space the original does.
+    /// `rsync --sparse` checks whole blocks for zeros and wrote a VM disk back almost twice as
+    /// large; `cp`, `ditto` and `mv` across volumes fill every hole. Progress comes from the space
+    /// the copy has taken so far.
     static func copySparse(from source: URL, to destination: URL,
                            progress: @escaping @Sendable (Double) -> Void) async throws {
         let total = Double(max(1, StorageReport.allocatedSize(of: source)))
-        let folder = destination.deletingLastPathComponent()
-        let base = StorageReport.allocatedSize(of: folder)
         let monitor = Task.detached {
             while !Task.isCancelled {
-                progress(min(0.99, Double(StorageReport.allocatedSize(of: folder) - base) / total))
+                progress(min(0.99, Double(StorageReport.allocatedSize(of: destination)) / total))
                 try? await Task.sleep(for: .milliseconds(500))
             }
         }
         defer { monitor.cancel() }
-        let rsync = ProcessRunner(executableURL: URL(filePath: "/usr/bin/rsync"), environment: [:])
-        do {
-            _ = try await rsync.run(["--sparse", source.path, destination.path])
-        } catch {
-            try? FileManager.default.removeItem(at: destination)
-            removeRsyncTemporaries(of: destination)
-            if error is CancellationError || Task.isCancelled { throw CancellationError() }
-            throw Failure(message: String(localized: "コピーに失敗しました: \(error.localizedDescription)"))
+        let control = CopyControl()
+        let status: Int32 = await withTaskCancellationHandler {
+            await Task.detached { control.copy(source.path, destination.path) }.value
+        } onCancel: {
+            control.cancel()
         }
-        let size = { (url: URL) in (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? -1 }
+        if control.isCancelled || Task.isCancelled {
+            try? FileManager.default.removeItem(at: destination)
+            throw CancellationError()
+        }
+        guard status == 0 else {
+            let reason = String(cString: strerror(errno))
+            try? FileManager.default.removeItem(at: destination)
+            throw Failure(message: String(localized: "コピーに失敗しました: \(reason)"))
+        }
+        // stat, not URL resource values: those are cached per URL and would miss the truncate.
+        let size = { (url: URL) -> Int in
+            var info = stat()
+            return stat(url.path, &info) == 0 ? Int(info.st_size) : -1
+        }
+        // copyfile stops at the last data extent, so a trailing hole is missing: extend the copy
+        // to the original length (the extension is a hole and takes no space).
+        if size(destination) >= 0, size(destination) < size(source) {
+            _ = truncate(destination.path, off_t(size(source)))
+        }
         guard size(source) == size(destination) else {
             try? FileManager.default.removeItem(at: destination)
             throw Failure(message: String(localized: "コピーしたディスクのサイズが元と一致しません。"))
         }
         progress(1)
+    }
+}
+
+/// Lets a cancellation stop `copyfile` between chunks (its status callback answers QUIT).
+final class CopyControl: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    var isCancelled: Bool { lock.withLock { cancelled } }
+    func cancel() { lock.withLock { cancelled = true } }
+
+    func copy(_ source: String, _ destination: String) -> Int32 {
+        guard let state = copyfile_state_alloc() else { return -1 }
+        defer { copyfile_state_free(state) }
+        let callback: copyfile_callback_t = { _, _, _, _, _, context in
+            guard let context else { return COPYFILE_CONTINUE }
+            return Unmanaged<CopyControl>.fromOpaque(context).takeUnretainedValue().isCancelled
+                ? COPYFILE_QUIT : COPYFILE_CONTINUE
+        }
+        copyfile_state_set(state, UInt32(COPYFILE_STATE_STATUS_CB), unsafeBitCast(callback, to: UnsafeRawPointer.self))
+        copyfile_state_set(state, UInt32(COPYFILE_STATE_STATUS_CTX), Unmanaged.passUnretained(self).toOpaque())
+        return copyfile(source, destination, state, copyfile_flags_t(COPYFILE_DATA | COPYFILE_DATA_SPARSE))
     }
 }

@@ -69,3 +69,58 @@ import Testing
         #expect(check.target.path.hasSuffix("HanaLima Disks/vm1/disk"))
     }
 }
+
+@Suite struct ExternalDiskCopyTests {
+    private func temp() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "hanalima-copy-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// 4 KiB written every 1 MiB of a 512 MiB file: data scattered like a VM disk's. rsync --sparse
+    /// copied this to about twice its size; the copy must take what the original takes.
+    private func scatteredFile(_ url: URL) {
+        let fd = open(url.path, O_RDWR | O_CREAT | O_TRUNC, 0o644)
+        ftruncate(fd, 512 << 20)
+        var block = [UInt8](repeating: 7, count: 4096)
+        var offset = 0
+        while offset < 512 << 20 { _ = pwrite(fd, &block, 4096, off_t(offset)); offset += 1 << 20 }
+        close(fd)
+    }
+
+    @Test func copyTakesTheSameSpace() async throws {
+        let dir = try temp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let source = dir.appending(path: "src"), copy = dir.appending(path: "copy")
+        scatteredFile(source)
+        try await ExternalDisk.copySparse(from: source, to: copy) { _ in }
+        #expect(StorageReport.allocatedSize(of: copy) == StorageReport.allocatedSize(of: source))
+        #expect(FileManager.default.contentsEqual(atPath: source.path, andPath: copy.path))
+    }
+
+    @Test func cancelledCopyLeavesNothing() async throws {
+        let dir = try temp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let source = dir.appending(path: "src"), copy = dir.appending(path: "copy")
+        scatteredFile(source)
+        let task = Task { try await ExternalDisk.copySparse(from: source, to: copy) { _ in } }
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(!FileManager.default.fileExists(atPath: copy.path))
+    }
+
+    @Test func noSecondDisksFolderAndEmptyOneIsRemoved() async throws {
+        let dir = try temp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let chosen = dir.appending(path: "HanaLimaDisks")
+        #expect(ExternalDisk.target(in: chosen, name: "vm").path.hasSuffix("HanaLimaDisks/vm/disk"))
+        #expect(ExternalDisk.target(in: dir, name: "vm").path.hasSuffix("HanaLima Disks/vm/disk"))
+
+        // Removing the last VM's folder also removes the emptied "HanaLima Disks".
+        let target = ExternalDisk.target(in: dir, name: "vm")
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: target.deletingLastPathComponent().appending(path: "hanalima.json").path, contents: Data())
+        #expect(ExternalDisk.removeExternalFolder(of: target))
+        #expect(!FileManager.default.fileExists(atPath: dir.appending(path: "HanaLima Disks").path))
+    }
+}
