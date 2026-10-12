@@ -32,6 +32,7 @@ struct BridgeEndToEndTests {
         try agents.install(network)
 
         _ = try? await drain(client.delete(vm, force: true))
+        defer { E2ECleanup.deleteInstances([vm]) }
         _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz,
                                                         setExpressions: [#".networks = [{"socket":"\#(network.socketPath)"}]"#])))

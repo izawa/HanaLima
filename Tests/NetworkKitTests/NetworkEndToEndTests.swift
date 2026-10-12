@@ -37,7 +37,7 @@ struct NetworkEndToEndTests {
         #expect(FileManager.default.fileExists(atPath: network.socketPath))
 
         _ = try? await drain(client.delete(vm, force: true))
-        defer { Task { [client, vm] in _ = try? await drain(client.delete(vm, force: true)) } }
+        defer { E2ECleanup.deleteInstances([vm]) }
         let opts = CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1, diskGiB: 10, vmType: .vz)
         _ = try await drain(client.create(opts))
         _ = try await drain(client.edit(vm, set: [#".networks = [{"socket":"\#(network.socketPath)"}]"#]))
@@ -101,6 +101,7 @@ struct DHCPReservationEndToEndTests {
         try save(network)
 
         _ = try? await drain(client.delete(vm, force: true))
+        defer { E2ECleanup.deleteInstances([vm]) }
         _ = try await drain(client.create(CreateOptions(name: vm, template: Self.template, cpus: 2, memoryGiB: 2,
                                                         diskGiB: 10, vmType: .vz,
                                                         setExpressions: [#".networks = [{"socket":"\#(network.socketPath)"}]"#])))

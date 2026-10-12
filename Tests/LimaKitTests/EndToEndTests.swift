@@ -11,6 +11,7 @@ struct EndToEndTests {
         let client = LimaClient(limactlURL: try #require(LimaClient.locate()))
         let name = "hanalima-e2e"
         _ = try? await drain(client.delete(name, force: true))
+        defer { E2ECleanup.deleteInstances([name]) }
 
         // Collect watch events in the background.
         let collected = EventBox()
@@ -72,6 +73,7 @@ struct EditEndToEndTests {
     @Test(.timeLimit(.minutes(10)))
     func editAndAttachDisk() async throws {
         _ = try? await drain(client.delete(name, force: true))
+        defer { E2ECleanup.deleteInstances([name]) }
         _ = try? await drain(client.deleteDisk(diskName))
         _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1,
                                                         memoryGiB: 1, diskGiB: 10, vmType: .vz)))
@@ -153,10 +155,7 @@ struct AutostartEndToEndTests {
         _ = try? await drain(client.delete(name, force: true))
         _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz)))
-        defer { Task { [client, name] in
-            try? await client.setAutostart(name, enabled: false)
-            _ = try? await drain(client.delete(name, force: true))
-        } }
+        defer { E2ECleanup.deleteInstances([name], disableAutostart: true) }
         #expect(!client.isAutostartEnabled(name))
 
         try await client.setAutostart(name, enabled: true)
@@ -188,9 +187,9 @@ struct SnapshotEndToEndTests {
     @Test(.timeLimit(.minutes(15)))
     func createRestoreDelete() async throws {
         _ = try? await drain(client.delete(name, force: true))
+        defer { E2ECleanup.deleteInstances([name]) }
         _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .qemu)))
-        defer { Task { [client, name] in _ = try? await drain(client.delete(name, force: true)) } }
         _ = try await drain(client.start(name))
         _ = try await client.runner.run(["shell", name, "sh", "-c", "echo before > $HOME/marker; sync"])
         _ = try await drain(client.stop(name))
@@ -232,9 +231,9 @@ struct ProvisionEndToEndTests {
     @Test(.timeLimit(.minutes(10)))
     func scriptAndDataTakeEffect() async throws {
         _ = try? await drain(client.delete(name, force: true))
+        defer { E2ECleanup.deleteInstances([name]) }
         _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz)))
-        defer { Task { [client, name] in _ = try? await drain(client.delete(name, force: true)) } }
 
         let inst = try #require(try await client.list().first { $0.name == name })
         let original = try client.config(of: inst)

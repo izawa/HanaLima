@@ -13,7 +13,7 @@ struct CopyEndToEndTests {
     @Test(.timeLimit(.minutes(15)))
     func copyBootsWithTheSameDataAndNewIdentity() async throws {
         for name in [vm, copy] { _ = try? await drain(client.delete(name, force: true)) }
-        defer { Task { [client, vm, copy] in for name in [vm, copy] { _ = try? await drain(client.delete(name, force: true)) } } }
+        defer { E2ECleanup.deleteInstances([vm, copy]) }
 
         // A hand-set MAC on the second NIC must not be copied.
         let mac = "52:55:55:e2:e0:01"

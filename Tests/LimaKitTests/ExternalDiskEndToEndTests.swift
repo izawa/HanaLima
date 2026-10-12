@@ -25,7 +25,7 @@ struct ExternalDiskEndToEndTests {
         _ = try? await drain(client.delete(vm, force: true))
         let copy = "\(vm)-copy"
         _ = try? await drain(client.delete(copy, force: true))
-        defer { Task { [client, vm] in _ = try? await drain(client.delete(vm, force: true)); _ = try? await drain(client.delete(copy, force: true)) } }
+        defer { E2ECleanup.deleteInstances([vm, copy]) }
 
         _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz)))

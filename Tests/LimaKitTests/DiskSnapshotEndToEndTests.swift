@@ -13,12 +13,19 @@ struct DiskSnapshotEndToEndTests {
     @Test(.timeLimit(.minutes(20)))
     func snapshotRestoreAndCopy() async throws {
         for name in [vm, copy] { _ = try? await drain(client.delete(name, force: true)) }
+        defer { E2ECleanup.deleteInstances([vm, copy]) }
         _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz, mountNone: true)))
         _ = try await drain(client.start(vm))
         try await setMarker(vm, "before")
         _ = try await drain(client.stop(vm))
         let dir = URL(filePath: try #require(try await client.list().first { $0.name == vm }).dir, directoryHint: .isDirectory)
+        defer {
+            // HanaLima's snapshots live outside the VM folder; limactl delete leaves them.
+            let id = InstanceMetadata.load(instanceDir: dir)?.id
+            E2ECleanup.deleteInstances([vm, copy])
+            if let id { DiskSnapshot.removeLocalSnapshots(limaHome: dir.deletingLastPathComponent(), id: id) }
+        }
 
         let started = Date.now
         let snap = try DiskSnapshot.create(instanceDir: dir, name: "before")
@@ -52,7 +59,7 @@ struct DiskSnapshotEndToEndTests {
         let id = try #require(InstanceMetadata.load(instanceDir: dir)?.id)
         for name in [vm, copy] { _ = try await drain(client.delete(name, force: true)) }
         DiskSnapshot.removeLocalSnapshots(limaHome: dir.deletingLastPathComponent(), id: id)
-        #expect(!FileManager.default.fileExists(atPath: dir.deletingLastPathComponent().appending(path: "_hanalima-snapshots").path))
+        #expect(!FileManager.default.fileExists(atPath: DiskSnapshot.localFolder(limaHome: dir.deletingLastPathComponent(), id: id).path))
     }
 
     private func setMarker(_ name: String, _ text: String) async throws {

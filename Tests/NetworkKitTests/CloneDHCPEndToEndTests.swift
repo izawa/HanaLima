@@ -33,6 +33,7 @@ struct CloneDHCPEndToEndTests {
         }
 
         for name in [vm, copy] { _ = try? await drain(client.delete(name, force: true)) }
+        defer { E2ECleanup.deleteInstances([vm, copy]) }
         _ = try await drain(client.create(CreateOptions(name: vm, template: Self.template, cpus: 2, memoryGiB: 2,
                                                         diskGiB: 10, vmType: .vz, mountNone: true,
                                                         setExpressions: [#".networks = [{"socket":"\#(network.socketPath)"}]"#])))
