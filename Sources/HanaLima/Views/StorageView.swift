@@ -62,8 +62,15 @@ struct StorageView: View {
                 ForEach(rows(report)) { row in
                     LabeledContent {
                         HStack(spacing: 8) {
-                            Text(Formatting.bytes(row.size)).monospacedDigit()
-                            RevealIcon(url: row.url)
+                            if let external = row.externalDisk {
+                                Text("\(Formatting.bytes(row.size)) ＋ 外部 \(Formatting.bytes(row.externalSize))")
+                                    .monospacedDigit()
+                                    .help(external.path)
+                                RevealIcon(url: external)
+                            } else {
+                                Text(Formatting.bytes(row.size)).monospacedDigit()
+                                RevealIcon(url: row.url)
+                            }
                         }
                     } label: {
                         if let instance = row.instance {
@@ -80,7 +87,9 @@ struct StorageView: View {
                     Text(Formatting.bytes(report.limaTotal)).monospacedDigit()
                 }
             } footer: {
-                Text("仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。保存先は Lima の LIMA_HOME で決まります。")
+                Text(report.externalTotal > 0
+                     ? "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。「外部」は、外付けドライブなどへ移したディスクで、Mac の空き容量は使いません。"
+                     : "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。一時的な仮想マシンのディスクは、「設定」タブから外付けドライブなどへ移せます。")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -137,6 +146,8 @@ struct StorageView: View {
         var instance: String?
         var url: URL
         var size: Int64
+        var externalDisk: URL? = nil
+        var externalSize: Int64 = 0
     }
 
     /// Instances by name, `_disks` as additional disks, and Lima's small `_config`/`_networks` as one row.
@@ -149,7 +160,8 @@ struct StorageView: View {
             } else if item.name.hasPrefix("_") {
                 other += item.size
             } else {
-                rows.append(Row(title: item.name, instance: item.name, url: item.url, size: item.size))
+                rows.append(Row(title: item.name, instance: item.name, url: item.url, size: item.size,
+                                externalDisk: item.externalDisk, externalSize: item.externalSize))
             }
         }
         rows.append(Row(title: String(localized: "Lima の設定など"), url: report.limaHome.appending(path: "_config"), size: other))

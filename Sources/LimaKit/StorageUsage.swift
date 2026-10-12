@@ -38,7 +38,21 @@ public struct StorageReport: Sendable {
         /// Instance name, or `_disks` and the like for Lima's own directories.
         public var name: String
         public var url: URL
+        /// Space used under `LIMA_HOME` (a disk moved elsewhere counts only as its link).
         public var size: Int64
+        /// The disk image, when it was moved to another volume (see `ExternalDisk`).
+        public var externalDisk: URL?
+        public var externalSize: Int64 = 0
+
+        public init(name: String, url: URL, size: Int64, externalDisk: URL? = nil, externalSize: Int64 = 0) {
+            self.name = name
+            self.url = url
+            self.size = size
+            self.externalDisk = externalDisk
+            self.externalSize = externalSize
+        }
+
+        public var totalSize: Int64 { size + externalSize }
     }
 
     /// `LIMA_HOME` (`~/.lima` unless overridden).
@@ -48,7 +62,10 @@ public struct StorageReport: Sendable {
     public var cacheRoot: URL
     public var downloads: [CachedDownload]
 
+    /// Under `LIMA_HOME`, i.e. on this Mac's disk.
     public var limaTotal: Int64 { limaItems.reduce(0) { $0 + $1.size } }
+    /// Disks moved to other volumes.
+    public var externalTotal: Int64 { limaItems.reduce(0) { $0 + $1.externalSize } }
     public var cacheTotal: Int64 { downloads.reduce(0) { $0 + $1.size } }
 
     public var unusedDownloads: [CachedDownload] { downloads.filter { $0.usage == .unused } }
@@ -62,8 +79,15 @@ public struct StorageReport: Sendable {
                                                     options: [.skipsHiddenFiles])) ?? []
         let items = children
             .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
-            .map { Item(name: $0.lastPathComponent, url: $0, size: allocatedSize(of: $0)) }
-            .sorted { $0.size > $1.size }
+            .map { dir -> Item in
+                var item = Item(name: dir.lastPathComponent, url: dir, size: allocatedSize(of: dir))
+                if !item.name.hasPrefix("_"), let external = ExternalDisk.placement(instanceDir: dir).externalURL {
+                    item.externalDisk = external
+                    item.externalSize = allocatedSize(of: external)  // 0 while the drive is away
+                }
+                return item
+            }
+            .sorted { $0.totalSize > $1.totalSize }
         let instanceConfigs: [String: String] = Dictionary(uniqueKeysWithValues: items
             .filter { !$0.name.hasPrefix("_") }
             .compactMap { item in
@@ -119,6 +143,8 @@ public struct StorageReport: Sendable {
             guard let values = try? file.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { return 0 }
             return Int64(values.totalFileAllocatedSize ?? 0)
         }
+        // A single file (a disk image): an enumerator over it would yield nothing.
+        if (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true { return size(url) }
         guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys) else {
             return size(url)
         }

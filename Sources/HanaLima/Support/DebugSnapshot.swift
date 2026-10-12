@@ -11,7 +11,9 @@ import LimaKit
 /// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|<instance>` (sidebar selection),
 /// `HANALIMA_SNAPSHOT_ABOUT=1` (open the About panel),
 /// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it),
-/// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it).
+/// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it),
+/// `HANALIMA_SNAPSHOT_MOVEDISK=<folder>` (open the move-disk sheet with that destination; use
+/// with `_SELECT=<instance>` and `_TAB=設定`).
 @MainActor
 enum DebugSnapshot {
     static var env: [String: String] { ProcessInfo.processInfo.environment }

@@ -40,7 +40,7 @@ struct InstanceDetailView: View {
             if let op = model.operations[name], op.isRunning || op.error != nil {
                 OperationBanner(name: name, operation: op)
             } else if let instance {
-                NetworkChangeBanner(instance: instance)
+                InstanceNoticeBanner(instance: instance)
             }
             Group {
                 if let instance {
@@ -83,7 +83,14 @@ struct InstanceDetailView: View {
                 model.delete(name, force: instance?.isRunning == true)
             }
         } message: {
-            Text("仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。")
+            switch instance.map({ model.diskPlacement(of: $0) }) ?? .local {
+            case .local:
+                Text("仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。")
+            case .external(let url):
+                Text("仮想マシンのディスクを含むすべてのデータが削除されます。外部の保存先 \(url.deletingLastPathComponent().path) にあるディスクも削除します。この操作は取り消せません。")
+            case .missing(let url):
+                Text("仮想マシンの設定などが削除されます。外付けドライブが接続されていないため、\(url.deletingLastPathComponent().path) にあるディスクは残ります（あとで手作業で削除してください）。この操作は取り消せません。")
+            }
         }
     }
 
@@ -130,6 +137,12 @@ private struct OperationBanner: View {
                     .fontWeight(.medium)
                 if let dl = operation.download {
                     DownloadProgressView(progress: dl)
+                } else if let fraction = operation.fraction {
+                    ProgressView(value: fraction).frame(width: 180)
+                    Text(verbatim: "\(Int(fraction * 100))%").monospacedDigit().fontWeight(.medium)
+                    Spacer(minLength: 8)
+                    Button("中止") { model.cancelDiskMove(name) }
+                        .help("移動を中止します。元のディスクはそのまま残ります。")
                 } else {
                     Text(operation.log.last?.displayText ?? "")
                         .foregroundStyle(.secondary)
@@ -155,15 +168,20 @@ private struct OperationBanner: View {
     }
 }
 
-/// After a HanaLima network was changed or deleted: what the VM needs, with the one-click fix.
-private struct NetworkChangeBanner: View {
+/// What the VM needs now (a missing disk drive, a changed or deleted network), with the fix.
+private struct InstanceNoticeBanner: View {
     @Environment(AppModel.self) private var model
     let instance: LimaInstance
 
     var body: some View {
         let deleted = model.deletedNetworkSockets(of: instance).map(AppModel.networkName(ofSocket:))
         let changed = (model.restartNeeded[instance.name] ?? []).subtracting(deleted).sorted()
-        if !deleted.isEmpty {
+        if case .missing(let url) = model.diskPlacement(of: instance) {
+            banner(icon: "externaldrive.badge.xmark", color: .red,
+                   text: String(localized: "ディスクの保存先 \(url.deletingLastPathComponent().path) が見つかりません。外付けドライブを接続してください。")) {
+                EmptyView()
+            }
+        } else if !deleted.isEmpty {
             banner(icon: "exclamationmark.triangle.fill", color: .red,
                    text: String(localized: "NIC が、削除したネットワーク \(quoted(deleted)) を指しています。このままでは起動できません。")) {
                 Button(instance.isRunning ? "NIC を外して再起動" : "NIC を外す") {

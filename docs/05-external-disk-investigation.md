@@ -78,7 +78,7 @@ rsync --sparse ~/.lima/ubuntu-test/disk /Volumes/HDD/lima-disks/ubuntu-test/disk
 
 VM を削除したあとは、`/Volumes/HDD/lima-disks/ubuntu-test` を手で削除する。
 
-## 8. HanaLima の機能にする場合の案（未着手）
+## 8. HanaLima の機能にする場合の案（2026-10-12 に実装済み。設計は [04](04-design.md)）
 
 - VM の設定に「ディスクの場所」を設け、「別の場所へ移す…」で移動先を選ぶ（停止の確認 → `rsync --sparse` → リンクの作成）。
 - VM を削除するとき、外に置いたディスクも削除する（`limactl delete` はリンクしか消さないため）。

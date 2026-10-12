@@ -155,6 +155,38 @@
         }
       }
     },
+    "%@ を手作業で削除してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete %@ manually."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を手作業で削除してください。"
+          }
+        }
+      }
+    },
+    "%@ ＋ 外部 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ + %2$@ external"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ ＋ 外部 %2$@"
+          }
+        }
+      }
+    },
     "%@/秒": {
       "localizations": {
         "en": {
@@ -295,6 +327,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@（固定）"
+          }
+        }
+      }
+    },
+    "%@（外部: %@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (external: %2$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@（外部: %2$@）"
+          }
+        }
+      }
+    },
+    "%@（外部・見つかりません）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (external, not found)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（外部・見つかりません）"
           }
         }
       }
@@ -1139,6 +1203,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "MAC: %@"
+          }
+        }
+      }
+    },
+    "Mac の内蔵ディスクと同じディスクです。移しても空き容量は増えません。外付けドライブなど、別のディスクを選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is the same disk as the Mac's internal disk, so moving frees no space. Choose another disk, such as an external drive."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac の内蔵ディスクと同じディスクです。移しても空き容量は増えません。外付けドライブなど、別のディスクを選んでください。"
           }
         }
       }
@@ -2084,6 +2164,38 @@
         }
       }
     },
+    "「%@」のディスクが見つかりません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Disk of “%@” Can't Be Found"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」のディスクが見つかりません"
+          }
+        }
+      }
+    },
+    "「%@」のディスクを移動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move the Disk of “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」のディスクを移動"
+          }
+        }
+      }
+    },
     "「%@」の実行中はサイズを変更できません。": {
       "localizations": {
         "en": {
@@ -2164,6 +2276,22 @@
         }
       }
     },
+    "「%@」は %@ です。APFS でないと、ディスクが名目のサイズ（%@）を丸ごと使ってしまいます。APFS でフォーマットしたドライブを選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” is %2$@. Off APFS, the disk would take its full size (%3$@). Choose a drive formatted as APFS."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」は %2$@ です。APFS でないと、ディスクが名目のサイズ（%3$@）を丸ごと使ってしまいます。APFS でフォーマットしたドライブを選んでください。"
+          }
+        }
+      }
+    },
     "「%@」は既に存在します。": {
       "localizations": {
         "en": {
@@ -2224,6 +2352,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」自身の NIC で"
+          }
+        }
+      }
+    },
+    "「%@」（%@）・空き %@。保存先: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” (%2$@), %3$@ free. Saved in: %4$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」（%2$@）・空き %3$@。保存先: %4$@"
+          }
+        }
+      }
+    },
+    "あとから「この Mac に戻す」で、いつでも内蔵ディスクに戻せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can bring it back to the internal disk anytime with Move Back to This Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あとから「この Mac に戻す」で、いつでも内蔵ディスクに戻せます。"
+          }
+        }
+      }
+    },
+    "この Mac": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Mac"
+          }
+        }
+      }
+    },
+    "この Mac に戻す…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Back to This Mac…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Mac に戻す…"
+          }
+        }
+      }
+    },
+    "この Mac（内蔵ディスク）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac (internal disk)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Mac（内蔵ディスク）"
           }
         }
       }
@@ -2324,6 +2532,38 @@
         }
       }
     },
+    "この仮想マシンは、ログイン時に自動で起動する設定です。ログインの時点でドライブが接続されていないと、起動に失敗します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This virtual machine starts at login. If the drive isn't connected when you log in, it fails to start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンは、ログイン時に自動で起動する設定です。ログインの時点でドライブが接続されていないと、起動に失敗します。"
+          }
+        }
+      }
+    },
+    "この場所には書き込めません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This location isn't writable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この場所には書き込めません。"
+          }
+        }
+      }
+    },
     "この操作は取り消せません。": {
       "localizations": {
         "en": {
@@ -2400,6 +2640,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "すべて削除…"
+          }
+        }
+      }
+    },
+    "そのドライブを外しているあいだは、この仮想マシンは起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While that drive is disconnected, this virtual machine can't start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのドライブを外しているあいだは、この仮想マシンは起動できません。"
           }
         }
       }
@@ -2832,6 +3088,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "コピー"
+          }
+        }
+      }
+    },
+    "コピーしたディスクのサイズが元と一致しません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The copied disk's size doesn't match the original."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしたディスクのサイズが元と一致しません。"
+          }
+        }
+      }
+    },
+    "コピーに失敗しました: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy failed: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーに失敗しました: %@"
           }
         }
       }
@@ -3508,6 +3796,102 @@
         }
       }
     },
+    "ディスクが見つからない": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disk Not Found"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクが見つからない"
+          }
+        }
+      }
+    },
+    "ディスクのあるドライブが接続されていません。接続すると、そのまま使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The drive holding the disk isn't connected. Connect it to use this virtual machine again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクのあるドライブが接続されていません。接続すると、そのまま使えます。"
+          }
+        }
+      }
+    },
+    "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してから、もう一度起動してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk's location %@ can't be found. Connect the external drive, then start again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してから、もう一度起動してください。"
+          }
+        }
+      }
+    },
+    "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk's location %@ can't be found. Connect the external drive."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してください。"
+          }
+        }
+      }
+    },
+    "ディスクの保存場所": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disk Location"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの保存場所"
+          }
+        }
+      }
+    },
+    "ディスクの移動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Disk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの移動"
+          }
+        }
+      }
+    },
     "ディスクはスパースファイルなので、実際に使用した分だけホストの容量を消費します。": {
       "localizations": {
         "en": {
@@ -3520,6 +3904,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスクはスパースファイルなので、実際に使用した分だけホストの容量を消費します。"
+          }
+        }
+      }
+    },
+    "ディスクは外付けドライブなどにあります。そのドライブを外しているあいだは起動できません。仮想マシンを削除すると、このディスクも削除します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk is on another drive. While that drive is disconnected, this virtual machine can't start. Deleting the virtual machine deletes this disk too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクは外付けドライブなどにあります。そのドライブを外しているあいだは起動できません。仮想マシンを削除すると、このディスクも削除します。"
           }
         }
       }
@@ -3540,6 +3940,86 @@
         }
       }
     },
+    "ディスクをこの Mac に戻しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move the disk back to this Mac?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクをこの Mac に戻しますか？"
+          }
+        }
+      }
+    },
+    "ディスクをリンクに置き換えられませんでした: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't replace the disk with a link: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクをリンクに置き換えられませんでした: %@"
+          }
+        }
+      }
+    },
+    "ディスクを内蔵に戻しています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moving the disk back"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを内蔵に戻しています"
+          }
+        }
+      }
+    },
+    "ディスクを内蔵に戻す処理": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Disk Back"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを内蔵に戻す処理"
+          }
+        }
+      }
+    },
+    "ディスクを戻せませんでした: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't move the disk back: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを戻せませんでした: %@"
+          }
+        }
+      }
+    },
     "ディスクを接続": {
       "localizations": {
         "en": {
@@ -3556,6 +4036,38 @@
         }
       }
     },
+    "ディスクを移動中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moving the disk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを移動中"
+          }
+        }
+      }
+    },
+    "ディスクを置く場所（外付けドライブなど）を選んでください。中に「%@」フォルダを作ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where to keep the disk, such as an external drive. A “%@” folder is created there."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを置く場所（外付けドライブなど）を選んでください。中に「%@」フォルダを作ります。"
+          }
+        }
+      }
+    },
     "ディスク上のデータはすべて失われます。この操作は取り消せません。": {
       "localizations": {
         "en": {
@@ -3568,6 +4080,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスク上のデータはすべて失われます。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "ディスク（%@）を Mac の内蔵ディスクにコピーし、終わったら外付けドライブ上のディスクを削除します。内蔵の空き: %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk (%1$@) is copied to the Mac's internal disk, then the copy on the other drive is deleted. Free on the internal disk: %2$@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "ディスク（%1$@）を Mac の内蔵ディスクにコピーし、終わったら外付けドライブ上のディスクを削除します。内蔵の空き: %2$@。"
           }
         }
       }
@@ -3600,6 +4128,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "デバッグ"
+          }
+        }
+      }
+    },
+    "ドライブが接続されていなかったため、%@ は削除していません。ドライブを接続して、手作業で削除してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The drive wasn't connected, so %@ wasn't deleted. Connect the drive and delete it manually."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドライブが接続されていなかったため、%@ は削除していません。ドライブを接続して、手作業で削除してください。"
           }
         }
       }
@@ -4404,6 +4948,38 @@
         }
       }
     },
+    "一時的に使う仮想マシンなら、ディスクを外付けドライブに置いて Mac の空き容量を節約できます。あとから「設定」タブで移すこともできます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For a temporary virtual machine, keep the disk on an external drive to save space on your Mac. You can also move it later in the Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時的に使う仮想マシンなら、ディスクを外付けドライブに置いて Mac の空き容量を節約できます。あとから「設定」タブで移すこともできます。"
+          }
+        }
+      }
+    },
+    "一時的に使う仮想マシンなら、ディスク（いちばん大きなファイル）を外付けドライブに置いて、Mac の空き容量を節約できます。移動したあとも、これまでどおり起動・編集できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For a temporary virtual machine, keep its disk (the largest file) on an external drive to save space on your Mac. It still starts and can be edited as before."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時的に使う仮想マシンなら、ディスク（いちばん大きなファイル）を外付けドライブに置いて、Mac の空き容量を節約できます。移動したあとも、これまでどおり起動・編集できます。"
+          }
+        }
+      }
+    },
     "一般ユーザー（Mac と同じユーザー名）で実行されるスクリプトです。": {
       "localizations": {
         "en": {
@@ -4580,7 +5156,40 @@
         }
       }
     },
+    "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。「外部」は、外付けドライブなどへ移したディスクで、Mac の空き容量は使いません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual machine disks are sparse files, so the sizes shown are the space actually used. “External” disks were moved to another drive and use no space on this Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。「外部」は、外付けドライブなどへ移したディスクで、Mac の空き容量は使いません。"
+          }
+        }
+      }
+    },
+    "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。一時的な仮想マシンのディスクは、「設定」タブから外付けドライブなどへ移せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual machine disks are sparse files, so the sizes shown are the space actually used. Disks of temporary virtual machines can be moved to an external drive in the Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。一時的な仮想マシンのディスクは、「設定」タブから外付けドライブなどへ移せます。"
+          }
+        }
+      }
+    },
     "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。保存先は Lima の LIMA_HOME で決まります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4608,6 +5217,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "仮想マシンのディスクを含むすべてのデータが削除されます。外部の保存先 %@ にあるディスクも削除します。この操作は取り消せません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All data, including the virtual machine's disk, will be deleted. The disk at %@ is deleted too. This can't be undone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのディスクを含むすべてのデータが削除されます。外部の保存先 %@ にあるディスクも削除します。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "仮想マシンのディスク（いちばん大きなファイル、今 %@）だけを、選んだ場所へ移します。設定やログは ~/.lima に残り、移したあとも、これまでどおり起動・編集できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the virtual machine's disk (its largest file, now %@) moves to the place you choose. Settings and logs stay in ~/.lima, and it still starts and can be edited as before."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのディスク（いちばん大きなファイル、今 %@）だけを、選んだ場所へ移します。設定やログは ~/.lima に残り、移したあとも、これまでどおり起動・編集できます。"
           }
         }
       }
@@ -4660,6 +5301,22 @@
         }
       }
     },
+    "仮想マシンの設定などが削除されます。外付けドライブが接続されていないため、%@ にあるディスクは残ります（あとで手作業で削除してください）。この操作は取り消せません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine's settings and other files will be deleted. The external drive isn't connected, so the disk at %@ stays (delete it manually later). This can't be undone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの設定などが削除されます。外付けドライブが接続されていないため、%@ にあるディスクは残ります（あとで手作業で削除してください）。この操作は取り消せません。"
+          }
+        }
+      }
+    },
     "仮想マシンはありません": {
       "localizations": {
         "en": {
@@ -4704,6 +5361,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンは停止しています"
+          }
+        }
+      }
+    },
+    "仮想マシンを停止すると移動できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop the virtual machine to move its disk."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンを停止すると移動できます。"
+          }
+        }
+      }
+    },
+    "仮想マシンを削除すると、移動先のディスクも一緒に削除します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting the virtual machine deletes the moved disk too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンを削除すると、移動先のディスクも一緒に削除します。"
           }
         }
       }
@@ -4784,6 +5473,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "作成…"
+          }
+        }
+      }
+    },
+    "作成したあと、最初の起動の前にディスクを移します（作成の途中は、いったん Mac の中に作ります）。ドライブを外しているあいだは起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk moves there after creation, before the first start (it's created on this Mac first). While the drive is disconnected, the virtual machine can't start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成したあと、最初の起動の前にディスクを移します（作成の途中は、いったん Mac の中に作ります）。ドライブを外しているあいだは起動できません。"
           }
         }
       }
@@ -5012,6 +5717,22 @@
         }
       }
     },
+    "保存場所": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存場所"
+          }
+        }
+      }
+    },
     "保護": {
       "localizations": {
         "en": {
@@ -5152,6 +5873,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "内容"
+          }
+        }
+      }
+    },
+    "内蔵ディスクの空きが足りません（必要 %@、空き %@）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough space on the internal disk (%1$@ needed, %2$@ free)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "内蔵ディスクの空きが足りません（必要 %1$@、空き %2$@）。"
           }
         }
       }
@@ -5636,6 +6373,86 @@
         }
       }
     },
+    "外付けドライブなど": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another Drive"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外付けドライブなど"
+          }
+        }
+      }
+    },
+    "外付けドライブなどへ移動…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Another Drive…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外付けドライブなどへ移動…"
+          }
+        }
+      }
+    },
+    "外部のディスクが見つかりません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The external disk can't be found."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部のディスクが見つかりません。"
+          }
+        }
+      }
+    },
+    "外部のディスクは残っています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The External Disk Was Kept"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部のディスクは残っています"
+          }
+        }
+      }
+    },
+    "外部のディスクを削除できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Delete the External Disk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部のディスクを削除できませんでした"
+          }
+        }
+      }
+    },
     "完了": {
       "localizations": {
         "en": {
@@ -5824,6 +6641,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "復元…"
+          }
+        }
+      }
+    },
+    "戻す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Back"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻す"
           }
         }
       }
@@ -6208,6 +7041,22 @@
         }
       }
     },
+    "未選択": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not chosen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未選択"
+          }
+        }
+      }
+    },
     "検索": {
       "localizations": {
         "en": {
@@ -6416,6 +7265,102 @@
         }
       }
     },
+    "移す前に": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before You Move"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移す前に"
+          }
+        }
+      }
+    },
+    "移動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動"
+          }
+        }
+      }
+    },
+    "移動できるディスクがありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no disk to move."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動できるディスクがありません。"
+          }
+        }
+      }
+    },
+    "移動を中止します。元のディスクはそのまま残ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops the move. The original disk stays as it is."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動を中止します。元のディスクはそのまま残ります。"
+          }
+        }
+      }
+    },
+    "移動先": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Destination"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動先"
+          }
+        }
+      }
+    },
+    "移動先に「%@」が既にあります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” already exists at the destination."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動先に「%@」が既にあります。"
+          }
+        }
+      }
+    },
     "種類": {
       "localizations": {
         "en": {
@@ -6460,6 +7405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "稼働中（%lld 台接続）"
+          }
+        }
+      }
+    },
+    "空き容量が足りません（必要 %@、空き %@）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough free space (%1$@ needed, %2$@ free)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "空き容量が足りません（必要 %1$@、空き %2$@）。"
           }
         }
       }
@@ -6636,6 +7597,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "見つかりません"
+          }
+        }
+      }
+    },
+    "見つかりません（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not found (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見つかりません（%@）"
           }
         }
       }
@@ -7036,6 +8013,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "追加ディスクを作成して、仮想マシンの「設定」から接続できます。"
+          }
+        }
+      }
+    },
+    "選んだ場所に「%@/…」の同じ名前のフォルダが既にあります。別の場所を選ぶか、そのフォルダを片付けてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A “%@/…” folder with this name already exists there. Choose another place or clean up that folder."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ場所に「%@/…」の同じ名前のフォルダが既にあります。別の場所を選ぶか、そのフォルダを片付けてください。"
           }
         }
       }

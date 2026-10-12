@@ -98,7 +98,9 @@ private struct SidebarRow: View {
         }
         guard let instance else { return String(localized: "作成中…") }
         var parts = [instance.status.label]
-        if !model.deletedNetworkSockets(of: instance).isEmpty {
+        if case .missing = model.diskPlacement(of: instance) {
+            parts.append(String(localized: "ディスクが見つからない"))
+        } else if !model.deletedNetworkSockets(of: instance).isEmpty {
             parts.append(String(localized: "NIC の接続先なし"))
         } else if instance.isRunning, !(model.restartNeeded[name] ?? []).isEmpty {
             parts.append(String(localized: "再起動が必要"))

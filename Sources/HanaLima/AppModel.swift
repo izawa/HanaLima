@@ -8,6 +8,7 @@ struct Operation: Sendable {
     enum Kind: String, Sendable {
         case create, start, stop, restart, delete, edit
         case snapshotCreate, snapshotApply, snapshotDelete
+        case moveDisk, moveDiskBack
 
         var label: String {
             switch self {
@@ -20,6 +21,8 @@ struct Operation: Sendable {
             case .snapshotCreate: String(localized: "スナップショット作成")
             case .snapshotApply: String(localized: "スナップショットの復元")
             case .snapshotDelete: String(localized: "スナップショット削除")
+            case .moveDisk: String(localized: "ディスクの移動")
+            case .moveDiskBack: String(localized: "ディスクを内蔵に戻す処理")
             }
         }
 
@@ -36,6 +39,8 @@ struct Operation: Sendable {
             case .snapshotCreate: String(localized: "スナップショット作成中")
             case .snapshotApply: String(localized: "スナップショットの復元中")
             case .snapshotDelete: String(localized: "スナップショット削除中")
+            case .moveDisk: String(localized: "ディスクを移動中")
+            case .moveDiskBack: String(localized: "ディスクを内蔵に戻しています")
             }
         }
     }
@@ -46,6 +51,8 @@ struct Operation: Sendable {
     var error: String?
     /// Set while limactl is downloading an image or archive.
     var download: DownloadProgress?
+    /// 0...1 for operations HanaLima measures itself (moving a disk).
+    var fraction: Double?
 }
 
 /// What the sidebar can select.
@@ -87,7 +94,7 @@ final class AppModel {
     private(set) var availability: Availability = .checking
     private(set) var instances: [LimaInstance] = []
     private(set) var templates: [LimaTemplate] = []
-    private(set) var operations: [String: Operation] = [:]
+    var operations: [String: Operation] = [:]
     private(set) var events: [String: [EventRecord]] = [:]
     private(set) var disks: [LimaDisk] = []
     private(set) var networks: LimaNetworks = .defaults
@@ -126,6 +133,8 @@ final class AppModel {
     /// Running instances whose HanaLima network was changed or deleted since they started:
     /// instance name → network names. They keep the old setup until restarted.
     var restartNeeded: [String: Set<String>] = [:]
+    /// Disk moves in progress, so they can be cancelled.
+    @ObservationIgnored var diskMoveTasks: [String: Task<Void, Never>] = [:]
 
     struct ConflictPrompt: Identifiable {
         let id = UUID()
@@ -303,17 +312,28 @@ final class AppModel {
 
     // MARK: - Actions
 
-    func create(_ options: CreateOptions, startAfterCreate: Bool) {
+    /// Creates the VM; with `diskFolder`, moves its disk there before the first start (Lima
+    /// always creates the disk under ~/.lima).
+    func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil) {
         guard let client else { return }
         selection = .instance(options.name)
         run(.create, on: options.name, client.create(options)) { [weak self] ok in
-            if ok && startAfterCreate { self?.start(options.name) }
+            guard let self, ok else { return }
+            if let diskFolder {
+                Task {
+                    await self.refresh()  // moveDisk needs the instance listed
+                    self.moveDisk(options.name, to: diskFolder, thenStart: startAfterCreate)
+                }
+            } else if startAfterCreate {
+                self.start(options.name)
+            }
         }
     }
 
     /// Starts `name`. If it would mix socket_vmnet and HanaLima networks, asks first
     /// (see NetworkConflict) unless `confirmed`.
     func start(_ name: String, confirmed: Bool = false) {
+        guard !refuseIfDiskMissing(name) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: false) else { return }
         guard confirmed || !askIfConflicting(name, restart: false) else { return }
         run(.start, on: name, client.start(name))
@@ -337,6 +357,7 @@ final class AppModel {
     }
 
     func restart(_ name: String, confirmed: Bool = false) {
+        guard !refuseIfDiskMissing(name) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: true) else { return }
         guard confirmed || !askIfConflicting(name, restart: true) else { return }
         run(.restart, on: name, client.restart(name))
@@ -401,8 +422,10 @@ final class AppModel {
 
     func delete(_ name: String, force: Bool = false) {
         guard let client else { return }
+        let placement = instance(named: name).map { diskPlacement(of: $0) } ?? .local
         run(.delete, on: name, client.delete(name, force: force)) { [weak self] ok in
             guard let self, ok else { return }
+            self.cleanUpExternalDisk(after: name, placement: placement)
             self.operations[name] = nil
             self.events[name] = nil
             if self.selection == .instance(name) { self.selection = self.instances.first.map { .instance($0.name) } }

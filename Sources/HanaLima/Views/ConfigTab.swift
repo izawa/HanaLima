@@ -59,7 +59,7 @@ struct ConfigTab: View {
                     if let draftBinding = Binding($draft), let original {
                         // Locked per section, not on the Form: a disabled Form can't even scroll.
                         ConfigForm(config: draftBinding, original: original, vmType: instance.vmType,
-                                   isLocked: isLocked)
+                                   isLocked: isLocked, instance: instance)
                     }
                 case .yaml:
                     CodeEditor(text: $yamlDraft, isEditable: !isLocked)
@@ -187,11 +187,17 @@ private struct ConfigForm: View {
     let vmType: String?
     /// Read-only while the VM runs: the controls are disabled, but the form still scrolls.
     var isLocked = false
+    let instance: LimaInstance
 
     var body: some View {
         Form {
             Group {
                 HardwareSection(config: $config, original: original, vmType: vmType)
+            }
+            .disabled(isLocked)
+            // Acts right away (not part of the draft), and handles its own lock.
+            DiskLocationSection(instance: instance)
+            Group {
                 NetworkSection(networks: $config.networks, vmType: vmType)
                 MountSection(mounts: $config.mounts)
                 PortForwardSection(portForwards: $config.portForwards)

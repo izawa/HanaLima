@@ -55,7 +55,16 @@ struct OverviewTab: View {
             Section("ハードウェア") {
                 LabeledContent("仮想 CPU") { Text(instance.cpus.map { "\($0) コア" } ?? "—") }
                 LabeledContent("メモリ") { Text(Formatting.bytes(instance.memory)) }
-                LabeledContent("ディスク") { Text(Formatting.bytes(instance.disk)) }
+                LabeledContent("ディスク") {
+                    switch model.diskPlacement(of: instance) {
+                    case .local:
+                        Text(Formatting.bytes(instance.disk))
+                    case .external(let url):
+                        Text("\(Formatting.bytes(instance.disk))（外部: \(DiskLocationText.describe(url))）")
+                    case .missing:
+                        Text("\(Formatting.bytes(instance.disk))（外部・見つかりません）").foregroundStyle(.red)
+                    }
+                }
                 if let disks = instance.additionalDisks, !disks.isEmpty {
                     LabeledContent("追加ディスク") { Text(disks.map(\.name).joined(separator: ", ")) }
                 }

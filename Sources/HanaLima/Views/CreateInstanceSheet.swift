@@ -22,6 +22,8 @@ struct CreateInstanceSheet: View {
     }
     @State private var rosetta = false
     @State private var startAfterCreate = true
+    @State private var diskOnOtherDrive = false
+    @State private var diskFolder: URL? = ExternalFolderPicker.lastFolder
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,6 +89,24 @@ struct CreateInstanceSheet: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
+                Section {
+                    Picker("保存場所", selection: $diskOnOtherDrive) {
+                        Text("この Mac").tag(false)
+                        Text("外付けドライブなど").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    if diskOnOtherDrive {
+                        ExternalFolderPicker(folder: $diskFolder, check: diskCheck)
+                    }
+                } header: {
+                    Text("ディスク")
+                } footer: {
+                    Text(diskOnOtherDrive
+                         ? "作成したあと、最初の起動の前にディスクを移します（作成の途中は、いったん Mac の中に作ります）。ドライブを外しているあいだは起動できません。"
+                         : "一時的に使う仮想マシンなら、ディスクを外付けドライブに置いて Mac の空き容量を節約できます。あとから「設定」タブで移すこともできます。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 Section("オプション") {
                     if HostInfo.isAppleSilicon {
                         Toggle("Rosetta で x86_64 バイナリを実行", isOn: $rosetta)
@@ -110,11 +130,12 @@ struct CreateInstanceSheet: View {
                 Button("キャンセル", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("作成") {
-                    model.create(options, startAfterCreate: startAfterCreate)
+                    model.create(options, startAfterCreate: startAfterCreate,
+                                 diskFolder: diskOnOtherDrive ? diskFolder : nil)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(nameError != nil)
+                .disabled(nameError != nil || !diskPlaceOK)
             }
             .padding()
         }
@@ -151,6 +172,16 @@ struct CreateInstanceSheet: View {
     }
 
     private var templateGroups: [TemplateGroup] { TemplateCatalog.groups(model.templates) }
+
+    /// The disk doesn't exist yet, so only the place is checked (volume, format, folder name).
+    private var diskCheck: ExternalDisk.DestinationCheck? {
+        diskFolder.map {
+            ExternalDisk.check(folder: $0, instanceDir: LimaNetworks.limaHome.appending(path: effectiveName),
+                               name: effectiveName, required: 0)
+        }
+    }
+
+    private var diskPlaceOK: Bool { !diskOnOtherDrive || diskCheck?.isOK == true }
 
     private var options: CreateOptions {
         CreateOptions(
