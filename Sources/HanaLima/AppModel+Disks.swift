@@ -1,10 +1,32 @@
+import AppKit
 import Foundation
 import LimaKit
 
 /// Moving a VM's disk to another volume (an external drive) and back. See `ExternalDisk`.
 extension AppModel {
     func diskPlacement(of instance: LimaInstance) -> DiskPlacement {
+        diskPlacements[instance.name] ?? Self.placement(of: instance)
+    }
+
+    private static func placement(of instance: LimaInstance) -> DiskPlacement {
         ExternalDisk.placement(instanceDir: URL(filePath: instance.dir, directoryHint: .isDirectory))
+    }
+
+    /// Re-reads where each disk is; assigns only on a change, so views redraw just then.
+    func updateDiskPlacements() {
+        let current = Dictionary(uniqueKeysWithValues: instances.map { ($0.name, Self.placement(of: $0)) })
+        if current != diskPlacements { diskPlacements = current }
+    }
+
+    /// Plugging a drive in or out changes no Lima state, so listen for it directly.
+    func observeVolumes() {
+        guard volumeObservers.isEmpty else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
+            volumeObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateDiskPlacements() }
+            })
+        }
     }
 
     /// Space the disk takes now (follows a link to a moved disk).

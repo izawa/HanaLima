@@ -135,6 +135,10 @@ final class AppModel {
     var restartNeeded: [String: Set<String>] = [:]
     /// Disk moves in progress, so they can be cancelled.
     @ObservationIgnored var diskMoveTasks: [String: Task<Void, Never>] = [:]
+    /// Where each instance's disk is. Kept as state (not read from the file system while
+    /// drawing) so every view updates when a drive is plugged in or out.
+    var diskPlacements: [String: DiskPlacement] = [:]
+    @ObservationIgnored var volumeObservers: [NSObjectProtocol] = []
 
     struct ConflictPrompt: Identifiable {
         let id = UUID()
@@ -158,6 +162,7 @@ final class AppModel {
     func bootstrap() async {
         guard !bootstrapStarted else { return }
         bootstrapStarted = true
+        observeVolumes()
         availability = .checking
         guard let url = LimaClient.locate() else {
             availability = .missing
@@ -251,6 +256,7 @@ final class AppModel {
             readyInstances.formIntersection(list.map(\.name))
             hasListedOnce = true
             if list != instances { instances = list }
+            updateDiskPlacements()
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {
