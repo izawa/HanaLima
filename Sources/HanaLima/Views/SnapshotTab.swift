@@ -216,10 +216,14 @@ private struct DiskSnapshotContent: View {
                 }
             }
             Divider()
+            // The note gets its own row: wrapped beside the buttons, its height set the window's
+            // minimum height (the window could no longer be made shorter).
+            Text("起動ディスクと EFI の状態を APFS のクローンで保存します（すぐに終わり、容量はその後に変わった分だけ使います）。設定と追加ディスクは含みません。別の仮想マシンとして並べて使うなら「複製」を使います。")
+                .font(.caption).foregroundStyle(.secondary)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding([.horizontal, .top], 12)
             HStack(alignment: .center) {
-                Text("起動ディスクと EFI の状態を APFS のクローンで保存します（すぐに終わり、容量はその後に変わった分だけ使います）。設定と追加ディスクは含みません。別の仮想マシンとして並べて使うなら「複製」を使います。")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button("戻す…") { restoring = selected }
                     .disabled(selected == nil || !canOperate)
@@ -232,7 +236,8 @@ private struct DiskSnapshotContent: View {
                     .disabled(!canOperate)
                     .keyboardShortcut("n", modifiers: .command)
             }
-            .padding(12)
+            .padding([.horizontal, .bottom], 12)
+            .padding(.top, 8)
         }
         .task(id: "\(instance.name)-\(instance.status.label)-\(busy)-\(model.diskPlacement(of: instance).externalURL?.path ?? "")") {
             if !busy { model.loadDiskSnapshots(instance.name) }
