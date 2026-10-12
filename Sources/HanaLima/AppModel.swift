@@ -8,7 +8,7 @@ struct Operation: Sendable {
     enum Kind: String, Sendable {
         case create, start, stop, restart, delete, edit
         case snapshotCreate, snapshotApply, snapshotDelete
-        case moveDisk, moveDiskBack
+        case moveDisk, moveDiskBack, separateDisk
 
         var label: String {
             switch self {
@@ -23,6 +23,7 @@ struct Operation: Sendable {
             case .snapshotDelete: String(localized: "スナップショット削除")
             case .moveDisk: String(localized: "ディスクの移動")
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻す処理")
+            case .separateDisk: String(localized: "ディスクの独立")
             }
         }
 
@@ -41,6 +42,7 @@ struct Operation: Sendable {
             case .snapshotDelete: String(localized: "スナップショット削除中")
             case .moveDisk: String(localized: "ディスクを移動中")
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻しています")
+            case .separateDisk: String(localized: "ディスクを独立させています")
             }
         }
     }
@@ -138,6 +140,9 @@ final class AppModel {
     /// Where each instance's disk is. Kept as state (not read from the file system while
     /// drawing) so every view updates when a drive is plugged in or out.
     var diskPlacements: [String: DiskPlacement] = [:]
+    /// VMs whose disk link points to another VM's moved disk (a `limactl clone` copies the link),
+    /// with the VM that owns it.
+    var sharedDiskOwners: [String: String] = [:]
     @ObservationIgnored var volumeObservers: [NSObjectProtocol] = []
 
     struct ConflictPrompt: Identifiable {
@@ -339,7 +344,7 @@ final class AppModel {
     /// Starts `name`. If it would mix socket_vmnet and HanaLima networks, asks first
     /// (see NetworkConflict) unless `confirmed`.
     func start(_ name: String, confirmed: Bool = false) {
-        guard !refuseIfDiskMissing(name) else { return }
+        guard !refuseIfDiskUnusable(name) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: false) else { return }
         guard confirmed || !askIfConflicting(name, restart: false) else { return }
         run(.start, on: name, client.start(name))
@@ -363,7 +368,7 @@ final class AppModel {
     }
 
     func restart(_ name: String, confirmed: Bool = false) {
-        guard !refuseIfDiskMissing(name) else { return }
+        guard !refuseIfDiskUnusable(name) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: true) else { return }
         guard confirmed || !askIfConflicting(name, restart: true) else { return }
         run(.restart, on: name, client.restart(name))
@@ -429,9 +434,11 @@ final class AppModel {
     func delete(_ name: String, force: Bool = false) {
         guard let client else { return }
         let placement = instance(named: name).map { diskPlacement(of: $0) } ?? .local
+        let dir = instance(named: name).map { URL(filePath: $0.dir, directoryHint: .isDirectory) }
+        let shared = sharedDiskOwners[name] != nil
         run(.delete, on: name, client.delete(name, force: force)) { [weak self] ok in
             guard let self, ok else { return }
-            self.cleanUpExternalDisk(after: name, placement: placement)
+            if let dir, !shared { self.cleanUpExternalDisk(after: name, placement: placement, instanceDir: dir) }
             self.operations[name] = nil
             self.events[name] = nil
             if self.selection == .instance(name) { self.selection = self.instances.first.map { .instance($0.name) } }

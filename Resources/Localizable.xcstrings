@@ -2196,6 +2196,22 @@
         }
       }
     },
+    "「%@」が既にあります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” already exists."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」が既にあります。"
+          }
+        }
+      }
+    },
     "「%@」のディスクが見つかりません": {
       "localizations": {
         "en": {
@@ -2208,6 +2224,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」のディスクが見つかりません"
+          }
+        }
+      }
+    },
+    "「%@」のディスクと同じファイルを指しています。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Points to the same file as the disk of “%@”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」のディスクと同じファイルを指しています。"
           }
         }
       }
@@ -2324,6 +2356,22 @@
         }
       }
     },
+    "「%@」は「%@」とディスクを共有しています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” Shares a Disk with “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」は「%2$@」とディスクを共有しています"
+          }
+        }
+      }
+    },
     "「%@」は既に存在します。": {
       "localizations": {
         "en": {
@@ -2400,6 +2448,22 @@
           "stringUnit": {
             "state": "new",
             "value": "「%1$@」（%2$@）・空き %3$@。保存先: %4$@"
+          }
+        }
+      }
+    },
+    "「ディスクを独立させる」は、同じドライブの上に APFS のクローン（書き込むまで中身を共有するコピー）を作るので、すぐに終わり、容量もほとんど使いません。「この Mac に戻す」でも、この仮想マシン専用のディスクになります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give Disk Its Own Copy makes an APFS clone on the same drive (a copy that shares its contents until either side writes), so it finishes at once and takes almost no space. Move Back to This Mac also gives this virtual machine a disk of its own."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ディスクを独立させる」は、同じドライブの上に APFS のクローン（書き込むまで中身を共有するコピー）を作るので、すぐに終わり、容量もほとんど使いません。「この Mac に戻す」でも、この仮想マシン専用のディスクになります。"
           }
         }
       }
@@ -2500,6 +2564,22 @@
         }
       }
     },
+    "このまま起動すると「%@」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starting it would write to the disk of “%@”. Use Give Disk Its Own Copy in the Settings tab first, then start it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このまま起動すると「%@」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"
+          }
+        }
+      }
+    },
     "このセッションで実行したコマンドはまだありません。": {
       "localizations": {
         "en": {
@@ -2544,6 +2624,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
+          }
+        }
+      }
+    },
+    "この仮想マシンのディスクは「%@」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「%@」のディスクを書き換えるため、起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This virtual machine’s disk is the same file as that of “%@” (for example, a VM copied with limactl clone). It can’t start, because it would write to the disk of “%@”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "この仮想マシンのディスクは「%1$@」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「%2$@」のディスクを書き換えるため、起動できません。"
           }
         }
       }
@@ -3908,6 +4004,22 @@
         }
       }
     },
+    "ディスクの独立": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giving the disk its own copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの独立"
+          }
+        }
+      }
+    },
     "ディスクの移動": {
       "localizations": {
         "en": {
@@ -4004,6 +4116,22 @@
         }
       }
     },
+    "ディスクを共有": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shares a disk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを共有"
+          }
+        }
+      }
+    },
     "ディスクを内蔵に戻しています": {
       "localizations": {
         "en": {
@@ -4068,6 +4196,38 @@
         }
       }
     },
+    "ディスクを独立させています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giving the disk its own copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを独立させています"
+          }
+        }
+      }
+    },
+    "ディスクを独立させる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give Disk Its Own Copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを独立させる"
+          }
+        }
+      }
+    },
     "ディスクを移動中": {
       "localizations": {
         "en": {
@@ -4128,6 +4288,22 @@
           "stringUnit": {
             "state": "new",
             "value": "ディスク（%1$@）を Mac の内蔵ディスクにコピーし、終わったら外付けドライブ上のディスクを削除します。内蔵の空き: %2$@。"
+          }
+        }
+      }
+    },
+    "ディスク（%@）を Mac の内蔵ディスクにコピーします。外付けドライブ上のディスクは「%@」のものなので残します。内蔵の空き: %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk (%@) will be copied to the Mac’s internal disk. The disk on the external drive belongs to “%@” and stays. Free internal space: %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "ディスク（%1$@）を Mac の内蔵ディスクにコピーします。外付けドライブ上のディスクは「%2$@」のものなので残します。内蔵の空き: %3$@。"
           }
         }
       }
@@ -5361,6 +5537,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンの実行中は設定を変更できません。"
+          }
+        }
+      }
+    },
+    "仮想マシンの設定などが削除されます。ディスクは「%@」のものなので削除しません。この操作は取り消せません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine’s settings and other files will be deleted. The disk belongs to “%@” and is not deleted. You can’t undo this action."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの設定などが削除されます。ディスクは「%@」のものなので削除しません。この操作は取り消せません。"
           }
         }
       }

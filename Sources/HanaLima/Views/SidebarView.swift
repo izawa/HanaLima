@@ -98,7 +98,9 @@ private struct SidebarRow: View {
         }
         guard let instance else { return String(localized: "作成中…") }
         var parts = [instance.status.label]
-        if case .missing = model.diskPlacement(of: instance) {
+        if model.sharedDiskOwners[instance.name] != nil {
+            parts.append(String(localized: "ディスクを共有"))
+        } else if case .missing = model.diskPlacement(of: instance) {
             parts.append(String(localized: "ディスクが見つからない"))
         } else if !model.deletedNetworkSockets(of: instance).isEmpty {
             parts.append(String(localized: "NIC の接続先なし"))

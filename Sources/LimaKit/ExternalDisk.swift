@@ -43,6 +43,45 @@ public enum ExternalDisk {
         return FileManager.default.fileExists(atPath: url.path) ? .external(url) : .missing(url)
     }
 
+    /// Another instance whose moved disk this instance's link also points to, which happens when
+    /// `limactl clone` copies the link (not the disk). Starting either would write the other's
+    /// disk, and deleting the copy must leave the disk alone. The owner is the instance the
+    /// marker names, while it still links there; a marker naming an instance that is gone or
+    /// links elsewhere (renamed, deleted) is taken over by `claimIfOrphaned`.
+    public static func owner(sharingWith instanceDir: URL) -> URL? {
+        guard let target = placement(instanceDir: instanceDir).externalURL,
+              let named = markedOwner(of: target), !samePath(named, instanceDir),
+              placement(instanceDir: named).externalURL.map({ samePath($0, target) }) == true else { return nil }
+        return named
+    }
+
+    /// Rewrites the marker of `instanceDir`'s moved disk to name it, when the instance the marker
+    /// names no longer links to the disk (renamed or deleted outside HanaLima). Without this,
+    /// two clones of a renamed VM would both look like owners.
+    public static func claimIfOrphaned(instanceDir: URL, name: String) {
+        guard case .external(let target) = placement(instanceDir: instanceDir),
+              let named = markedOwner(of: target), !samePath(named, instanceDir),
+              placement(instanceDir: named).externalURL.map({ samePath($0, target) }) != true else { return }
+        try? writeMarker(in: target.deletingLastPathComponent(), name: name, instanceDir: instanceDir)
+    }
+
+    /// The instance folder the marker next to `disk` names.
+    static func markedOwner(of disk: URL) -> URL? {
+        let marker = disk.deletingLastPathComponent().appending(path: markerName)
+        guard let data = try? Data(contentsOf: marker),
+              let info = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let path = info["instanceDir"] as? String else { return nil }
+        return URL(filePath: path, directoryHint: .isDirectory)
+    }
+
+    public static func samePath(_ a: URL, _ b: URL) -> Bool {
+        let path = { (u: URL) -> Substring in
+            let p = u.standardizedFileURL.path(percentEncoded: false)
+            return p.count > 1 && p.hasSuffix("/") ? p.dropLast() : Substring(p)
+        }
+        return path(a) == path(b)
+    }
+
     /// `<folder>/HanaLima Disks/<name>/disk`, or `<folder>/<name>/disk` when the chosen folder is
     /// already such a folder ("HanaLima Disks", "HanaLimaDisks", "hanalima-disks"…).
     public static func target(in folder: URL, name: String) -> URL {
@@ -139,15 +178,9 @@ public enum ExternalDisk {
             try await copySparse(from: disk, to: partial, progress: progress)
             try fm.moveItem(at: partial, to: target)
             // Swap the file for the link atomically: no moment without a disk at the path.
-            let link = instanceDir.appending(path: "disk.hanalima-link")
-            try? fm.removeItem(at: link)
-            try fm.createSymbolicLink(at: link, withDestinationURL: target)
-            guard rename(link.path, disk.path) == 0 else {
-                try? fm.removeItem(at: link)
-                throw Failure(message: String(localized: "ディスクをリンクに置き換えられませんでした: \(String(cString: strerror(errno)))"))
-            }
+            try swapInLink(at: disk, to: target, in: instanceDir)
         } catch {
-            if placement(instanceDir: instanceDir) == .local, !removeExternalFolder(of: target) {
+            if placement(instanceDir: instanceDir) == .local, !removeExternalFolder(of: target, for: instanceDir) {
                 try? fm.removeItem(at: folder)
             }
             throw error
@@ -171,14 +204,60 @@ public enum ExternalDisk {
             try? fm.removeItem(at: partial)
             throw error
         }
-        removeExternalFolder(of: source)
+        removeExternalFolder(of: source, for: instanceDir)
     }
 
-    /// Deletes `HanaLima Disks/<name>` holding `disk`, but only a folder HanaLima created.
+    /// Gives an instance that shares another's moved disk its own: an APFS clone next to it on
+    /// the same drive (instant, and no space until either side writes), then the link swapped
+    /// to it. `name` names the new folder.
+    public static func separate(instanceDir: URL, name: String,
+                                progress: @escaping @Sendable (Double) -> Void) async throws {
+        let fm = FileManager.default
+        guard case .external(let shared) = placement(instanceDir: instanceDir) else {
+            throw Failure(message: String(localized: "外部のディスクが見つかりません。"))
+        }
+        let target = shared.deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: name, directoryHint: .isDirectory).appending(path: "disk")
+        let folder = target.deletingLastPathComponent()
+        guard !fm.fileExists(atPath: folder.path) else {
+            throw Failure(message: String(localized: "「\(folder.path)」が既にあります。"))
+        }
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        do {
+            try writeMarker(in: folder, name: name, instanceDir: instanceDir)
+            let partial = folder.appending(path: partialName)
+            if clonefile(shared.path, partial.path, 0) != 0 {
+                try await copySparse(from: shared, to: partial, progress: progress)
+            }
+            try fm.moveItem(at: partial, to: target)
+            try swapInLink(at: diskURL(instanceDir: instanceDir), to: target, in: instanceDir)
+        } catch {
+            if placement(instanceDir: instanceDir).externalURL.map({ samePath($0, shared) }) == true {
+                try? fm.removeItem(at: folder)
+            }
+            throw error
+        }
+        progress(1)
+    }
+
+    /// Replaces `disk` (a file or link) with a link to `target` in one rename.
+    private static func swapInLink(at disk: URL, to target: URL, in instanceDir: URL) throws {
+        let fm = FileManager.default
+        let link = instanceDir.appending(path: "disk.hanalima-link")
+        try? fm.removeItem(at: link)
+        try fm.createSymbolicLink(at: link, withDestinationURL: target)
+        guard rename(link.path, disk.path) == 0 else {
+            try? fm.removeItem(at: link)
+            throw Failure(message: String(localized: "ディスクをリンクに置き換えられませんでした: \(String(cString: strerror(errno)))"))
+        }
+    }
+
+    /// Deletes `HanaLima Disks/<name>` holding `disk`, but only a folder HanaLima created for
+    /// `instanceDir` (the marker names it): a disk another instance owns is never removed.
     @discardableResult
-    public static func removeExternalFolder(of disk: URL) -> Bool {
+    public static func removeExternalFolder(of disk: URL, for instanceDir: URL) -> Bool {
         let folder = disk.deletingLastPathComponent()
-        guard FileManager.default.fileExists(atPath: folder.appending(path: markerName).path) else { return false }
+        guard let named = markedOwner(of: disk), samePath(named, instanceDir) else { return false }
         guard (try? FileManager.default.removeItem(at: folder)) != nil else { return false }
         // Tidy up the "HanaLima Disks" folder HanaLima made, once nothing is left in it.
         let parent = folder.deletingLastPathComponent()

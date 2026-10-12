@@ -32,6 +32,10 @@ struct DiskLocationSection: View {
                     Text("見つかりません（\(url.deletingLastPathComponent().path)）").foregroundStyle(.red)
                 }
             }
+            if let owner = model.sharedDiskOwners[instance.name] {
+                Label("「\(owner)」のディスクと同じファイルを指しています。", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            }
             if case .missing = placement {} else {
                 LabeledContent("使用量") {
                     Text(Formatting.bytes(model.diskAllocatedSize(of: instance))).monospacedDigit()
@@ -46,6 +50,9 @@ struct DiskLocationSection: View {
                 case .local:
                     Button("外付けドライブなどへ移動…") { showMove = true }.disabled(locked)
                 case .external:
+                    if model.sharedDiskOwners[instance.name] != nil {
+                        Button("ディスクを独立させる") { model.separateDisk(instance.name) }.disabled(locked)
+                    }
                     Button("この Mac に戻す…") { confirmBack = true }.disabled(locked)
                 case .missing:
                     EmptyView()
@@ -58,6 +65,8 @@ struct DiskLocationSection: View {
                 switch placement {
                 case .local:
                     Text("一時的に使う仮想マシンなら、ディスク（いちばん大きなファイル）を外付けドライブに置いて、Mac の空き容量を節約できます。移動したあとも、これまでどおり起動・編集できます。")
+                case .external where model.sharedDiskOwners[instance.name] != nil:
+                    Text("「ディスクを独立させる」は、同じドライブの上に APFS のクローン（書き込むまで中身を共有するコピー）を作るので、すぐに終わり、容量もほとんど使いません。「この Mac に戻す」でも、この仮想マシン専用のディスクになります。")
                 case .external:
                     Text("ディスクは外付けドライブなどにあります。そのドライブを外しているあいだは起動できません。仮想マシンを削除すると、このディスクも削除します。")
                 case .missing:
@@ -89,6 +98,9 @@ struct DiskLocationSection: View {
     private var backMessage: String {
         let size = Formatting.bytes(model.diskAllocatedSize(of: instance))
         let free = Formatting.bytes(internalAvailable)
+        if backFits, let owner = model.sharedDiskOwners[instance.name] {
+            return String(localized: "ディスク（\(size)）を Mac の内蔵ディスクにコピーします。外付けドライブ上のディスクは「\(owner)」のものなので残します。内蔵の空き: \(free)。")
+        }
         return backFits
             ? String(localized: "ディスク（\(size)）を Mac の内蔵ディスクにコピーし、終わったら外付けドライブ上のディスクを削除します。内蔵の空き: \(free)。")
             : String(localized: "内蔵ディスクの空きが足りません（必要 \(size)、空き \(free)）。")

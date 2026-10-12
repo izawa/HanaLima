@@ -16,6 +16,15 @@ extension AppModel {
     func updateDiskPlacements() {
         let current = Dictionary(uniqueKeysWithValues: instances.map { ($0.name, Self.placement(of: $0)) })
         if current != diskPlacements { diskPlacements = current }
+        var shared: [String: String] = [:]
+        for inst in instances where current[inst.name]?.externalURL != nil {
+            let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
+            ExternalDisk.claimIfOrphaned(instanceDir: dir, name: inst.name)
+            if let owner = ExternalDisk.owner(sharingWith: dir) {
+                shared[inst.name] = instances.first { ExternalDisk.samePath(URL(filePath: $0.dir), owner) }?.name ?? owner.lastPathComponent
+            }
+        }
+        if shared != sharedDiskOwners { sharedDiskOwners = shared }
     }
 
     /// Plugging a drive in or out changes no Lima state, so listen for it directly.
@@ -36,8 +45,13 @@ extension AppModel {
     }
 
     /// A VM whose disk is on a drive that isn't connected can't start; say so instead of letting
-    /// Lima fail with a file error.
-    func refuseIfDiskMissing(_ name: String) -> Bool {
+    /// Lima fail with a file error. Nor can one that shares another VM's disk: it would write it.
+    func refuseIfDiskUnusable(_ name: String) -> Bool {
+        if let owner = sharedDiskOwners[name] {
+            alert = AlertMessage(title: String(localized: "「\(name)」は「\(owner)」とディスクを共有しています"),
+                                 message: String(localized: "このまま起動すると「\(owner)」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"))
+            return true
+        }
         guard let inst = instance(named: name), case .missing(let url) = diskPlacement(of: inst) else { return false }
         alert = AlertMessage(title: String(localized: "「\(name)」のディスクが見つかりません"),
                              message: String(localized: "ディスクの保存先 \(url.deletingLastPathComponent().path) が見つかりません。外付けドライブを接続してから、もう一度起動してください。"))
@@ -62,6 +76,15 @@ extension AppModel {
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         runDiskMove(.moveDiskBack, name: name) { progress in
             try await ExternalDisk.moveBack(instanceDir: dir, progress: progress)
+        } completion: { _ in }
+    }
+
+    /// Gives a VM that shares another's moved disk its own copy on the same drive.
+    func separateDisk(_ name: String) {
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
+        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
+        runDiskMove(.separateDisk, name: name) { progress in
+            try await ExternalDisk.separate(instanceDir: dir, name: name, progress: progress)
         } completion: { _ in }
     }
 
@@ -100,12 +123,12 @@ extension AppModel {
 
     /// After `limactl delete` (which removes only the link): delete the moved disk too, or say
     /// where it was left when the drive is away.
-    func cleanUpExternalDisk(after name: String, placement: DiskPlacement) {
+    func cleanUpExternalDisk(after name: String, placement: DiskPlacement, instanceDir: URL) {
         switch placement {
         case .local:
             break
         case .external(let url):
-            if !ExternalDisk.removeExternalFolder(of: url) {
+            if !ExternalDisk.removeExternalFolder(of: url, for: instanceDir) {
                 alert = AlertMessage(title: String(localized: "外部のディスクを削除できませんでした"),
                                      message: String(localized: "\(url.deletingLastPathComponent().path) を手作業で削除してください。"))
             }

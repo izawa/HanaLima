@@ -23,7 +23,9 @@ struct ExternalDiskEndToEndTests {
             try? FileManager.default.removeItem(at: work)
         }
         _ = try? await drain(client.delete(vm, force: true))
-        defer { Task { [client, vm] in _ = try? await drain(client.delete(vm, force: true)) } }
+        let copy = "\(vm)-copy"
+        _ = try? await drain(client.delete(copy, force: true))
+        defer { Task { [client, vm] in _ = try? await drain(client.delete(vm, force: true)); _ = try? await drain(client.delete(copy, force: true)) } }
 
         _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 1, memoryGiB: 1,
                                                         diskGiB: 10, vmType: .vz)))
@@ -51,27 +53,45 @@ struct ExternalDiskEndToEndTests {
         _ = try await drain(client.edit(vm, set: [#".disk = "12GiB""#]))
         #expect(ExternalDisk.placement(instanceDir: dir) == .external(check.target))
         _ = try await drain(client.start(vm))
-        #expect(try await marker() == "hanalima")
+        #expect(try await marker(vm) == "hanalima")
         _ = try await drain(client.stop(vm))
+
+        // `limactl clone` copies the link, so the copy shares the disk until it gets its own:
+        // an APFS clone on the same volume. Writing in the copy leaves the original alone, and
+        // deleting the copy keeps the original's disk.
+        _ = try await client.runner.run(["clone", "--tty=false", vm, copy])
+        let copyDir = dir.deletingLastPathComponent().appending(path: copy, directoryHint: .isDirectory)
+        #expect(ExternalDisk.owner(sharingWith: copyDir).map { ExternalDisk.samePath($0, dir) } == true)
+        #expect(!ExternalDisk.removeExternalFolder(of: check.target, for: copyDir))
+        try await ExternalDisk.separate(instanceDir: copyDir, name: copy) { _ in }
+        #expect(ExternalDisk.owner(sharingWith: copyDir) == nil)
+        _ = try await drain(client.start(copy))
+        #expect(try await marker(copy) == "hanalima")
+        _ = try await client.runner.run(["shell", copy, "sudo", "sh", "-c", "echo copy > /root/marker && sync"])
+        _ = try await drain(client.stop(copy))
+        let copyDisk = try #require(ExternalDisk.placement(instanceDir: copyDir).externalURL)
+        _ = try await drain(client.delete(copy))
+        #expect(ExternalDisk.removeExternalFolder(of: copyDisk, for: copyDir))
+        #expect(FileManager.default.fileExists(atPath: check.target.path))
 
         // Back: a real file again, data intact, external folder gone.
         try await ExternalDisk.moveBack(instanceDir: dir) { _ in }
         #expect(ExternalDisk.placement(instanceDir: dir) == .local)
         #expect(!FileManager.default.fileExists(atPath: check.target.deletingLastPathComponent().path))
         _ = try await drain(client.start(vm))
-        #expect(try await marker() == "hanalima")
+        #expect(try await marker(vm) == "hanalima")
         _ = try await drain(client.stop(vm))
 
         // Deleting removes only the link; the app then removes the external folder.
         try await ExternalDisk.moveOut(instanceDir: dir, name: vm, to: check.target) { _ in }
         _ = try await drain(client.delete(vm))
         #expect(FileManager.default.fileExists(atPath: check.target.path))
-        #expect(ExternalDisk.removeExternalFolder(of: check.target))
+        #expect(ExternalDisk.removeExternalFolder(of: check.target, for: dir))
         #expect(!FileManager.default.fileExists(atPath: check.target.deletingLastPathComponent().path))
     }
 
-    private func marker() async throws -> String {
-        try await client.runner.run(["shell", vm, "sudo", "cat", "/root/marker"]).stdoutString
+    private func marker(_ name: String) async throws -> String {
+        try await client.runner.run(["shell", name, "sudo", "cat", "/root/marker"]).stdoutString
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

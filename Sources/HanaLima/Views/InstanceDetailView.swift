@@ -83,6 +83,9 @@ struct InstanceDetailView: View {
                 model.delete(name, force: instance?.isRunning == true)
             }
         } message: {
+            if let owner = model.sharedDiskOwners[name] {
+                Text("仮想マシンの設定などが削除されます。ディスクは「\(owner)」のものなので削除しません。この操作は取り消せません。")
+            } else {
             switch instance.map({ model.diskPlacement(of: $0) }) ?? .local {
             case .local:
                 Text("仮想マシンのディスクを含むすべてのデータが削除されます。この操作は取り消せません。")
@@ -90,6 +93,7 @@ struct InstanceDetailView: View {
                 Text("仮想マシンのディスクを含むすべてのデータが削除されます。外部の保存先 \(url.deletingLastPathComponent().path) にあるディスクも削除します。この操作は取り消せません。")
             case .missing(let url):
                 Text("仮想マシンの設定などが削除されます。外付けドライブが接続されていないため、\(url.deletingLastPathComponent().path) にあるディスクは残ります（あとで手作業で削除してください）。この操作は取り消せません。")
+            }
             }
         }
     }
@@ -176,7 +180,13 @@ private struct InstanceNoticeBanner: View {
     var body: some View {
         let deleted = model.deletedNetworkSockets(of: instance).map(AppModel.networkName(ofSocket:))
         let changed = (model.restartNeeded[instance.name] ?? []).subtracting(deleted).sorted()
-        if case .missing(let url) = model.diskPlacement(of: instance) {
+        if let owner = model.sharedDiskOwners[instance.name] {
+            banner(icon: "externaldrive.badge.exclamationmark", color: .red,
+                   text: String(localized: "この仮想マシンのディスクは「\(owner)」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「\(owner)」のディスクを書き換えるため、起動できません。")) {
+                Button("ディスクを独立させる") { model.separateDisk(instance.name) }
+                    .disabled(instance.isRunning || model.isBusy(instance.name))
+            }
+        } else if case .missing(let url) = model.diskPlacement(of: instance) {
             banner(icon: "externaldrive.badge.xmark", color: .red,
                    text: String(localized: "ディスクの保存先 \(url.deletingLastPathComponent().path) が見つかりません。外付けドライブを接続してください。")) {
                 EmptyView()

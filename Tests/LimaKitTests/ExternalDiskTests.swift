@@ -55,8 +55,59 @@ import Testing
         let foreign = root.appending(path: "foreign/disk")
         try FileManager.default.createDirectory(at: foreign.deletingLastPathComponent(), withIntermediateDirectories: true)
         FileManager.default.createFile(atPath: foreign.path, contents: Data())
-        #expect(!ExternalDisk.removeExternalFolder(of: foreign))
+        #expect(!ExternalDisk.removeExternalFolder(of: foreign, for: dir))
         #expect(FileManager.default.fileExists(atPath: foreign.path))
+    }
+
+    /// `limactl clone` copies the link, not the disk: the copy must not delete or write the
+    /// original's disk, and can get its own.
+    @Test func cloneSharingTheLink() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "hanalima-extdisk-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fm = FileManager.default
+        let dir = try makeInstance(root)
+        let original = try Data(contentsOf: dir.appending(path: "disk"))
+        let target = ExternalDisk.target(in: root.appending(path: "drive"), name: "vm1")
+        try await ExternalDisk.moveOut(instanceDir: dir, name: "vm1", to: target) { _ in }
+
+        let copy = root.appending(path: "lima/vm2", directoryHint: .isDirectory)
+        try fm.createDirectory(at: copy, withIntermediateDirectories: true)
+        try fm.createSymbolicLink(at: copy.appending(path: "disk"), withDestinationURL: target)
+        #expect(ExternalDisk.owner(sharingWith: copy).map { ExternalDisk.samePath($0, dir) } == true)
+        #expect(ExternalDisk.owner(sharingWith: dir) == nil)
+        ExternalDisk.claimIfOrphaned(instanceDir: copy, name: "vm2")  // the owner still links there
+        #expect(ExternalDisk.owner(sharingWith: copy) != nil)
+        #expect(!ExternalDisk.removeExternalFolder(of: target, for: copy))
+        #expect(fm.fileExists(atPath: target.path))
+
+        try await ExternalDisk.separate(instanceDir: copy, name: "vm2") { _ in }
+        let own = try #require(ExternalDisk.placement(instanceDir: copy).externalURL)
+        #expect(own.path.hasSuffix("HanaLima Disks/vm2/disk"))
+        #expect(ExternalDisk.owner(sharingWith: copy) == nil)
+        #expect(try Data(contentsOf: copy.appending(path: "disk")) == original)
+        #expect(ExternalDisk.removeExternalFolder(of: own, for: copy))
+        #expect(try Data(contentsOf: dir.appending(path: "disk")) == original)
+    }
+
+    /// A VM renamed outside HanaLima takes over the marker, so a later clone of it is caught.
+    @Test func renamedOwnerClaimsMarker() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "hanalima-extdisk-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fm = FileManager.default
+        let dir = try makeInstance(root)
+        let target = ExternalDisk.target(in: root.appending(path: "drive"), name: "vm1")
+        try await ExternalDisk.moveOut(instanceDir: dir, name: "vm1", to: target) { _ in }
+        let renamed = root.appending(path: "lima/renamed", directoryHint: .isDirectory)
+        try fm.moveItem(at: dir, to: renamed)
+        #expect(ExternalDisk.owner(sharingWith: renamed) == nil)
+        ExternalDisk.claimIfOrphaned(instanceDir: renamed, name: "renamed")
+
+        let copy = root.appending(path: "lima/copy", directoryHint: .isDirectory)
+        try fm.createDirectory(at: copy, withIntermediateDirectories: true)
+        try fm.createSymbolicLink(at: copy.appending(path: "disk"), withDestinationURL: target)
+        ExternalDisk.claimIfOrphaned(instanceDir: copy, name: "copy")  // must not steal it
+        #expect(ExternalDisk.owner(sharingWith: copy).map { ExternalDisk.samePath($0, renamed) } == true)
+        #expect(ExternalDisk.removeExternalFolder(of: target, for: renamed))
     }
 
     @Test func checksDestination() throws {
@@ -119,8 +170,11 @@ import Testing
         // Removing the last VM's folder also removes the emptied "HanaLima Disks".
         let target = ExternalDisk.target(in: dir, name: "vm")
         try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: target.deletingLastPathComponent().appending(path: "hanalima.json").path, contents: Data())
-        #expect(ExternalDisk.removeExternalFolder(of: target))
+        let instanceDir = dir.appending(path: "lima/vm")
+        let marker = try JSONSerialization.data(withJSONObject: ["instanceDir": instanceDir.path])
+        FileManager.default.createFile(atPath: target.deletingLastPathComponent().appending(path: "hanalima.json").path, contents: marker)
+        #expect(!ExternalDisk.removeExternalFolder(of: target, for: dir.appending(path: "lima/other")))
+        #expect(ExternalDisk.removeExternalFolder(of: target, for: instanceDir))
         #expect(!FileManager.default.fileExists(atPath: dir.appending(path: "HanaLima Disks").path))
     }
 }
