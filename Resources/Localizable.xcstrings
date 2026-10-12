@@ -1305,7 +1305,24 @@
         }
       }
     },
+    "Mac のファイルは仮想マシンから見えません。作業フォルダを選ぶと、そのフォルダだけを共有します（あとから「設定」タブの共有フォルダでも追加できます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine can’t see any files on the Mac. Choose a work folder to share just that folder (you can also add shared folders later in the Settings tab)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac のファイルは仮想マシンから見えません。作業フォルダを選ぶと、そのフォルダだけを共有します（あとから「設定」タブの共有フォルダでも追加できます）。"
+          }
+        }
+      }
+    },
     "Mac のファイルは仮想マシンから見えません。必要なフォルダだけを、作成後に「設定」タブの共有フォルダで追加できます。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5065,6 +5082,22 @@
         }
       }
     },
+    "パスに「:」を含むフォルダは選べません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A folder whose path contains “:” can’t be chosen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスに「:」を含むフォルダは選べません。"
+          }
+        }
+      }
+    },
     "ファイルの編集（yq）": {
       "localizations": {
         "en": {
@@ -5961,6 +5994,38 @@
         }
       }
     },
+    "仮想マシンからの書き込みを許可": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow the Virtual Machine to Write"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンからの書き込みを許可"
+          }
+        }
+      }
+    },
+    "仮想マシンから見えるのは作業フォルダだけで、仮想マシンの中でも同じパスにあります。ホームフォルダのほかの場所は見えません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine sees only the work folder, at the same path inside the virtual machine. Nothing else in your home folder is visible."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンから見えるのは作業フォルダだけで、仮想マシンの中でも同じパスにあります。ホームフォルダのほかの場所は見えません。"
+          }
+        }
+      }
+    },
     "仮想マシンがありません": {
       "localizations": {
         "en": {
@@ -5989,6 +6054,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンとディスク"
+          }
+        }
+      }
+    },
+    "仮想マシンと共有するフォルダを選んでください。仮想マシンから見えるのは、このフォルダだけになります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the folder to share with the virtual machine. It will be the only folder the virtual machine can see."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンと共有するフォルダを選んでください。仮想マシンから見えるのは、このフォルダだけになります。"
           }
         }
       }
@@ -6422,6 +6503,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "作成日時"
+          }
+        }
+      }
+    },
+    "作業フォルダ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work Folder"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作業フォルダ"
           }
         }
       }
@@ -7398,6 +7495,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "変更"
+          }
+        }
+      }
+    },
+    "外す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外す"
           }
         }
       }

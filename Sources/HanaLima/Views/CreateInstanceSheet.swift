@@ -23,6 +23,8 @@ struct CreateInstanceSheet: View {
     @State private var rosetta = false
     @State private var startAfterCreate = true
     @State private var shareHome = true
+    @State private var workFolder: URL?
+    @State private var workFolderWritable = true
     @State private var diskOnOtherDrive = false
     @State private var diskFolder: URL? = ExternalFolderPicker.lastFolder
 
@@ -110,12 +112,35 @@ struct CreateInstanceSheet: View {
 
                 Section {
                     Toggle("ホームフォルダを共有（読み取り専用）", isOn: $shareHome)
+                    if !shareHome {
+                        LabeledContent("作業フォルダ") {
+                            HStack {
+                                Text(workFolder.map { $0.path.replacingOccurrences(of: NSHomeDirectory(), with: "~") }
+                                     ?? String(localized: "なし"))
+                                    .foregroundStyle(workFolder == nil ? .secondary : .primary)
+                                    .lineLimit(1).truncationMode(.middle)
+                                    .help(workFolder?.path ?? "")
+                                if workFolder != nil {
+                                    Button("外す") { workFolder = nil }
+                                }
+                                Button("選択…") { chooseWorkFolder() }
+                            }
+                        }
+                        if workFolder != nil {
+                            Toggle("仮想マシンからの書き込みを許可", isOn: $workFolderWritable)
+                        }
+                        if let workFolderError {
+                            Text(workFolderError).font(.caption).foregroundStyle(.red)
+                        }
+                    }
                 } header: {
                     Text("Mac との共有")
                 } footer: {
                     Text(shareHome
                          ? "仮想マシンから Mac のホームフォルダ（~/.ssh などの認証情報を含む）を読めます。AI のエージェントなど、信頼しきれないものを動かすならオフにしてください。"
-                         : "Mac のファイルは仮想マシンから見えません。必要なフォルダだけを、作成後に「設定」タブの共有フォルダで追加できます。")
+                         : workFolder == nil
+                         ? "Mac のファイルは仮想マシンから見えません。作業フォルダを選ぶと、そのフォルダだけを共有します（あとから「設定」タブの共有フォルダでも追加できます）。"
+                         : "仮想マシンから見えるのは作業フォルダだけで、仮想マシンの中でも同じパスにあります。ホームフォルダのほかの場所は見えません。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
@@ -147,7 +172,7 @@ struct CreateInstanceSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(nameError != nil || !diskPlaceOK)
+                .disabled(nameError != nil || !diskPlaceOK || (!shareHome && workFolderError != nil))
             }
             .padding()
         }
@@ -206,7 +231,31 @@ struct CreateInstanceSheet: View {
             networks: extraNIC == .vzNAT ? ["vzNAT"] : [],
             rosetta: rosetta,
             mountNone: !shareHome,
+            mountOnly: shareHome ? [] : workFolderMount,
             setExpressions: virtualNetworkExpression)
+    }
+
+    /// The work folder as a `--mount-only` value: `<path>` or `<path>:w`.
+    private var workFolderMount: [String] {
+        guard let workFolder, workFolderError == nil else { return [] }
+        return [workFolder.path + (workFolderWritable ? ":w" : "")]
+    }
+
+    /// Lima reads `<path>:w`, so a colon in the path can't be passed this way.
+    private var workFolderError: String? {
+        guard let workFolder, workFolder.path.contains(":") else { return nil }
+        return String(localized: "パスに「:」を含むフォルダは選べません。")
+    }
+
+    private func chooseWorkFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = String(localized: "選択")
+        panel.message = String(localized: "仮想マシンと共有するフォルダを選んでください。仮想マシンから見えるのは、このフォルダだけになります。")
+        panel.directoryURL = workFolder ?? URL(filePath: NSHomeDirectory())
+        if panel.runModal() == .OK, let url = panel.url { workFolder = url }
     }
 
     private var virtualNetworkExpression: [String] {

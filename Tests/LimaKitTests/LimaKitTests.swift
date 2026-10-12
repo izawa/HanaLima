@@ -117,6 +117,11 @@ import Testing
                                 "--vm-type=vz", "--network=vzNAT", "--rosetta", "template:ubuntu-24.04"])
     }
 
+    @Test func sharesOnlyAWorkFolder() {
+        #expect(CreateOptions(name: "ai", template: "macos", mountNone: true, mountOnly: ["/Users/me/work dir:w"]).arguments
+            == ["create", "--name=ai", "--mount-only=/Users/me/work dir:w", "template:macos"])
+    }
+
     @Test func dropsMounts() {
         #expect(CreateOptions(name: "ai", template: "macos", mountNone: true).arguments
             == ["create", "--name=ai", "--mount-none", "template:macos"])
