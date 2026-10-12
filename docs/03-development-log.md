@@ -112,6 +112,11 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - VZ のスナップショット: ディスクと `vz-efi` を APFS のクローンで保存する。最初は VM のフォルダの中に置いたが、サブフォルダがあると `limactl clone` が permission denied で失敗した（E2E で発見）。`~/.lima/_hanalima-snapshots/<VM の ID>/` に移した。E2E で、保存 5 秒未満、戻して起動すると元のデータ、スナップショットからの複製は保存時点のデータ、元の VM は今のデータ、を確かめた。
 - 実機の確認で 2 点直した: メモが VM の切り替えで消える（入力ごとに保存）、スナップショットタブの説明文がボタンの横で折り返し、ウインドウの最小の高さが極端に大きくなる（説明文を別の行に）。
 
+## 22. 複製と DHCP の識別子（2026-10-12）
+- 懸念: `limactl clone` の複製はゲストの DUID（Alpine の `/var/lib/dhcpcd/duid` など）を引き継ぐ。bootpd はクライアント識別子（オプション 61）で相手を識別するので、予約なしの複製元と複製が同じ IP を受け取るおそれがあった。対策の案は、netd がすべての VM の要求からオプション 61 を外すこと。
+- 確認: 複製元と複製を同じ HanaLima ネットワーク（10.252.x.0/24）につないで同時に起動する E2E（`CloneDHCPEndToEndTests`）を作った。Alpine（DUID は同一）、Fedora、Ubuntu LTS のいずれも別の IP（.2 と .3）になった。Alpine の dhcpcd は識別子を IAID＋DUID にし、IAID は既定で MAC から作るので、MAC の違う複製では識別子も違う。Ubuntu は Lima の netplan で MAC を識別子に使う。
+- 結論: netd は変えない（オプション 61 の除去は予約のある MAC に限ったまま）。E2E を回帰の確認として残す。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
