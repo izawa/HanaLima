@@ -13,11 +13,14 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
         /// The parent's name when the copy was made (shown if the parent is gone or renamed).
         public var name: String
         public var copiedAt: Date
+        /// The snapshot of the parent the copy was made from, if any (its name then).
+        public var snapshot: String?
 
-        public init(id: UUID, name: String, copiedAt: Date) {
+        public init(id: UUID, name: String, copiedAt: Date, snapshot: String? = nil) {
             self.id = id
             self.name = name
             self.copiedAt = copiedAt.wholeSeconds
+            self.snapshot = snapshot
         }
     }
 

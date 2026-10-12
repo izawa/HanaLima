@@ -3077,6 +3077,22 @@
         }
       }
     },
+    "のスナップショット「%@」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(snapshot “%@”)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "のスナップショット「%@」"
+          }
+        }
+      }
+    },
     "よく使う": {
       "localizations": {
         "en": {

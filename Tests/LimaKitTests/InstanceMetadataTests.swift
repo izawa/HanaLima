@@ -68,6 +68,14 @@ import Testing
         #expect(records["copy"]?.parent?.name == "gone")
     }
 
+    @Test func recordsTheSnapshotACopyCameFrom() throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let copy = try vm(root, "copy")
+        try InstanceMetadata(instanceDir: copy.dir, parent: .init(id: UUID(), name: "a", copiedAt: .now, snapshot: "before")).save()
+        #expect(InstanceMetadata.load(instanceDir: copy.dir)?.parent?.snapshot == "before")
+    }
+
     @Test func handSetMACsAreDropped() {
         #expect(InstanceCopy.cloneExpressions(sourceConfig: "networks:\n- vzNAT: true\n  macAddress: \"52:55:55:12:34:56\"\n")
             == ["del(.networks[].macAddress)"])

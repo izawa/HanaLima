@@ -209,6 +209,9 @@ private struct OriginSection: View {
                         } else {
                             Text("\(parent.name)（削除済み）").foregroundStyle(.secondary)
                         }
+                        if let snapshot = parent.snapshot {
+                            Text("のスナップショット「\(snapshot)」").foregroundStyle(.secondary)
+                        }
                         Text(parent.copiedAt.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.secondary)
                     }
                 }

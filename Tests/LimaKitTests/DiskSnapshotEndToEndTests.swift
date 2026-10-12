@@ -38,7 +38,8 @@ struct DiskSnapshotEndToEndTests {
         // A new VM from the snapshot, while the source stays as it is now.
         _ = try await drain(client.clone(vm, as: copy))
         let copyDir = dir.deletingLastPathComponent().appending(path: copy, directoryHint: .isDirectory)
-        _ = try await InstanceCopy.finish(copyDir: copyDir, name: copy, source: nil, sourceName: vm, note: "") { _ in }
+        _ = try await InstanceCopy.finish(copyDir: copyDir, name: copy, source: nil, sourceName: vm,
+                                          snapshot: snap.name, note: "") { _ in }
         #expect(DiskSnapshot.list(instanceDir: copyDir).isEmpty)
         try DiskSnapshot.restore(snap, of: dir, into: copyDir)
         _ = try await drain(client.start(copy))

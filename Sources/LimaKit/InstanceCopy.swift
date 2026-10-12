@@ -20,7 +20,7 @@ public enum InstanceCopy {
     /// After `limactl clone`: empties the copied logs, gives the copy its own disk if it shares a
     /// moved one, and writes its record with the source as parent.
     public static func finish(copyDir: URL, name: String, source: InstanceMetadata?, sourceName: String,
-                              note: String, progress: @escaping @Sendable (Double) -> Void) async throws -> InstanceMetadata {
+                              snapshot: String? = nil, note: String, progress: @escaping @Sendable (Double) -> Void) async throws -> InstanceMetadata {
         for log in copiedLogs {
             let url = copyDir.appending(path: log)
             if FileManager.default.fileExists(atPath: url.path) { _ = truncate(url.path, 0) }
@@ -28,7 +28,7 @@ public enum InstanceCopy {
         if ExternalDisk.owner(sharingWith: copyDir) != nil {
             try await ExternalDisk.separate(instanceDir: copyDir, name: name, progress: progress)
         }
-        let parent = source.map { InstanceMetadata.Parent(id: $0.id, name: sourceName, copiedAt: .now) }
+        let parent = source.map { InstanceMetadata.Parent(id: $0.id, name: sourceName, copiedAt: .now, snapshot: snapshot) }
         let meta = InstanceMetadata(instanceDir: copyDir, parent: parent, note: note)
         try meta.save()
         return meta

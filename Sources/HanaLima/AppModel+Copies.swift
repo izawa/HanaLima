@@ -63,7 +63,8 @@ extension AppModel {
             Task {
                 do {
                     let record = try await InstanceCopy.finish(copyDir: copyDir, name: name, source: sourceRecord,
-                                                               sourceName: source, note: note) { fraction in
+                                                               sourceName: source, snapshot: snapshot?.label,
+                                                               note: note) { fraction in
                         Task { @MainActor in self.operations[name]?.fraction = fraction }
                     }
                     self.metadata[name] = record
