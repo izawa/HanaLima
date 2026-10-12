@@ -43,16 +43,25 @@ public struct StorageReport: Sendable {
         /// The disk image, when it was moved to another volume (see `ExternalDisk`).
         public var externalDisk: URL?
         public var externalSize: Int64 = 0
+        /// HanaLima's snapshots of this VM (see `DiskSnapshot`), next to its disk: on this Mac,
+        /// or on the external drive when the disk was moved.
+        public var snapshotSize: Int64 = 0
 
-        public init(name: String, url: URL, size: Int64, externalDisk: URL? = nil, externalSize: Int64 = 0) {
+        public init(name: String, url: URL, size: Int64, externalDisk: URL? = nil, externalSize: Int64 = 0,
+                    snapshotSize: Int64 = 0) {
             self.name = name
             self.url = url
             self.size = size
             self.externalDisk = externalDisk
             self.externalSize = externalSize
+            self.snapshotSize = snapshotSize
         }
 
-        public var totalSize: Int64 { size + externalSize }
+        public var totalSize: Int64 { size + externalSize + snapshotSize }
+        /// Space this VM takes on this Mac.
+        public var localSize: Int64 { size + (externalDisk == nil ? snapshotSize : 0) }
+        /// Space it takes on other volumes.
+        public var externalTotal: Int64 { externalSize + (externalDisk == nil ? 0 : snapshotSize) }
     }
 
     /// `LIMA_HOME` (`~/.lima` unless overridden).
@@ -61,29 +70,39 @@ public struct StorageReport: Sendable {
     public var limaItems: [Item]
     public var cacheRoot: URL
     public var downloads: [CachedDownload]
+    /// Data of VMs deleted outside HanaLima (see `Leftovers`).
+    public var leftovers: [Leftover] = []
 
     /// Under `LIMA_HOME`, i.e. on this Mac's disk.
-    public var limaTotal: Int64 { limaItems.reduce(0) { $0 + $1.size } }
-    /// Disks moved to other volumes.
-    public var externalTotal: Int64 { limaItems.reduce(0) { $0 + $1.externalSize } }
+    public var limaTotal: Int64 {
+        limaItems.reduce(0) { $0 + $1.localSize } + leftovers.filter { !$0.isExternal }.reduce(0) { $0 + $1.size }
+    }
+    /// Disks (and their snapshots) moved to other volumes.
+    public var externalTotal: Int64 { limaItems.reduce(0) { $0 + $1.externalTotal } }
     public var cacheTotal: Int64 { downloads.reduce(0) { $0 + $1.size } }
 
     public var unusedDownloads: [CachedDownload] { downloads.filter { $0.usage == .unused } }
 
     /// Measures both locations. Reads every file's allocated size, so call it off the main actor.
     /// `templatesDirectory` (Lima's `share/lima/templates`) tells templates' images from Lima's own files.
+    /// `diskFolders`: where HanaLima has put moved disks, searched for leftovers.
     public static func measure(limaHome: URL, templatesDirectory: URL? = nil,
-                               cacheRoot: URL = DownloadMonitor.cacheRoot) -> StorageReport {
+                               cacheRoot: URL = DownloadMonitor.cacheRoot, diskFolders: [URL] = []) -> StorageReport {
         let fm = FileManager.default
         let children = (try? fm.contentsOfDirectory(at: limaHome, includingPropertiesForKeys: [.isDirectoryKey],
                                                     options: [.skipsHiddenFiles])) ?? []
         let items = children
             .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+            // Counted with each VM, or as leftovers.
+            .filter { $0.lastPathComponent != DiskSnapshot.localFolderName }
             .map { dir -> Item in
                 var item = Item(name: dir.lastPathComponent, url: dir, size: allocatedSize(of: dir))
                 if !item.name.hasPrefix("_"), let external = ExternalDisk.placement(instanceDir: dir).externalURL {
                     item.externalDisk = external
                     item.externalSize = allocatedSize(of: external)  // 0 while the drive is away
+                }
+                if !item.name.hasPrefix("_"), let snapshots = DiskSnapshot.folder(instanceDir: dir) {
+                    item.snapshotSize = allocatedSize(of: snapshots)
                 }
                 return item
             }
@@ -95,7 +114,8 @@ public struct StorageReport: Sendable {
             })
         let downloads = classify(cachedDownloads(cacheRoot: cacheRoot), instanceConfigs: instanceConfigs,
                                  templates: templatesDirectory.map(yamlTexts(in:)) ?? [])
-        return StorageReport(limaHome: limaHome, limaItems: items, cacheRoot: cacheRoot, downloads: downloads)
+        return StorageReport(limaHome: limaHome, limaItems: items, cacheRoot: cacheRoot, downloads: downloads,
+                             leftovers: Leftovers.find(limaHome: limaHome, diskFolders: diskFolders))
     }
 
     static func classify(_ downloads: [CachedDownload], instanceConfigs: [String: String],

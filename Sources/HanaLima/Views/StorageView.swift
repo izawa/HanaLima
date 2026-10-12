@@ -6,6 +6,7 @@ import SwiftUI
 struct StorageView: View {
     @Environment(AppModel.self) private var model
     @State private var pruning: PruneKind?
+    @State private var deletingLeftover: Leftover?
 
     private enum PruneKind: Identifiable {
         case unreferred, all
@@ -62,15 +63,9 @@ struct StorageView: View {
                 ForEach(rows(report)) { row in
                     LabeledContent {
                         HStack(spacing: 8) {
-                            if let external = row.externalDisk {
-                                Text("\(Formatting.bytes(row.size)) ＋ 外部 \(Formatting.bytes(row.externalSize))")
-                                    .monospacedDigit()
-                                    .help(external.path)
-                                RevealIcon(url: external)
-                            } else {
-                                Text(Formatting.bytes(row.size)).monospacedDigit()
-                                RevealIcon(url: row.url)
-                            }
+                            Text(sizeText(row)).monospacedDigit()
+                                .help(row.externalDisk?.path ?? row.url.path)
+                            RevealIcon(url: row.externalDisk ?? row.url)
                         }
                     } label: {
                         if let instance = row.instance {
@@ -91,11 +86,18 @@ struct StorageView: View {
                 Text(report.externalTotal > 0
                      ? "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。「外部」は、外付けドライブなどへ移したディスクで、Mac の空き容量は使いません。"
                      : "仮想マシンのディスクはスパースファイルなので、実際に使っている容量を表示しています。一時的な仮想マシンのディスクは、「設定」タブから外付けドライブなどへ移せます。")
+                if report.limaItems.contains(where: { $0.snapshotSize > 0 }) {
+                    Text("スナップショットは、ディスクと共有している部分も数えています。実際に使っているのは、その後にディスクが変わった分だけです。")
+                }
                 if model.metadata.values.contains(where: { $0.parent != nil }) {
                     Text("複製した仮想マシンは、コピー元と共有している部分も、それぞれの使用量に数えています（APFS のクローンの共有分は調べられないため）。実際の合計は、表示より少なくなります。")
                 }
                 }
                 .font(.caption).foregroundStyle(.secondary)
+            }
+
+            if !report.leftovers.isEmpty {
+                leftoversSection(report.leftovers)
             }
 
             Section {
@@ -153,6 +155,56 @@ struct StorageView: View {
         var size: Int64
         var externalDisk: URL? = nil
         var externalSize: Int64 = 0
+        var snapshotSize: Int64 = 0
+    }
+
+    /// "1.2 GB", "1.2 GB ＋ 外部 300 MB", "… ＋ スナップショット 40 MB".
+    private func sizeText(_ row: Row) -> String {
+        var parts = [Formatting.bytes(row.size)]
+        if row.externalDisk != nil { parts.append(String(localized: "外部 \(Formatting.bytes(row.externalSize))")) }
+        if row.snapshotSize > 0 { parts.append(String(localized: "スナップショット \(Formatting.bytes(row.snapshotSize))")) }
+        return parts.joined(separator: String(localized: " ＋ ", comment: "Between sizes, as in 1.2 GB + external 300 MB"))
+    }
+
+    /// Data of VMs deleted with limactl (HanaLima deletes it along with the VM).
+    private func leftoversSection(_ leftovers: [Leftover]) -> some View {
+        Section {
+            ForEach(leftovers) { item in
+                LabeledContent {
+                    HStack(spacing: 8) {
+                        Text(Formatting.bytes(item.size)).monospacedDigit()
+                        RevealIcon(url: item.url)
+                        Button("削除…") { deletingLeftover = item }
+                            .disabled(model.isMeasuringStorage)
+                    }
+                } label: {
+                    Text(leftoverTitle(item))
+                    Text(item.url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                        .lineLimit(1).truncationMode(.middle)
+                }
+            }
+        } header: {
+            Text("どの仮想マシンのものでもないデータ")
+        } footer: {
+            Text("limactl で直接削除した仮想マシンの、スナップショットや外付けドライブ上のディスクです。HanaLima で仮想マシンを削除すると一緒に削除しますが、limactl はこれらを知らないため残ります。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .confirmationDialog(deletingLeftover.map(leftoverTitle).map { String(localized: "「\($0)」を削除しますか？") } ?? "",
+                            isPresented: Binding(get: { deletingLeftover != nil }, set: { if !$0 { deletingLeftover = nil } })) {
+            Button("削除", role: .destructive) {
+                if let item = deletingLeftover { Task { await model.deleteLeftover(item) } }
+            }
+        } message: {
+            Text("\(deletingLeftover?.url.path ?? "")（\(Formatting.bytes(deletingLeftover?.size ?? 0))）を削除します。この操作は取り消せません。")
+        }
+    }
+
+    private func leftoverTitle(_ item: Leftover) -> String {
+        let vm = item.instance ?? String(localized: "不明")
+        return switch item.kind {
+        case .snapshots(let count): String(localized: "削除した仮想マシン「\(vm)」のスナップショット \(count) 個")
+        case .externalDisk: String(localized: "削除した仮想マシン「\(vm)」の外付けのディスク")
+        }
     }
 
     /// Instances by name, `_disks` as additional disks, and Lima's small `_config`/`_networks` as one row.
@@ -166,7 +218,8 @@ struct StorageView: View {
                 other += item.size
             } else {
                 rows.append(Row(title: item.name, instance: item.name, url: item.url, size: item.size,
-                                externalDisk: item.externalDisk, externalSize: item.externalSize))
+                                externalDisk: item.externalDisk, externalSize: item.externalSize,
+                                snapshotSize: item.snapshotSize))
             }
         }
         rows.append(Row(title: String(localized: "Lima の設定など"), url: report.limaHome.appending(path: "_config"), size: other))

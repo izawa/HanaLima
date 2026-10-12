@@ -5,6 +5,27 @@ import SwiftUI
 /// Remembered across sheets, so the external drive is preselected the next time.
 enum DiskLocationSettings {
     static let lastFolder = "lastExternalDiskFolder"
+    /// Folders holding moved disks (`HanaLima Disks`), searched for leftovers of deleted VMs.
+    static let knownFolders = "knownExternalDiskFolders"
+
+    static var knownDiskFolders: [URL] {
+        var paths = UserDefaults.standard.stringArray(forKey: knownFolders) ?? []
+        if let last = UserDefaults.standard.string(forKey: lastFolder) {
+            // Where the next disk would go: <last>/HanaLima Disks, or <last> itself.
+            paths.append(ExternalDisk.target(in: URL(filePath: last, directoryHint: .isDirectory), name: "_")
+                .deletingLastPathComponent().deletingLastPathComponent().path)
+        }
+        return Array(Set(paths)).sorted().map { URL(filePath: $0, directoryHint: .isDirectory) }
+    }
+
+    /// Remembers the folder holding `disk` (`…/HanaLima Disks/<name>/disk`).
+    static func remember(disk: URL) {
+        let base = disk.deletingLastPathComponent().deletingLastPathComponent().standardizedFileURL.path
+        var paths = UserDefaults.standard.stringArray(forKey: knownFolders) ?? []
+        guard !paths.contains(base) else { return }
+        paths.append(base)
+        UserDefaults.standard.set(paths, forKey: knownFolders)
+    }
 }
 
 /// "Disk location" in the Settings tab: where the disk is, and moving it out or back.

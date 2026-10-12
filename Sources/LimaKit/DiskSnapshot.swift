@@ -15,11 +15,14 @@ public struct DiskSnapshot: Codable, Identifiable, Equatable, Sendable {
     public var id: UUID
     public var name: String
     public var createdAt: Date
+    /// The VM's name when the snapshot was made (shown if the VM is deleted outside HanaLima).
+    public var instance: String?
 
-    public init(id: UUID = UUID(), name: String, createdAt: Date = .now) {
+    public init(id: UUID = UUID(), name: String, createdAt: Date = .now, instance: String? = nil) {
         self.id = id
         self.name = name
         self.createdAt = createdAt.wholeSeconds
+        self.instance = instance
     }
 
     static let localFolderName = "_hanalima-snapshots"
@@ -51,8 +54,12 @@ public struct DiskSnapshot: Codable, Identifiable, Equatable, Sendable {
     }
 
     public static func list(instanceDir: URL) -> [DiskSnapshot] {
-        guard let folder = folder(instanceDir: instanceDir),
-              let entries = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [] }
+        guard let folder = folder(instanceDir: instanceDir) else { return [] }
+        return list(in: folder)
+    }
+
+    static func list(in folder: URL) -> [DiskSnapshot] {
+        guard let entries = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [] }
         return entries.compactMap { dir in
             guard let data = try? Data(contentsOf: dir.appending(path: infoName)) else { return nil }
             return try? decoder.decode(DiskSnapshot.self, from: data)
@@ -63,7 +70,7 @@ public struct DiskSnapshot: Codable, Identifiable, Equatable, Sendable {
     /// Saves the current disk. The instance must be stopped.
     public static func create(instanceDir: URL, name: String) throws -> DiskSnapshot {
         guard let folder = folder(instanceDir: instanceDir, createRecord: true) else { throw failure(String(localized: "ディスクが見つかりません。")) }
-        let snapshot = DiskSnapshot(name: name)
+        let snapshot = DiskSnapshot(name: name, instance: instanceDir.lastPathComponent)
         let dir = folder.appending(path: snapshot.id.uuidString, directoryHint: .isDirectory)
         let fm = FileManager.default
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)

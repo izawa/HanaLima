@@ -27,6 +27,23 @@
         }
       }
     },
+    " ＋ ": {
+      "comment": "Between sizes, as in 1.2 GB + external 300 MB",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " + "
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " ＋ "
+          }
+        }
+      }
+    },
     "# /bin/sh で実行されます（#! は不要）\n": {
       "localizations": {
         "en": {
@@ -188,6 +205,7 @@
       }
     },
     "%@ ＋ 外部 %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -311,6 +329,22 @@
           "stringUnit": {
             "state": "new",
             "value": "%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "%@（%@）を削除します。この操作は取り消せません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (%2$@) will be deleted. You can’t undo this action."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@（%2$@）を削除します。この操作は取り消せません。"
           }
         }
       }
@@ -1903,6 +1937,22 @@
         }
       }
     },
+    "limactl で直接削除した仮想マシンの、スナップショットや外付けドライブ上のディスクです。HanaLima で仮想マシンを削除すると一緒に削除しますが、limactl はこれらを知らないため残ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots and disks on external drives of virtual machines deleted with limactl directly. HanaLima deletes them along with a virtual machine, but limactl doesn’t know about them, so they stay behind."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limactl で直接削除した仮想マシンの、スナップショットや外付けドライブ上のディスクです。HanaLima で仮想マシンを削除すると一緒に削除しますが、limactl はこれらを知らないため残ります。"
+          }
+        }
+      }
+    },
     "limactl はエラーを返しませんでしたが、一覧に見つかりません。ログタブの「コマンド出力」を確認してください。": {
       "localizations": {
         "en": {
@@ -2740,6 +2790,22 @@
         }
       }
     },
+    "このデータは、いまは仮想マシンが使っています。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A virtual machine uses this data now."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデータは、いまは仮想マシンが使っています。"
+          }
+        }
+      }
+    },
     "このネットワークは削除されています。この NIC を外してください。": {
       "localizations": {
         "en": {
@@ -3025,6 +3091,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "その他"
+          }
+        }
+      }
+    },
+    "どの仮想マシンのものでもないデータ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data of No Virtual Machine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どの仮想マシンのものでもないデータ"
           }
         }
       }
@@ -3813,6 +3895,22 @@
         }
       }
     },
+    "スナップショット %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "snapshots %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショット %@"
+          }
+        }
+      }
+    },
     "スナップショット「%@」を作成できませんでした": {
       "localizations": {
         "en": {
@@ -3922,6 +4020,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "スナップショットは QEMU の仮想マシンでのみ使えます"
+          }
+        }
+      }
+    },
+    "スナップショットは、ディスクと共有している部分も数えています。実際に使っているのは、その後にディスクが変わった分だけです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots are counted in full, including what they still share with the disk. They actually take only what has changed on the disk since."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショットは、ディスクと共有している部分も数えています。実際に使っているのは、その後にディスクが変わった分だけです。"
           }
         }
       }
@@ -6936,6 +7050,54 @@
         }
       }
     },
+    "削除した仮想マシン「%@」のスナップショット %lld 個": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots of deleted virtual machine “%1$@” (%2$lld)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "削除した仮想マシン「%1$@」のスナップショット %2$lld 個"
+          }
+        }
+      }
+    },
+    "削除した仮想マシン「%@」の外付けのディスク": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disk on an external drive of deleted virtual machine “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除した仮想マシン「%@」の外付けのディスク"
+          }
+        }
+      }
+    },
+    "削除できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Delete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除できませんでした"
+          }
+        }
+      }
+    },
     "削除中": {
       "localizations": {
         "en": {
@@ -7268,6 +7430,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "外付けドライブなどへ移動…"
+          }
+        }
+      }
+    },
+    "外部 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "external %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部 %@"
           }
         }
       }

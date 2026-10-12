@@ -15,8 +15,9 @@ extension AppModel {
         let list = templates.isEmpty ? ((try? await client.templates()) ?? []) : templates
         let templates = list.lazy.compactMap(\.location).first?
             .resolvingSymlinksInPath().deletingLastPathComponent()
+        let diskFolders = DiskLocationSettings.knownDiskFolders
         storage = await Task.detached(priority: .utility) {
-            StorageReport.measure(limaHome: home, templatesDirectory: templates)
+            StorageReport.measure(limaHome: home, templatesDirectory: templates, diskFolders: diskFolders)
         }.value
     }
 
@@ -52,6 +53,23 @@ extension AppModel {
         } catch {
             alert = AlertMessage(title: String(localized: "キャッシュを削除できませんでした"),
                                  message: error.localizedDescription)
+        }
+        await measureStorage()
+    }
+
+    /// Deletes data left by a VM deleted outside HanaLima, after checking it is still left over
+    /// (a VM may have been made or renamed since the list was measured).
+    func deleteLeftover(_ leftover: Leftover) async {
+        guard let home = storage?.limaHome else { return }
+        let folders = DiskLocationSettings.knownDiskFolders
+        let error: String? = await Task.detached(priority: .utility) {
+            guard Leftovers.find(limaHome: home, diskFolders: folders).contains(where: { $0.url == leftover.url }) else {
+                return String(localized: "このデータは、いまは仮想マシンが使っています。")
+            }
+            do { try Leftovers.remove(leftover); return nil } catch { return error.localizedDescription }
+        }.value
+        if let error {
+            alert = AlertMessage(title: String(localized: "削除できませんでした"), message: error)
         }
         await measureStorage()
     }

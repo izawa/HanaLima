@@ -16,6 +16,7 @@ extension AppModel {
     func updateDiskPlacements() {
         let current = Dictionary(uniqueKeysWithValues: instances.map { ($0.name, Self.placement(of: $0)) })
         if current != diskPlacements { diskPlacements = current }
+        for case .external(let disk) in current.values { DiskLocationSettings.remember(disk: disk) }
         var shared: [String: String] = [:]
         for inst in instances where current[inst.name]?.externalURL != nil {
             let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
