@@ -117,6 +117,10 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - 確認: 複製元と複製を同じ HanaLima ネットワーク（10.252.x.0/24）につないで同時に起動する E2E（`CloneDHCPEndToEndTests`）を作った。Alpine（DUID は同一）、Fedora、Ubuntu LTS のいずれも別の IP（.2 と .3）になった。Alpine の dhcpcd は識別子を IAID＋DUID にし、IAID は既定で MAC から作るので、MAC の違う複製では識別子も違う。Ubuntu は Lima の netplan で MAC を識別子に使う。
 - 結論: netd は変えない（オプション 61 の除去は予約のある MAC に限ったまま）。E2E を回帰の確認として残す。
 
+## 23. E2E の通しと、持ち主のいないデータ（2026-10-12）
+- E2E の後片付けを `defer { Task { … } }` から同期的な `E2ECleanup.deleteInstances` に替えた（Task はテストの終了までに走らず VM が残った）。全 12 スイートを通しで実行し、すべて通過（約 25 分、ブリッジは除く）。
+- 使用量に、VM ごとのスナップショットの容量と、`limactl delete` で消した VM が残したスナップショット・外付けのディスクを表示し、削除できるようにした。実機で、CLI で消した VM のスナップショットが表示され、削除後は `fedora` のスナップショットだけが残ることを確かめた。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
