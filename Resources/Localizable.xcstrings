@@ -613,6 +613,22 @@
         }
       }
     },
+    "APFS のクローンを作れませんでした（%@）。ディスクのあるボリュームが APFS でない可能性があります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t make an APFS clone (%@). The volume with the disk may not be APFS."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "APFS のクローンを作れませんでした（%@）。ディスクのあるボリュームが APFS でない可能性があります。"
+          }
+        }
+      }
+    },
     "Alpine（ISO 起動）": {
       "localizations": {
         "en": {
@@ -2244,6 +2260,22 @@
         }
       }
     },
+    "「%@」のスナップショット「%@」から新しい仮想マシンを作成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Virtual Machine from Snapshot “%2$@” of “%1$@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」のスナップショット「%2$@」から新しい仮想マシンを作成"
+          }
+        }
+      }
+    },
     "「%@」のディスクが見つかりません": {
       "localizations": {
         "en": {
@@ -2324,6 +2356,22 @@
         }
       }
     },
+    "「%@」の状態に戻しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore to “%@”?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の状態に戻しますか？"
+          }
+        }
+      }
+    },
     "「%@」の自動起動を有効にできませんでした": {
       "localizations": {
         "en": {
@@ -2352,6 +2400,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」の自動起動を無効にできませんでした"
+          }
+        }
+      }
+    },
+    "「%@」の起動ディスクの今の状態を保存します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saves the current state of the boot disk of “%@”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の起動ディスクの今の状態を保存します。"
           }
         }
       }
@@ -2464,6 +2528,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」を複製"
+          }
+        }
+      }
+    },
+    "「%@」を複製し、ディスクをこのスナップショットの状態にします。「%@」自体は今の状態のままです。設定（CPU、メモリ、ネットワークなど）は今の「%@」のものです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copies “%1$@” and puts its disk in the state of this snapshot. “%2$@” itself stays as it is now. The settings (CPUs, memory, networks and so on) are those of “%3$@” now."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」を複製し、ディスクをこのスナップショットの状態にします。「%2$@」自体は今の状態のままです。設定（CPU、メモリ、ネットワークなど）は今の「%3$@」のものです。"
           }
         }
       }
@@ -2628,6 +2708,22 @@
         }
       }
     },
+    "このスナップショットの状態から、新しい仮想マシンを作ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Makes a new virtual machine in the state of this snapshot."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスナップショットの状態から、新しい仮想マシンを作ります。"
+          }
+        }
+      }
+    },
     "このセッションで実行したコマンドはまだありません。": {
       "localizations": {
         "en": {
@@ -2725,6 +2821,7 @@
       }
     },
     "この仮想マシンは %@ です。Lima 2.2 の VZ ドライバーはスナップショットに対応していません。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2804,6 +2901,22 @@
         }
       }
     },
+    "この状態から新しい仮想マシン…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Virtual Machine from This State…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この状態から新しい仮想マシン…"
+          }
+        }
+      }
+    },
     "この状態に復元…": {
       "localizations": {
         "en": {
@@ -2816,6 +2929,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この状態に復元…"
+          }
+        }
+      }
+    },
+    "この状態に戻す…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore to This State…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この状態に戻す…"
           }
         }
       }
@@ -3700,6 +3829,22 @@
         }
       }
     },
+    "スナップショットがあるあいだは移動できません（スナップショットはディスクと同じドライブに置くため）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be moved while it has snapshots (they are kept on the same drive as the disk)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショットがあるあいだは移動できません（スナップショットはディスクと同じドライブに置くため）。"
+          }
+        }
+      }
+    },
     "スナップショットの作成・復元・削除は、仮想マシンを停止してから行えます。": {
       "localizations": {
         "en": {
@@ -3749,6 +3894,7 @@
       }
     },
     "スナップショットは QEMU の仮想マシンでのみ使えます": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3776,6 +3922,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "スナップショットはありません"
+          }
+        }
+      }
+    },
+    "スナップショットはコピーに含まれません（コピー元に残ります）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots aren’t copied (they stay with the original)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショットはコピーに含まれません（コピー元に残ります）。"
+          }
+        }
+      }
+    },
+    "スナップショットはディスクと同じドライブにあります。ドライブを接続すると表示します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots are kept on the same drive as the disk. Connect the drive to see them."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショットはディスクと同じドライブにあります。ドライブを接続すると表示します。"
           }
         }
       }
@@ -4084,6 +4262,22 @@
         }
       }
     },
+    "ディスクが見つかりません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk can’t be found."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクが見つかりません。"
+          }
+        }
+      }
+    },
     "ディスクのあるドライブが接続されていません。接続すると、そのまま使えます。": {
       "localizations": {
         "en": {
@@ -4096,6 +4290,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスクのあるドライブが接続されていません。接続すると、そのまま使えます。"
+          }
+        }
+      }
+    },
+    "ディスクのある外付けドライブが接続されていません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The External Drive with the Disk Isn’t Connected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクのある外付けドライブが接続されていません"
           }
         }
       }
@@ -4325,6 +4535,7 @@
       }
     },
     "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4336,6 +4547,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。"
+          }
+        }
+      }
+    },
+    "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。同じ仮想マシンをあとで今の状態に戻したいだけなら、「スナップショット」タブを使います。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copies the whole virtual machine, disk included, and adds it to the sidebar as a new virtual machine. The original and the copy run independently. To return the same virtual machine to its current state later, use the Snapshots tab instead."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。同じ仮想マシンをあとで今の状態に戻したいだけなら、「スナップショット」タブを使います。"
           }
         }
       }
@@ -4736,6 +4963,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ファイルの配置（data）"
+          }
+        }
+      }
+    },
+    "ファイルを置き換えられませんでした: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t replace the file: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを置き換えられませんでした: %@"
           }
         }
       }
@@ -6133,6 +6376,22 @@
         }
       }
     },
+    "例: アップデート前": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Before update"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例: アップデート前"
+          }
+        }
+      }
+    },
     "例: 検証用のクリーンな状態": {
       "localizations": {
         "en": {
@@ -6321,6 +6580,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "停止中に「作成」を押すと、その時点のディスクの状態を保存します。"
+          }
+        }
+      }
+    },
+    "停止中に「作成」を押すと、今の状態を保存します。あとで、いつでもこの仮想マシンをその状態に戻せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While stopped, click Create to save the current state. You can restore this virtual machine to it at any time."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止中に「作成」を押すと、今の状態を保存します。あとで、いつでもこの仮想マシンをその状態に戻せます。"
           }
         }
       }
@@ -7237,6 +7512,22 @@
         }
       }
     },
+    "戻す…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻す…"
+          }
+        }
+      }
+    },
     "拡張のみ可能です。ゲスト側のファイルシステムは次回起動時に Lima が拡張します。": {
       "localizations": {
         "en": {
@@ -7373,6 +7664,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しいディスクを作成…"
+          }
+        }
+      }
+    },
+    "新しい仮想マシン…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Virtual Machine…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい仮想マシン…"
           }
         }
       }
@@ -8541,6 +8848,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "起動ディスクが、このスナップショットを作成した時点の内容に戻ります。それ以降の変更は失われます。"
+          }
+        }
+      }
+    },
+    "起動ディスクが、このスナップショットを作成した時点の内容に戻ります。それ以降の変更は失われます（残したいなら、先にスナップショットを作成してください）。スナップショット自体は残ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The boot disk returns to its contents when this snapshot was made. Changes since then are lost (to keep them, make a snapshot first). The snapshot itself stays."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動ディスクが、このスナップショットを作成した時点の内容に戻ります。それ以降の変更は失われます（残したいなら、先にスナップショットを作成してください）。スナップショット自体は残ります。"
+          }
+        }
+      }
+    },
+    "起動ディスクと EFI の状態を APFS のクローンで保存します（すぐに終わり、容量はその後に変わった分だけ使います）。設定と追加ディスクは含みません。別の仮想マシンとして並べて使うなら「複製」を使います。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saves the boot disk and EFI state as APFS clones (instant; they take space only as the disk changes afterwards). Settings and additional disks aren’t included. To use another virtual machine side by side, use Copy instead."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動ディスクと EFI の状態を APFS のクローンで保存します（すぐに終わり、容量はその後に変わった分だけ使います）。設定と追加ディスクは含みません。別の仮想マシンとして並べて使うなら「複製」を使います。"
           }
         }
       }

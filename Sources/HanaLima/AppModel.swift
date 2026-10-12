@@ -123,6 +123,8 @@ final class AppModel {
     @ObservationIgnored private var bootstrapStarted = false
     /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).
     private(set) var snapshots: [String: [LimaSnapshot]] = [:]
+    /// HanaLima's snapshots of VZ instances (see DiskSnapshot), loaded with the snapshot tab.
+    var diskSnapshots: [String: [DiskSnapshot]] = [:]
     /// Instances registered to start at login (`limactl autostart`).
     private(set) var autostartInstances: Set<String> = []
     var selection: SidebarItem?
@@ -445,8 +447,12 @@ final class AppModel {
         let placement = instance(named: name).map { diskPlacement(of: $0) } ?? .local
         let dir = instance(named: name).map { URL(filePath: $0.dir, directoryHint: .isDirectory) }
         let shared = sharedDiskOwners[name] != nil
+        let recordID = metadata[name]?.id
         run(.delete, on: name, client.delete(name, force: force)) { [weak self] ok in
             guard let self, ok else { return }
+            if let recordID, let dir {
+                DiskSnapshot.removeLocalSnapshots(limaHome: dir.deletingLastPathComponent(), id: recordID)
+            }
             if let dir, !shared { self.cleanUpExternalDisk(after: name, placement: placement, instanceDir: dir) }
             self.operations[name] = nil
             self.events[name] = nil

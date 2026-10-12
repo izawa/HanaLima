@@ -6,6 +6,7 @@ struct CopyInstanceSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let source: String
+    var snapshot: SnapshotRef? = nil
     @State private var name = ""
     @State private var note = ""
     @State private var startAfterCopy = false
@@ -15,9 +16,15 @@ struct CopyInstanceSheet: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    Text("「\(source)」を複製").font(.headline)
-                    Text("ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。")
-                        .fixedSize(horizontal: false, vertical: true)
+                    if let snapshot {
+                        Text("「\(source)」のスナップショット「\(snapshot.label)」から新しい仮想マシンを作成").font(.headline)
+                        Text("「\(source)」を複製し、ディスクをこのスナップショットの状態にします。「\(source)」自体は今の状態のままです。設定（CPU、メモリ、ネットワークなど）は今の「\(source)」のものです。")
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text("「\(source)」を複製").font(.headline)
+                        Text("ディスクを含む仮想マシン全体をコピーし、新しい仮想マシンとしてサイドバーに追加します。コピー元とコピーは、それぞれ独立して動きます。同じ仮想マシンをあとで今の状態に戻したいだけなら、「スナップショット」タブを使います。")
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Section {
                     TextField("名前", text: $name, prompt: Text(suggestedName))
@@ -35,6 +42,8 @@ struct CopyInstanceSheet: View {
                     Label(diskText(instance), systemImage: "internaldrive")
                     if instance?.vmType?.lowercased() == "qemu" {
                         Label("スナップショットもコピーに含まれます。", systemImage: "camera")
+                    } else {
+                        Label("スナップショットはコピーに含まれません（コピー元に残ります）。", systemImage: "camera")
                     }
                 }
                 .font(.callout)
@@ -46,7 +55,7 @@ struct CopyInstanceSheet: View {
                 Button("キャンセル", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("複製") {
-                    model.copy(source, as: effectiveName, note: note, thenStart: startAfterCopy)
+                    model.copy(source, as: effectiveName, note: note, thenStart: startAfterCopy, snapshot: snapshot)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

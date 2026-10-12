@@ -16,7 +16,8 @@ struct DiskLocationSection: View {
 
     var body: some View {
         let placement = model.diskPlacement(of: instance)
-        let locked = instance.status != .stopped || model.isBusy(instance.name)
+        let hasSnapshots = instance.vmType?.lowercased() != "qemu" && model.hasDiskSnapshots(instance)
+        let locked = instance.status != .stopped || model.isBusy(instance.name) || hasSnapshots
         Section {
             LabeledContent("保存場所") {
                 switch placement {
@@ -42,7 +43,9 @@ struct DiskLocationSection: View {
                 }
             }
             HStack {
-                if locked {
+                if hasSnapshots {
+                    Text("スナップショットがあるあいだは移動できません（スナップショットはディスクと同じドライブに置くため）。").font(.caption).foregroundStyle(.secondary)
+                } else if locked {
                     Text("仮想マシンを停止すると移動できます。").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()

@@ -50,7 +50,7 @@ extension AppModel {
 
     /// Copies the stopped VM `source` as `name`: an APFS clone, so it is instant and takes no
     /// space until either VM writes. A moved disk gets its own clone on the same drive.
-    func copy(_ source: String, as name: String, note: String, thenStart: Bool) {
+    func copy(_ source: String, as name: String, note: String, thenStart: Bool, snapshot: SnapshotRef? = nil) {
         guard let client, let src = instance(named: source), copyBlocker(source) == nil else { return }
         let sourceDir = URL(filePath: src.dir, directoryHint: .isDirectory)
         let config = (try? String(contentsOf: sourceDir.appending(path: "lima.yaml"), encoding: .utf8)) ?? ""
@@ -67,6 +67,14 @@ extension AppModel {
                         Task { @MainActor in self.operations[name]?.fraction = fraction }
                     }
                     self.metadata[name] = record
+                    switch snapshot {
+                    case .disk(let s):
+                        try DiskSnapshot.restore(s, of: sourceDir, into: copyDir)
+                    case .lima(let tag):
+                        for try await entry in client.applySnapshot(name, tag: tag) { _ = entry }
+                    case nil:
+                        break
+                    }
                     self.operations[name] = nil
                 } catch {
                     self.operations[name]?.isRunning = false
@@ -93,5 +101,55 @@ extension AppModel {
 
 struct CopyRequest: Identifiable, Equatable {
     let source: String
-    var id: String { source }
+    /// Copy the VM as it was in this snapshot instead of as it is now.
+    var snapshot: SnapshotRef? = nil
+    var id: String { source + (snapshot?.label ?? "") }
+}
+
+/// A snapshot of either kind: HanaLima's (VZ) or Lima's (QEMU).
+enum SnapshotRef: Equatable {
+    case disk(DiskSnapshot)
+    case lima(tag: String)
+
+    var label: String {
+        switch self {
+        case .disk(let s): s.name
+        case .lima(let tag): tag
+        }
+    }
+}
+
+/// VZ snapshots (HanaLima's own; QEMU ones are Lima's, see the snapshot tab).
+extension AppModel {
+    func loadDiskSnapshots(_ name: String) {
+        guard let inst = instance(named: name) else { return }
+        let list = DiskSnapshot.list(instanceDir: URL(filePath: inst.dir, directoryHint: .isDirectory))
+        if diskSnapshots[name] != list { diskSnapshots[name] = list }
+    }
+
+    /// Whether a VZ VM has snapshots: they sit next to the disk, so its disk can't move then.
+    func hasDiskSnapshots(_ instance: LimaInstance) -> Bool {
+        !DiskSnapshot.list(instanceDir: URL(filePath: instance.dir, directoryHint: .isDirectory)).isEmpty
+    }
+
+    private func diskSnapshotOperation(_ kind: Operation.Kind, _ name: String,
+                                       _ work: @escaping @Sendable (URL) throws -> Void) {
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
+        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
+        runFileOperation(kind, name: name, showsProgress: false) { _ in try work(dir) } completion: { [weak self] _ in
+            self?.loadDiskSnapshots(name)
+        }
+    }
+
+    func createDiskSnapshot(_ name: String, title: String) {
+        diskSnapshotOperation(.snapshotCreate, name) { dir in _ = try DiskSnapshot.create(instanceDir: dir, name: title) }
+    }
+
+    func restoreDiskSnapshot(_ name: String, _ snapshot: DiskSnapshot) {
+        diskSnapshotOperation(.snapshotApply, name) { dir in try DiskSnapshot.restore(snapshot, of: dir, into: dir) }
+    }
+
+    func deleteDiskSnapshot(_ name: String, _ snapshot: DiskSnapshot) {
+        diskSnapshotOperation(.snapshotDelete, name) { dir in try DiskSnapshot.delete(snapshot, instanceDir: dir) }
+    }
 }

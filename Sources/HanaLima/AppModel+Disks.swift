@@ -61,10 +61,10 @@ extension AppModel {
     /// Moves `name`'s disk to `folder` (`<folder>/HanaLima Disks/<name>/disk`), then starts the VM
     /// if asked. The VM must be stopped.
     func moveDisk(_ name: String, to folder: URL, thenStart: Bool = false) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         let target = ExternalDisk.target(in: folder, name: name)
-        runDiskMove(.moveDisk, name: name) { progress in
+        runFileOperation(.moveDisk, name: name) { progress in
             try await ExternalDisk.moveOut(instanceDir: dir, name: name, to: target, progress: progress)
         } completion: { [weak self] ok in
             if ok && thenStart { self?.start(name) }
@@ -72,9 +72,9 @@ extension AppModel {
     }
 
     func moveDiskBack(_ name: String) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        runDiskMove(.moveDiskBack, name: name) { progress in
+        runFileOperation(.moveDiskBack, name: name) { progress in
             try await ExternalDisk.moveBack(instanceDir: dir, progress: progress)
         } completion: { _ in }
     }
@@ -83,7 +83,7 @@ extension AppModel {
     func separateDisk(_ name: String) {
         guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        runDiskMove(.separateDisk, name: name) { progress in
+        runFileOperation(.separateDisk, name: name) { progress in
             try await ExternalDisk.separate(instanceDir: dir, name: name, progress: progress)
         } completion: { _ in }
     }
@@ -92,16 +92,19 @@ extension AppModel {
         diskMoveTasks[name]?.cancel()
     }
 
-    private func runDiskMove(_ kind: Operation.Kind, name: String,
+    /// Runs file work on a stopped VM as its operation: busy meanwhile, errors shown, the list
+    /// refreshed afterwards. With `showsProgress`, a progress bar and Cancel are shown.
+    func runFileOperation(_ kind: Operation.Kind, name: String, showsProgress: Bool = true,
                              _ work: @escaping @Sendable (@escaping @Sendable (Double) -> Void) async throws -> Void,
                              completion: @escaping @MainActor (Bool) -> Void) {
         var op = Operation(kind: kind)
-        op.fraction = 0
+        if showsProgress { op.fraction = 0 }
         operations[name] = op
         diskMoveTasks[name] = Task {
             var ok = true
             do {
                 try await work { fraction in
+                    guard showsProgress else { return }
                     Task { @MainActor in self.operations[name]?.fraction = fraction }
                 }
             } catch is CancellationError {

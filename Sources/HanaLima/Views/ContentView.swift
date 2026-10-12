@@ -72,7 +72,7 @@ struct ContentView: View {
         .sheet(isPresented: $showCreate) {
             CreateInstanceSheet()
         }
-        .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source) }
+        .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source, snapshot: $0.snapshot) }
         // A request made before limactl was found waits until it is.
         .onChange(of: model.createRequested && model.client != nil, initial: true) { _, ready in
             guard ready else { return }
