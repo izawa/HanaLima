@@ -5130,6 +5130,22 @@
         }
       }
     },
+    "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files are hidden, but the network is another matter: the virtual machine can still reach the internet, your LAN, and services running on the Mac’s 127.0.0.1 (development servers, databases and the like). This is how Lima works."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様）。"
+          }
+        }
+      }
+    },
     "ファイルを置き換えられませんでした: %@": {
       "localizations": {
         "en": {

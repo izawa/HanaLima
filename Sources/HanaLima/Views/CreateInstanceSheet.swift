@@ -136,12 +136,20 @@ struct CreateInstanceSheet: View {
                 } header: {
                     Text("Mac との共有")
                 } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
                     Text(shareHome
                          ? "仮想マシンから Mac のホームフォルダ（~/.ssh などの認証情報を含む）を読めます。AI のエージェントなど、信頼しきれないものを動かすならオフにしてください。"
                          : workFolder == nil
                          ? "Mac のファイルは仮想マシンから見えません。作業フォルダを選ぶと、そのフォルダだけを共有します（あとから「設定」タブの共有フォルダでも追加できます）。"
                          : "仮想マシンから見えるのは作業フォルダだけで、仮想マシンの中でも同じパスにあります。ホームフォルダのほかの場所は見えません。")
                         .font(.caption).foregroundStyle(.secondary)
+                    if !shareHome {
+                        // Lima's user-mode network can't be turned off; its gateway reaches the
+                        // Mac's loopback (see docs/06).
+                        Text("ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様）。")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
+                    }
                 }
 
                 Section("オプション") {
