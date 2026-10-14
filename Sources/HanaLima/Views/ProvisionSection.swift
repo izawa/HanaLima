@@ -47,6 +47,7 @@ struct ProvisionSection: View {
     @Binding var provision: [ProvisionConfig]
     var isLocked = false
     @State private var editing: ProvisionConfig?
+    @State private var showExamples = false
 
     var body: some View {
         Section {
@@ -82,6 +83,8 @@ struct ProvisionSection: View {
                 ForEach(ProvisionConfig.Mode.editable) { mode in
                     Button(mode.label) { editing = mode.template }
                 }
+                Divider()
+                Button("例から追加…") { showExamples = true }
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -95,8 +98,12 @@ struct ProvisionSection: View {
         #if DEBUG
         .task {
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_PROVISION"] == "1" { editing = provision.first }
+            if DebugSnapshot.env["HANALIMA_SNAPSHOT_PROVISION_EXAMPLES"] == "1" { showExamples = true }
         }
         #endif
+        .sheet(isPresented: $showExamples) {
+            ProvisionExamplesSheet { entries in provision.append(contentsOf: entries) }
+        }
         .sheet(item: $editing) { entry in
             ProvisionEditorSheet(entry: entry, isNew: !provision.contains { $0.id == entry.id },
                                  isReadOnly: isLocked) { saved in
@@ -200,5 +207,82 @@ private struct ProvisionEditorSheet: View {
         case .data: String(localized: "ゲストにファイルを書き込みます（実行はしません）。所有者は root:root、権限は 644 が既定です。")
         case .yq, .ansible: ""
         }
+    }
+}
+
+extension ProvisionExample {
+    var title: String {
+        switch id {
+        case .basicTools: String(localized: "基本ツール一式")
+        case .dotfiles: String(localized: "自分の dotfiles・公開鍵")
+        case .containerEngine: String(localized: "コンテナのエンジン（Docker Engine）")
+        case .xdp: String(localized: "XDP の開発環境")
+        }
+    }
+
+    var details: String {
+        switch id {
+        case .basicTools:
+            String(localized: "git、curl、wget、jq、vim、htop、tmux、unzip を入れます。apt・dnf・apk を見分けます。")
+        case .dotfiles:
+            String(localized: "シェルの設定（~/.config/hanalima/shell.sh）を置き、~/.profile と ~/.bashrc から読み込みます。公開鍵（KEY）と dotfiles のリポジトリ（REPO）は、追加したあと「ユーザー」の項目を編集して書き入れてください。公開鍵は authorized_keys に追記するので、Lima の鍵は残ります。")
+        case .containerEngine:
+            String(localized: "Docker Engine を公式の手順で入れ、ユーザーを docker グループに入れます（root で動く構成。グループは次のログインから有効）。rootless で使うなら、作成時に Lima の docker テンプレートを選びます。")
+        case .xdp:
+            String(localized: "clang、llvm、libbpf、libxdp、xdp-tools、bpftool、カーネルのヘッダーを入れ、XDP のプログラムをビルドして読み込めるようにします（カーネルはそのまま）。VM のネットワークでは、汎用モード（xdpgeneric）から試してください。")
+        }
+    }
+}
+
+/// HanaLima's ready-made provisioning: pick one, and its entries are added for editing.
+private struct ProvisionExamplesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onAdd: ([ProvisionConfig]) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    ForEach(ProvisionExamples.all) { example in
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(example.title).font(.headline)
+                                Text(example.details)
+                                    .font(.callout).foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                HStack(spacing: 10) {
+                                    ForEach(Array(Set(example.entries.map(\.mode))).sorted { $0.rawValue < $1.rawValue }) { mode in
+                                        Label(mode.label, systemImage: mode.icon)
+                                    }
+                                    Text(verbatim: example.distributions.joined(separator: " · "))
+                                }
+                                .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("追加") {
+                                // Fresh ids: the same example may be added twice.
+                                onAdd(example.entries.map { var e = $0; e.id = UUID(); return e })
+                                dismiss()
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Text("プロビジョニングの例")
+                } footer: {
+                    Text("どれも起動のたびに実行され、済んでいれば何もしません。追加した項目は、そのまま編集できます。設定を保存すると、次の起動から実行されます。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .formStyle(.grouped)
+            Divider()
+            HStack {
+                Spacer()
+                Button("閉じる", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding()
+        }
+        .frame(width: 620, height: 600)
     }
 }

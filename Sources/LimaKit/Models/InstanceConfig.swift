@@ -286,13 +286,14 @@ public struct ProvisionConfig: Hashable, Sendable, Identifiable {
     public var skipDefaultDependencyResolution: Bool
     var extra: [String: JSONValue]
 
-    public init(mode: Mode, script: String = "", path: String = "", content: String = "") {
+    /// `owner` (for `data`): the file's owner in the guest, e.g. `{{.User}}` (Lima's default is root).
+    public init(mode: Mode, script: String = "", path: String = "", content: String = "", owner: String? = nil) {
         self.mode = mode
         self.script = script
         self.path = path
         self.content = content
         self.skipDefaultDependencyResolution = false
-        self.extra = [:]
+        self.extra = owner.map { ["owner": .string($0)] } ?? [:]
     }
 
     init(json: JSONValue) {

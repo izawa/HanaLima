@@ -721,6 +721,22 @@
         }
       }
     },
+    "Docker Engine を公式の手順で入れ、ユーザーを docker グループに入れます（root で動く構成。グループは次のログインから有効）。rootless で使うなら、作成時に Lima の docker テンプレートを選びます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installs Docker Engine the official way and adds the user to the docker group (Docker runs as root; the group takes effect at the next login). For rootless Docker, choose Lima’s docker template when creating the virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Docker Engine を公式の手順で入れ、ユーザーを docker グループに入れます（root で動く構成。グループは次のログインから有効）。rootless で使うなら、作成時に Lima の docker テンプレートを選びます。"
+          }
+        }
+      }
+    },
     "Docker（rootful）": {
       "localizations": {
         "en": {
@@ -1780,6 +1796,22 @@
         }
       }
     },
+    "XDP の開発環境": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XDP Development"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XDP の開発環境"
+          }
+        }
+      }
+    },
     "YAML で編集": {
       "localizations": {
         "en": {
@@ -1802,6 +1834,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "brew install lima lima-additional-guestagents"
+          }
+        }
+      }
+    },
+    "clang、llvm、libbpf、libxdp、xdp-tools、bpftool、カーネルのヘッダーを入れ、XDP のプログラムをビルドして読み込めるようにします（カーネルはそのまま）。VM のネットワークでは、汎用モード（xdpgeneric）から試してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installs clang, llvm, libbpf, libxdp, xdp-tools, bpftool and the kernel headers, so you can build and load XDP programs (the kernel stays as it is). On the virtual machine’s network, start with generic mode (xdpgeneric)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "clang、llvm、libbpf、libxdp、xdp-tools、bpftool、カーネルのヘッダーを入れ、XDP のプログラムをビルドして読み込めるようにします（カーネルはそのまま）。VM のネットワークでは、汎用モード（xdpgeneric）から試してください。"
           }
         }
       }
@@ -1838,6 +1886,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "dev"
+          }
+        }
+      }
+    },
+    "git、curl、wget、jq、vim、htop、tmux、unzip を入れます。apt・dnf・apk を見分けます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installs git, curl, wget, jq, vim, htop, tmux and unzip, with apt, dnf or apk as available."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "git、curl、wget、jq、vim、htop、tmux、unzip を入れます。apt・dnf・apk を見分けます。"
           }
         }
       }
@@ -3144,6 +3208,22 @@
         }
       }
     },
+    "どれも起動のたびに実行され、済んでいれば何もしません。追加した項目は、そのまま編集できます。設定を保存すると、次の起動から実行されます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each runs at every boot and does nothing once its work is done. Added entries can be edited like any other. They run from the next boot after you save the settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どれも起動のたびに実行され、済んでいれば何もしません。追加した項目は、そのまま編集できます。設定を保存すると、次の起動から実行されます。"
+          }
+        }
+      }
+    },
     "なし": {
       "localizations": {
         "en": {
@@ -3704,6 +3784,22 @@
         }
       }
     },
+    "コンテナのエンジン（Docker Engine）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Container Engine (Docker Engine)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテナのエンジン（Docker Engine）"
+          }
+        }
+      }
+    },
     "サイズ": {
       "localizations": {
         "en": {
@@ -3796,6 +3892,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "シェル"
+          }
+        }
+      }
+    },
+    "シェルの設定（~/.config/hanalima/shell.sh）を置き、~/.profile と ~/.bashrc から読み込みます。公開鍵（KEY）と dotfiles のリポジトリ（REPO）は、追加したあと「ユーザー」の項目を編集して書き入れてください。公開鍵は authorized_keys に追記するので、Lima の鍵は残ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Places your shell settings in ~/.config/hanalima/shell.sh and reads them from ~/.profile and ~/.bashrc. After adding, edit the User entry to fill in your public key (KEY) and dotfiles repository (REPO). The key is added to authorized_keys, so Lima’s own key stays."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シェルの設定（~/.config/hanalima/shell.sh）を置き、~/.profile と ~/.bashrc から読み込みます。公開鍵（KEY）と dotfiles のリポジトリ（REPO）は、追加したあと「ユーザー」の項目を編集して書き入れてください。公開鍵は authorized_keys に追記するので、Lima の鍵は残ります。"
           }
         }
       }
@@ -5306,6 +5418,22 @@
         }
       }
     },
+    "プロビジョニングの例": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provisioning Examples"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロビジョニングの例"
+          }
+        }
+      }
+    },
     "プロビジョニングはありません": {
       "localizations": {
         "en": {
@@ -6651,6 +6779,22 @@
         }
       }
     },
+    "例から追加…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add from Examples…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例から追加…"
+          }
+        }
+      }
+    },
     "依存パッケージ（dependency）": {
       "localizations": {
         "en": {
@@ -7479,6 +7623,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "基本"
+          }
+        }
+      }
+    },
+    "基本ツール一式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basic Tools"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基本ツール一式"
           }
         }
       }
@@ -8691,6 +8851,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "編集…"
+          }
+        }
+      }
+    },
+    "自分の dotfiles・公開鍵": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Dotfiles and Public Key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分の dotfiles・公開鍵"
           }
         }
       }
