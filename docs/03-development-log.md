@@ -135,6 +135,8 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 ## 27. インストーラーの ISO から Lima の VM を作る（2026-10-26）
 - `limactl create` にダミーのイメージを渡して空の `disk` を作らせ、Virtualization.framework の試作（`Prototypes/vz-installer`）で Ubuntu Server 26.04 の ISO からその `disk` にインストールし、仕上げのスクリプトで cloud-init を「次が初回」にしてから `limactl start` した。Lima の cloud-init が NoCloud で動き、普通の Lima の VM になった（[07](07-iso-install-investigation.md)）。
 - 分かったこと: Lima は既存の `disk`・`vz-efi` をそのまま使う。ダミーのイメージを消しても `start`・`edit` は動く。ISO を付けたままでも EFI はインストールしたディスクから起動する。VZ の画面にはクリップボードがないので、仕上げのコマンドは手入力になる。
+- 本実装（ブランチ `spike/iso-install`）: アプリ本体に virtualization の entitlement、作成画面の「インストーラーの ISO」、「インストール待ち」の印と起動の抑止、インストールのウインドウ（`InstallerVM`・`InstallSession`）、仕上げの ISO の自動生成。アプリからの往復も Ubuntu Server 26.04 で確認。
+- E2E: 直接のカーネル起動は EFI が無くブートローダーの設定で失敗。ISO の shim と GRUB を FAT イメージに写して HanaLima の `grub.cfg` で `autoinstall` を付ける方式にし、無人インストール → Lima で起動までを `ISOInstallEndToEndTests` で自動化した（372 秒）。無人設定の YAML で `: ` を含む行を引用符なしで書くと黙って対話式になる、という落とし穴があった。
 
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。

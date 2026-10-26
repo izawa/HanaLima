@@ -42,7 +42,19 @@ Ubuntu Server 26.04 で、`limactl start` の 1 回目は約 7 秒で READY。�
 
 試作のあと、同じ流れをアプリに組み込んだ（作成画面の「インストーラーの ISO」、「インストール待ち」の印と起動の抑止、インストールのウインドウ、仕上げの ISO の自動生成、「インストール完了」で Lima に引き渡し）。Ubuntu Server 26.04 で、ウインドウの「インストーラーを開く」→ インストール → 仕上げのコマンド → 「電源を切る（要求）」（ACPI、Ubuntu は正常に停止した）→ 「インストール完了」→ Lima で起動、までを通し、ユーザー `izawa`、cloud-init、ゲストエージェント、ホームの共有がそろうことを確かめた。印は Lima の起動が成功した時点で消す（仕上げを忘れた VM でも「インストーラーを開く」が残る）。
 
-## 6. 残る課題
+## 6. 無人インストールと E2E（2026-10-26）
+
+自動テストのために、Ubuntu Server の autoinstall で無人インストールする道を調べた。
+
+- **直接のカーネル起動（`VZLinuxBootLoader`）は使えない。** ISO の `casper/vmlinuz` は EFI アプリケーションの中に zstd 圧縮の zboot を抱えた形式で、展開すれば VZ が起動できる arm64 の Image になる（`scripts/extract-iso-kernel.py`、Python 3.14 の zstd が要る）。カーネルは起動し、インストーラーも動くが、EFI のファームウェアが無い（`/sys/firmware/efi` が無い）ため、最後の「カーネルの設定」（`dpkg-reconfigure linux-image`、ブートローダーの組み立て）で失敗する。
+- **採用した方式: EFI 経由で、カーネルの引数だけ足す。** ISO から `EFI/boot/`（shim、GRUB、MokManager）と `.disk/info`（GRUB の組み込み設定が探す目印）を取り出し、128 MiB の FAT イメージ（MBR、`diskutil eraseDisk`）に、HanaLima の `grub.cfg`（`search --file /casper/vmlinuz` で ISO を見つけ、`autoinstall --- console=tty0 console=hvc0` を付けて起動）と一緒に入れる。この FAT を ISO より前の USB として付けると、EFI はまずこれを起動し、GRUB の組み込み設定が `.disk/info` のある FAT を root にして HanaLima の `grub.cfg` を読む。カーネルと initrd は ISO のものをそのまま使うので、展開も zstd も要らない（`InstallerAutoinstall`）。
+- **無人設定（NoCloud の seed、ラベル `cidata`）** は virtio のブロックデバイスとして付ける（`/dev/vdb`。インストール先は `/dev/vda` に固定）。late-commands で `limaify.sh` と同じ cloud-init の手順を `curtin in-target` で実行し、`shutdown: poweroff` で止める。**YAML の落とし穴**: late-commands の行に `: ` を含めると（`printf 'datasource_list: [ ... ]'`）マッピングとして解釈され、cloud-init が設定を読めずに**黙って対話式になる**。各コマンドは二重引用符の文字列にする（`InstallerAutoinstall.userData`）。
+- シリアルコンソール（`console=hvc0` を最後に置く）に subiquity の進み具合が出るので、`hanalima-installer-serial.log` で追える。試作ツールにはシリアルへの入力（FIFO）も足し、失敗時に「Press enter to start a shell」から中のログを読めた。
+- **E2E `ISOInstallEndToEndTests`**（`HANALIMA_E2E=1 HANALIMA_E2E_ISO=<ISO> swift test --filter ISOInstallEndToEnd`）: ダミーのイメージで `limactl create` → 署名した `build/HanaLima.app` を `HANALIMA_E2E_AUTOINSTALL` で起動して無人インストール（`InstallerVM` を画面なしで使う。`swift test` のプロセスは署名されていないので VZ を使えない）→ `limactl start` → ユーザー・cloud-init（`/dev/vdb` の NoCloud）・ゲストエージェントを確認 → 削除。インストール 353 秒、全体 372 秒で通過。
+- インストーラーは `/etc/cloud/cloud.cfg.d/00-subiquity-disable-cloudinit-networking.cfg`（`network: {config: disabled}`）を残す。それでも Lima の追加 NIC（vzNAT の `lima0`）にはアドレスが来た（Lima の起動スクリプトが設定する）ので、そのままにしている。
+- 無人インストールは今のところ E2E 専用で、アプリの機能にはしていない（FAT イメージの作成に `hdiutil`・`diskutil`・`bsdtar` を使うので、機能にすることは可能）。
+
+## 7. 残る課題
 
 - **アプリ本体に `com.apple.security.virtualization` の entitlement** が要る（今は netd だけ）。VZ の画面（`VZVirtualMachineView`）はアプリのプロセスの中でしか出せない。
 - インストール中の VM はアプリのプロセスで動くので、アプリを終了するとインストールも止まる。
