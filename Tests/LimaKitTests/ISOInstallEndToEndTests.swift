@@ -40,8 +40,15 @@ struct ISOInstallEndToEndTests {
         // The unattended install: EFI boot image, seed with the fix-up as late commands.
         let boot = work.appending(path: "boot.img"), seed = work.appending(path: "seed.iso")
         try InstallerAutoinstall.makeBootImage(at: boot, iso: iso)
-        let hash = try await client.runner.run(["/usr/bin/openssl", "passwd", "-6", "hanalima"]).stdoutString
+        let openssl = Process()
+        openssl.executableURL = URL(filePath: "/usr/bin/openssl")
+        openssl.arguments = ["passwd", "-6", "hanalima"]
+        let hashPipe = Pipe()
+        openssl.standardOutput = hashPipe
+        try openssl.run()
+        let hash = String(data: hashPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)!
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        openssl.waitUntilExit()
         try InstallerAutoinstall.makeSeedISO(at: seed, userData: InstallerAutoinstall.userData(
             hostname: "autoinst", userName: "test", passwordHash: hash))
 

@@ -84,8 +84,9 @@ config.platform = platform
 
 do {
     config.storageDevices = [VZVirtioBlockDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: disk, readOnly: false))]
-    // The cloud-init seed as a virtio block device: it is there before cloud-init's ds-identify
-    // runs, whereas a USB device may enumerate too late to be found (seen on Ubuntu 26.04).
+    // The cloud-init seed as a virtio block device (the installer's own disk must stay /dev/vda,
+    // which it does: the seed comes after it). A USB seed was not tried with valid user-data; the
+    // one failure seen was unquoted YAML, not the device kind.
     if let seed {
         config.storageDevices.append(VZVirtioBlockDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: seed, readOnly: true)))
     }
