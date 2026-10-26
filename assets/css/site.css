@@ -308,7 +308,7 @@ td.hl, th.hl { background: color-mix(in srgb, var(--hana) 7%, var(--panel)); }
 .copy:hover { color: var(--text); }
 
 /* Roadmap */
-.road { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; position: relative; }
+.road { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; position: relative; }
 @media (max-width: 900px) { .road { grid-template-columns: 1fr; } }
 .milestone { padding: 0 16px 0 0; position: relative; }
 .milestone .bar { height: 4px; border-radius: 2px; background: var(--line); margin-bottom: 16px; }

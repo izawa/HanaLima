@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <meta property="og:image" content="https://izawa.github.io/HanaLima/assets/img/icon-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=2026101201">
+<link rel="stylesheet" href="assets/css/site.css?v=2026102601">
 <script>
   // Pick the language before first paint: saved choice, else the browser's.
   (function () {
@@ -61,7 +61,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.5.0 · macOS 26+ · Lima 2.2+ · MIT</span>
+      <span class="eyebrow">● v0.6.0 · macOS 26+ · Lima 2.2+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -236,6 +236,16 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
 <figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Lima alone: limactl clone of a VM whose disk is on an external drive copies the link, so the original and the copy point at one disk. HanaLima: the copy gets its own APFS clone on that drive, hand-set MACs are dropped, logs emptied, and the parent is recorded."><text x="16" y="22" class="f en">LIMA ON ITS OWN · limactl clone</text><text x="16" y="22" class="f ja">Lima だけで · limactl clone</text><rect x="16" y="32" width="170" height="34" rx="8" class="box "/><text x="28" y="54" class="m">vm/disk → link</text><rect x="16" y="74" width="170" height="34" rx="8" class="box "/><text x="28" y="96" class="m">vm-copy/disk → link</text><path d="M186 49 L 326 62" class="ln dash" marker-end="url(#fa-m)"/><path d="M186 91 L 326 78" class="ln dash" marker-end="url(#fa-m)"/><rect x="330" y="46" width="174" height="48" rx="9" class="box ng"/><text x="342" y="66" class="t">HDD · vm/disk</text><text x="342" y="84" class="ng small en">✗ two VMs, one disk</text><text x="342" y="84" class="ng small ja">✗ 2 台で 1 つのディスク</text><text x="16" y="140" class="f hana-t en">HANALIMA · clone, then finish the job</text><text x="16" y="140" class="f hana-t ja">HANALIMA · clone のあとを仕上げる</text><rect x="16" y="150" width="488" height="108" rx="9" class="box hana"/><text x="30" y="174" class="ok en">✓ the moved disk → its own APFS clone on that drive</text><text x="30" y="174" class="ok ja">✓ 移したディスク → そのドライブ上に専用のクローン</text><text x="30" y="198" class="ok en">✓ hand-set MACs dropped (no twins on the network)</text><text x="30" y="198" class="ok ja">✓ 手で指定した MAC を消す（ネットワークに同じ MAC を出さない）</text><text x="30" y="222" class="ok en">✓ the original's logs emptied</text><text x="30" y="222" class="ok ja">✓ 元の VM のログを空に</text><text x="30" y="246" class="ok en">✓ parent recorded → lineage and a note in Overview</text><text x="30" y="246" class="ok ja">✓ 親を記録 → 概要に系譜とメモ</text><text x="16" y="288" class="f en">One record per VM, parent only: any depth of copies stays cheap.</text><text x="16" y="288" class="f ja">記録は VM ごとに 1 つ、親だけを持つ。何世代でも軽いまま。</text></svg></figure>
       </article>
 
+      <article class="dive reveal">
+        <div class="num">10</div>
+        <div>
+          <h3><span class="en">Installer ISOs on a Lima VM — install into Lima's own disk</span><span class="ja">インストーラーの ISO でも Lima の VM に、Lima のディスクへ直接インストール</span></h3>
+          <p><span class="en">Lima boots only cloud images: it sets up a VM through cloud-init and waits for SSH, so an interactive installer never finishes. But a Lima VM is just files in <code>~/.lima/&lt;name&gt;/</code>, and Lima reuses a <code>disk</code> and <code>vz-efi</code> that already exist. So HanaLima asks Lima for a VM with a 1 MiB placeholder image, which gives a blank disk of the size you chose; then it boots the ISO itself on Virtualization.framework, sharing Lima's disk, EFI variable store and machine identifier, and you install as usual in a window. One fix-up line in the installed OS installs cloud-init and resets it; from then on <code>limactl start</code> configures the VM like any other — user, key, guest agent, shares, provisioning.</span><span class="ja">Lima が起動できるのはクラウドイメージだけです。cloud-init で VM を整えて SSH を待つ仕組みなので、対話式のインストーラーは終わりません。ところが Lima の VM は <code>~/.lima/&lt;名前&gt;/</code> のただのファイルで、すでにある <code>disk</code> と <code>vz-efi</code> は Lima がそのまま使います。そこで HanaLima は 1 MiB のダミーのイメージで Lima に VM を作らせ（選んだ大きさの空のディスクができます）、Virtualization.framework で ISO を自分で起動します。Lima のディスク、EFI の変数ストア、機械の識別子を共有したまま、ウインドウの中でいつもどおりインストールします。インストールした OS で仕上げの 1 行を実行すると cloud-init が入って初期状態になり、以後は <code>limactl start</code> がほかの VM と同じように設定します。ユーザー、鍵、ゲストエージェント、共有、プロビジョニングまで。</span></p>
+          <span class="chip lime tag">InstallerVM</span>
+        </div>
+<figure class="fig"><svg viewBox="0 0 520 300" role="img" aria-label="Lima alone: an installer ISO never gets past Lima's wait for SSH. HanaLima: limactl create with a placeholder makes a blank disk in ~/.lima; HanaLima boots the ISO on Virtualization.framework into that disk; a one-line fix-up readies cloud-init; limactl start then configures the VM as usual."><text x="16" y="22" class="f en">LIMA ON ITS OWN · installer ISO</text><text x="16" y="22" class="f ja">Lima だけで · インストーラーの ISO</text><rect x="16" y="32" width="200" height="40" rx="8" class="term"/><text x="28" y="57" class="term-t">limactl start</text><path d="M216 52 L 250 52" class="ln dash" marker-end="url(#fa-m)"/><rect x="254" y="32" width="250" height="40" rx="9" class="box ng"/><text x="268" y="57" class="ng en">✗ waits for SSH forever</text><text x="268" y="57" class="ng ja">✗ SSH を待ち続ける</text><text x="16" y="104" class="f hana-t en">HANALIMA · 3 steps, Lima's files all along</text><text x="16" y="104" class="f hana-t ja">HANALIMA · 3 段階、ファイルはずっと Lima のもの</text><rect x="16" y="114" width="150" height="70" rx="9" class="box "/><text x="28" y="134" class="t en">1 · create</text><text x="28" y="134" class="t ja">1 · 作成</text><text x="28" y="152" class="m en">1 MiB placeholder</text><text x="28" y="152" class="m ja">1 MiB のダミー</text><text x="28" y="170" class="m en">→ blank disk, 20 GB</text><text x="28" y="170" class="m ja">→ 空の disk 20 GB</text><path d="M166 149 L 180 149" class="ln hana" marker-end="url(#fa-h)"/><rect x="184" y="114" width="156" height="70" rx="9" class="box hana"/><text x="196" y="134" class="t hana-t en">2 · install (VZ)</text><text x="196" y="134" class="t hana-t ja">2 · インストール (VZ)</text><text x="196" y="152" class="m en">ISO → Lima's disk</text><text x="196" y="152" class="m ja">ISO → Lima の disk</text><text x="196" y="170" class="m en">shared vz-efi, id</text><text x="196" y="170" class="m ja">vz-efi と識別子を共有</text><path d="M340 149 L 354 149" class="ln hana" marker-end="url(#fa-h)"/><rect x="358" y="114" width="146" height="70" rx="9" class="box lime"/><text x="370" y="134" class="t en">3 · limactl start</text><text x="370" y="134" class="t ja">3 · limactl start</text><text x="370" y="152" class="m en">cloud-init: user, key,</text><text x="370" y="152" class="m ja">cloud-init: ユーザー、鍵、</text><text x="370" y="170" class="m en">agent, shares</text><text x="370" y="170" class="m ja">エージェント、共有</text><rect x="16" y="200" width="488" height="36" rx="8" class="term"/><text x="28" y="223" class="term-t">sudo mount -L HANALIMA /mnt &amp;&amp; sudo sh /mnt/limaify.sh</text><text x="16" y="258" class="f en">The one fix-up line, typed in the installed OS: cloud-init + sshd, then "next boot is the first".</text><text x="16" y="258" class="f ja">仕上げの 1 行。cloud-init と sshd を入れ、「次が初回」にする。</text><text x="16" y="284" class="ok en">Ubuntu Server 26.04 verified: a regular Lima VM 7 s after the hand-over.</text><text x="16" y="284" class="ok ja">Ubuntu Server 26.04 で確認。引き渡しの 7 秒後には普通の Lima の VM。</text></svg></figure>
+      </article>
+
     </div>
 
     <h3 style="margin:48px 0 16px"><span class="en">Compared with Lima on its own</span><span class="ja">Lima だけで使う場合との比較</span></h3>
@@ -245,6 +255,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
           <tr><th></th><th><span class="en">Lima (limactl)</span><span class="ja">Lima（limactl）</span></th><th class="hl">HanaLima</th></tr>
         </thead>
         <tbody>
+          <tr><td><span class="en">Create a VM from an installer ISO</span><span class="ja">インストーラーの ISO から VM を作る</span></td><td class="no"><span class="en">cloud images only</span><span class="ja">クラウドイメージのみ</span></td><td class="hl yes"><span class="en">yes · installs into Lima's disk</span><span class="ja">yes · Lima のディスクに直接</span></td></tr>
           <tr><td><span class="en">Snapshots of VZ VMs</span><span class="ja">VZ の VM のスナップショット</span></td><td class="no">no</td><td class="hl yes"><span class="en">yes · APFS clones</span><span class="ja">yes · APFS のクローン</span></td></tr>
           <tr><td><span class="en">A new VM from a snapshot</span><span class="ja">スナップショットから新しい VM</span></td><td class="no">no</td><td class="hl yes">yes</td></tr>
           <tr><td><span class="en">A VM's disk on an external drive</span><span class="ja">VM のディスクを外付けドライブに</span></td><td class="no">no</td><td class="hl yes"><span class="en">yes · stays sparse</span><span class="ja">yes · スパースのまま</span></td></tr>
@@ -439,6 +450,11 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <h3><span class="en">Keep your Mac's files out of reach</span><span class="ja">Mac のファイルを VM から見せない</span></h3>
         <p><span class="en">Lima shares your home folder with every VM, read-only, so a VM can read <code>~/.ssh</code>. Turn that off when creating a VM that runs something you don't fully trust, like an AI coding agent, and share just one work folder instead — the only part of your Mac it can see. That hides files, not the network: the VM can still reach the internet, your LAN and services on the Mac's <code>127.0.0.1</code>.</span><span class="ja">Lima は既定でホームフォルダを読み取り専用ですべての VM と共有するので、VM から <code>~/.ssh</code> などが読めます。AI のコーディングエージェントなど、信頼しきれないものを動かす VM は、作成時にこの共有を外し、代わりに作業フォルダを 1 つだけ共有できます。VM から見える Mac のファイルは、そのフォルダだけになります。ただし隠せるのはファイルで、ネットワークは別です。VM からはインターネット、LAN、Mac の <code>127.0.0.1</code> で動いているサービスに届きます。</span></p>
       </div>
+      <div class="card reveal"><span class="status done">v0.6</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
+        <h3><span class="en">Create from an installer ISO</span><span class="ja">インストーラーの ISO から作成</span></h3>
+        <p><span class="en">Pick a Linux installer ISO instead of a template. HanaLima boots it in its own window, installs straight into the VM's disk, and after a one-line fix-up hands the VM to Lima, which configures it like any other. Ubuntu Server 26.04 verified; VZ only.</span><span class="ja">テンプレートの代わりに Linux のインストーラーの ISO を選べます。HanaLima が専用のウインドウで起動し、VM のディスクに直接インストールします。仕上げの 1 行のあとは Lima に引き渡され、ほかの VM と同じように設定されます。Ubuntu Server 26.04 で確認済み。VZ 専用です。</span></p>
+      </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
@@ -495,6 +511,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">Snapshots (QEMU)</span><span class="ja">スナップショット（QEMU）</span></li><li><span class="en">Screen thumbnails</span><span class="ja">画面のサムネイル</span></li><li><span class="en">Log viewer, provisioning</span><span class="ja">ログビューア、プロビジョニング</span></li><li><span class="en">English UI</span><span class="ja">英語 UI</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.5</h3>
         <ul><li><span class="en">Snapshots for VZ</span><span class="ja">VZ のスナップショット</span></li><li><span class="en">Copies with lineage</span><span class="ja">系譜つきの複製</span></li><li><span class="en">Disks on external drives</span><span class="ja">ディスクを外付けに</span></li><li><span class="en">Home sharing optional</span><span class="ja">ホームを共有しない選択</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.6</h3>
+        <ul><li><span class="en">Create from an installer ISO</span><span class="ja">インストーラーの ISO から作成</span></li><li><span class="en">Provisioning examples</span><span class="ja">プロビジョニングの例</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
@@ -538,6 +556,6 @@ scripts/make-app.sh --install --open</pre>
   </div>
 </footer>
 
-<script src="assets/js/site.js?v=2026101201"></script>
+<script src="assets/js/site.js?v=2026102601"></script>
 </body>
 </html>
