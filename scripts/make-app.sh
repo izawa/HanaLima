@@ -36,13 +36,16 @@ BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
 printf "APPL????" > "$APP/Contents/PkgInfo"
 # Info.plist changed, so sign the app again (not --deep: the helper keeps its own signature).
-codesign --force --sign - "$APP" >/dev/null
+codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
 
 echo "▶ 署名を確認"
 codesign --verify --strict "$APP"
 codesign -d --entitlements - "$APP/Contents/Helpers/hanalima-netd" 2>/dev/null \
     | grep -q "com.apple.security.virtualization" \
     || { echo "✗ ヘルパーに com.apple.security.virtualization がありません" >&2; exit 1; }
+codesign -d --entitlements - "$APP" 2>/dev/null \
+    | grep -q "com.apple.security.virtualization" \
+    || { echo "✗ アプリに com.apple.security.virtualization がありません" >&2; exit 1; }
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
 echo "  ${APP_NAME} ${VERSION} (${BUILD_NUMBER})"
 

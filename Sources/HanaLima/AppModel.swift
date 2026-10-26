@@ -201,6 +201,7 @@ final class AppModel {
         #if DEBUG
         // After the networks are loaded, so the conflict check sees them.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
+        if let name = DebugSnapshot.env["HANALIMA_VZPROBE"] { Task { await self.vzProbe(name) } }
         // A made-up download in progress, to check the banner and the sidebar without downloading.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_DOWNLOAD"] {
             var op = Operation(kind: .create)

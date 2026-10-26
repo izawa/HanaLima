@@ -37,6 +37,7 @@ codesign --force --sign - --entitlements "$ROOT/Resources/hanalima-netd.entitlem
     "$APP/Contents/Helpers/hanalima-netd" >/dev/null
 
 # Ad-hoc signature so macOS runs it locally. Real signing/notarization comes with distribution.
-# (Not --deep: that would re-sign the helper without its entitlements.)
-codesign --force --sign - "$APP" >/dev/null
+# (Not --deep: that would re-sign the helper without its entitlements.) The app itself needs
+# com.apple.security.virtualization too: it runs installer ISOs with Virtualization.framework.
+codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
 echo "Built $APP"
