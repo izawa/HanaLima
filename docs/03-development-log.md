@@ -132,6 +132,10 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - 実験用の VM を立てる人向けに、プロビジョニングの例を 4 つ同梱した（基本ツール一式、dotfiles・公開鍵、Docker Engine、XDP の開発環境）。種類は system・user・data にばらけるようにした。
 - E2E で、例をまとめて入れて起動し、それぞれの働き（XDP はプログラムをビルドして `lo` に読み込むまで）と、2 回目の起動で何もしないこと（9〜27 秒）を、Ubuntu LTS・Fedora・Debian・Alpine で確かめた。Docker のグループの確認は、使い回される SSH の接続では見えないので、グループのデータベースで確かめる形に直した。
 
+## 27. インストーラーの ISO から Lima の VM を作る（2026-10-26）
+- `limactl create` にダミーのイメージを渡して空の `disk` を作らせ、Virtualization.framework の試作（`Prototypes/vz-installer`）で Ubuntu Server 26.04 の ISO からその `disk` にインストールし、仕上げのスクリプトで cloud-init を「次が初回」にしてから `limactl start` した。Lima の cloud-init が NoCloud で動き、普通の Lima の VM になった（[07](07-iso-install-investigation.md)）。
+- 分かったこと: Lima は既存の `disk`・`vz-efi` をそのまま使う。ダミーのイメージを消しても `start`・`edit` は動く。ISO を付けたままでも EFI はインストールしたディスクから起動する。VZ の画面にはクリップボードがないので、仕上げのコマンドは手入力になる。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
