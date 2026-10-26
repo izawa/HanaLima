@@ -3,7 +3,7 @@
 Lima only boots cloud images, but its files can be written by anyone. This spike boots an
 installer ISO with Virtualization.framework straight into a Lima instance's `disk`, so the
 installed OS ends up where Lima expects it; after a one-line fix-up in the guest, `limactl start`
-takes over as if it were a regular Lima VM. Results: docs/07-iso-install-investigation.md.
+takes over as if it were a regular Lima VM. Results: docs/07-iso-install-investigation.md. The app's copy of the fix-up script (`InstallerFixup` in LimaKit) is the canonical one; `limaify.sh` here is the spike's snapshot.
 
 ```sh
 # 1. A Lima instance with a blank disk of the wanted size (1 MiB placeholder image).
