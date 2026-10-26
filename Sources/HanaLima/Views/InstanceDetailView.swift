@@ -185,7 +185,13 @@ private struct InstanceNoticeBanner: View {
     var body: some View {
         let deleted = model.deletedNetworkSockets(of: instance).map(AppModel.networkName(ofSocket:))
         let changed = (model.restartNeeded[instance.name] ?? []).subtracting(deleted).sorted()
-        if let owner = model.sharedDiskOwners[instance.name] {
+        if let pending = model.pendingInstall(instance.name) {
+            banner(icon: "opticaldisc", color: .orange,
+                   text: String(localized: "まだ OS が入っていません。インストーラーの ISO（\(pending.isoURL.lastPathComponent)）から OS を入れると、仮想マシンとして使えるようになります。")) {
+                Button("インストーラーを開く") { model.installRequest = InstallRequest(name: instance.name) }
+                    .disabled(model.isBusy(instance.name))
+            }
+        } else if let owner = model.sharedDiskOwners[instance.name] {
             banner(icon: "externaldrive.badge.exclamationmark", color: .red,
                    text: String(localized: "この仮想マシンのディスクは「\(owner)」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「\(owner)」のディスクを書き換えるため、起動できません。")) {
                 Button("ディスクを独立させる") { model.separateDisk(instance.name) }

@@ -81,7 +81,7 @@ struct ContentView: View {
         }
         #if DEBUG
         .task {
-            if DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] == "1" { model.createRequested = true }
+            if DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] != nil { model.createRequested = true }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_SETTINGS"] == "1" { openSettings() }
             if let source = DebugSnapshot.env["HANALIMA_SNAPSHOT_COPY"] {
                 try? await Task.sleep(for: .seconds(1))  // the list must be loaded

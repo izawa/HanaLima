@@ -965,6 +965,38 @@
         }
       }
     },
+    "ISO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO"
+          }
+        }
+      }
+    },
+    "ISO からの作成では、ディスクはまず Mac の中に作ります。インストールが終わったあと、「設定」タブから外付けドライブなどへ移せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created from an ISO, the disk starts out on this Mac. After the install, you can move it to an external drive from the Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO からの作成では、ディスクはまず Mac の中に作ります。インストールが終わったあと、「設定」タブから外付けドライブなどへ移せます。"
+          }
+        }
+      }
+    },
     "Kubernetes（kubeadm）": {
       "localizations": {
         "en": {
@@ -1227,6 +1259,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima 標準のパッケージ導入を行わない（skipDefaultDependencyResolution）"
+          }
+        }
+      }
+    },
+    "Linux のインストーラー（arm64）の ISO から、空のディスクに OS を入れます。作成したあと、インストーラーの画面が開きます。インストールが終わると、ほかの仮想マシンと同じように使えます。Ubuntu Server 26.04 で確認済みです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installs an OS from a Linux installer ISO (arm64) into a blank disk. The installer’s screen opens after the virtual machine is created. Once the install is done, it works like any other virtual machine. Tested with Ubuntu Server 26.04."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linux のインストーラー（arm64）の ISO から、空のディスクに OS を入れます。作成したあと、インストーラーの画面が開きます。インストールが終わると、ほかの仮想マシンと同じように使えます。Ubuntu Server 26.04 で確認済みです。"
           }
         }
       }
@@ -1524,6 +1572,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "OS のイメージなどは、最初に使うときにここへダウンロードされ、次からは再利用されます。削除しても仮想マシンには影響しません。"
+          }
+        }
+      }
+    },
+    "OS のインストールが終わると複製できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It can be copied once the OS is installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS のインストールが終わると複製できます。"
           }
         }
       }
@@ -2599,6 +2663,22 @@
         }
       }
     },
+    "「%@」はまだ OS が入っていません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” Has No OS Yet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」はまだ OS が入っていません"
+          }
+        }
+      }
+    },
     "「%@」は既に存在します。": {
       "localizations": {
         "en": {
@@ -3272,6 +3352,22 @@
         }
       }
     },
+    "まだ OS が入っていません。インストーラーの ISO（%@）から OS を入れると、仮想マシンとして使えるようになります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No OS yet. Install one from the installer ISO (%@) and this becomes a usable virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ OS が入っていません。インストーラーの ISO（%@）から OS を入れると、仮想マシンとして使えるようになります。"
+          }
+        }
+      }
+    },
     "よく使う": {
       "localizations": {
         "en": {
@@ -3352,6 +3448,86 @@
         }
       }
     },
+    "インストーラーの ISO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installer ISO"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーの ISO"
+          }
+        }
+      }
+    },
+    "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It can’t start until an OS is installed from the installer ISO. Continue with Open Installer on the virtual machine’s page."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。"
+          }
+        }
+      }
+    },
+    "インストーラーの ISO（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installer ISO (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーの ISO（%@）"
+          }
+        }
+      }
+    },
+    "インストーラーの ISO（arm64）を選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an installer ISO (arm64)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーの ISO（arm64）を選んでください。"
+          }
+        }
+      }
+    },
+    "インストーラーを開く": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Installer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーを開く"
+          }
+        }
+      }
+    },
     "インストール中": {
       "localizations": {
         "en": {
@@ -3364,6 +3540,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "インストール中"
+          }
+        }
+      }
+    },
+    "インストール待ち": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install pending"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール待ち"
           }
         }
       }
@@ -6571,6 +6763,22 @@
         }
       }
     },
+    "作成の準備ができませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Prepare the Creation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成の準備ができませんでした"
+          }
+        }
+      }
+    },
     "作成中": {
       "localizations": {
         "en": {
@@ -6631,6 +6839,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "作成後すぐに起動"
+          }
+        }
+      }
+    },
+    "作成後にインストーラーを開く": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the Installer After Creating"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成後にインストーラーを開く"
           }
         }
       }

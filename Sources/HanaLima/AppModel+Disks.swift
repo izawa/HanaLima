@@ -48,6 +48,11 @@ extension AppModel {
     /// A VM whose disk is on a drive that isn't connected can't start; say so instead of letting
     /// Lima fail with a file error. Nor can one that shares another VM's disk: it would write it.
     func refuseIfDiskUnusable(_ name: String) -> Bool {
+        if pendingInstall(name) != nil {
+            alert = AlertMessage(title: String(localized: "「\(name)」はまだ OS が入っていません"),
+                                 message: String(localized: "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。"))
+            return true
+        }
         if let owner = sharedDiskOwners[name] {
             alert = AlertMessage(title: String(localized: "「\(name)」は「\(owner)」とディスクを共有しています"),
                                  message: String(localized: "このまま起動すると「\(owner)」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"))
@@ -62,7 +67,8 @@ extension AppModel {
     /// Moves `name`'s disk to `folder` (`<folder>/HanaLima Disks/<name>/disk`), then starts the VM
     /// if asked. The VM must be stopped.
     func moveDisk(_ name: String, to folder: URL, thenStart: Bool = false) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst) else { return }
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst),
+              pendingInstall(name) == nil else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         let target = ExternalDisk.target(in: folder, name: name)
         runFileOperation(.moveDisk, name: name) { progress in

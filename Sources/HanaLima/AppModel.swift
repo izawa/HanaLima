@@ -134,6 +134,8 @@ final class AppModel {
     var createRequested = false
     /// The VM to copy, from a menu or the toolbar; the window shows the copy sheet for it.
     var copyRequest: CopyRequest?
+    /// The VM whose installer should open (see InstallerVM).
+    var installRequest: InstallRequest?
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -336,11 +338,24 @@ final class AppModel {
 
     /// Creates the VM; with `diskFolder`, moves its disk there before the first start (Lima
     /// always creates the disk under ~/.lima).
-    func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil) {
+    /// With `installISO`, the VM gets a blank disk (`options` carry the placeholder image) and is
+    /// marked "install pending"; `startAfterCreate` then opens the installer instead.
+    func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil, installISO: URL? = nil) {
         guard let client else { return }
+        if installISO != nil {
+            do { try InstallSupport.ensurePlaceholderImage() } catch {
+                alert = AlertMessage(title: String(localized: "作成の準備ができませんでした"), message: error.localizedDescription)
+                return
+            }
+        }
         selection = .instance(options.name)
         run(.create, on: options.name, client.create(options)) { [weak self] ok in
             guard let self, ok else { return }
+            if let installISO {
+                self.recordCreation(of: options.name, template: "iso:\(installISO.lastPathComponent)", pendingISO: installISO)
+                if startAfterCreate { self.installRequest = InstallRequest(name: options.name) }
+                return
+            }
             self.recordCreation(of: options.name, template: options.template)
             if let diskFolder {
                 Task {

@@ -30,9 +30,25 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     public var instanceDir: String
     public var createdAt: Date?
     public var parent: Parent?
-    /// The Lima template it was created from, when HanaLima created it.
+    /// The Lima template it was created from, when HanaLima created it (`iso:<file>` for an
+    /// installer ISO).
     public var template: String?
     public var note: String
+    /// Set while the OS is still to be installed from an ISO (docs/07): the disk is blank, so
+    /// Lima must not start it yet. Cleared when the install is done.
+    public var pendingInstall: PendingInstall?
+
+    public struct PendingInstall: Codable, Equatable, Sendable {
+        public var iso: String
+        public var createdAt: Date
+
+        public init(iso: URL, createdAt: Date = .now) {
+            self.iso = iso.path(percentEncoded: false)
+            self.createdAt = createdAt.wholeSeconds
+        }
+
+        public var isoURL: URL { URL(filePath: iso) }
+    }
 
     public init(id: UUID = UUID(), instanceDir: URL, createdAt: Date? = .now, parent: Parent? = nil, note: String = "") {
         self.id = id

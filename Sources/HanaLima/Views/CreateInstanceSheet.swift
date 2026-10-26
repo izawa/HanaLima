@@ -8,6 +8,21 @@ struct CreateInstanceSheet: View {
 
     @State private var name = ""
     @State private var template = "default"
+    @State private var source: Source = Self.initialSource
+    @State private var isoURL: URL?
+
+    /// Where the OS comes from: one of Lima's templates (a cloud image), or an installer ISO
+    /// that HanaLima runs itself into a blank disk (docs/07).
+    private enum Source: Hashable {
+        case template, iso
+    }
+
+    private static var initialSource: Source {
+        #if DEBUG
+        if DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] == "iso" { return .iso }
+        #endif
+        return .template
+    }
     @State private var vmType: CreateOptions.VMType = .vz
     @State private var cpus = min(4, HostInfo.cpuCount)
     @State private var memoryGiB = min(4, HostInfo.memoryGiB)
@@ -36,24 +51,44 @@ struct CreateInstanceSheet: View {
                     if let nameError {
                         Text(nameError).font(.caption).foregroundStyle(.red)
                     }
-                    Picker("テンプレート", selection: $template) {
-                        if templateGroups.isEmpty {
-                            Text("標準").tag("default")
-                        }
-                        ForEach(templateGroups) { group in
-                            Section(group.title) {
-                                ForEach(group.templates) { Text($0.displayName).tag($0.name) }
+                    Picker("作成元", selection: $source) {
+                        Text("テンプレート").tag(Source.template)
+                        Text("インストーラーの ISO").tag(Source.iso)
+                    }
+                    .pickerStyle(.segmented)
+                    if source == .template {
+                        Picker("テンプレート", selection: $template) {
+                            if templateGroups.isEmpty {
+                                Text("標準").tag("default")
+                            }
+                            ForEach(templateGroups) { group in
+                                Section(group.title) {
+                                    ForEach(group.templates) { Text($0.displayName).tag($0.name) }
+                                }
                             }
                         }
+                        LabeledContent("Lima のテンプレート") {
+                            Text(verbatim: "template:\(template)").monospaced().textSelection(.enabled)
+                        }
+                        .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        LabeledContent("ISO") {
+                            HStack {
+                                Text(isoURL?.lastPathComponent ?? String(localized: "未選択"))
+                                    .foregroundStyle(isoURL == nil ? .secondary : .primary)
+                                    .lineLimit(1).truncationMode(.middle)
+                                    .help(isoURL?.path ?? "")
+                                Button("選択…") { chooseISO() }
+                            }
+                        }
+                        Text("Linux のインストーラー（arm64）の ISO から、空のディスクに OS を入れます。作成したあと、インストーラーの画面が開きます。インストールが終わると、ほかの仮想マシンと同じように使えます。Ubuntu Server 26.04 で確認済みです。")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    LabeledContent("Lima のテンプレート") {
-                        Text(verbatim: "template:\(template)").monospaced().textSelection(.enabled)
-                    }
-                    .font(.caption).foregroundStyle(.secondary)
                     Picker("仮想化方式", selection: $vmType) {
                         Text("VZ (Virtualization.framework)").tag(CreateOptions.VMType.vz)
                         Text("QEMU").tag(CreateOptions.VMType.qemu)
                     }
+                    .disabled(source == .iso)
                 }
 
                 Section("ハードウェア") {
@@ -98,13 +133,16 @@ struct CreateInstanceSheet: View {
                         Text("外付けドライブなど").tag(true)
                     }
                     .pickerStyle(.segmented)
+                    .disabled(source == .iso)
                     if diskOnOtherDrive {
                         ExternalFolderPicker(folder: $diskFolder, check: diskCheck)
                     }
                 } header: {
                     Text("ディスク")
                 } footer: {
-                    Text(diskOnOtherDrive
+                    Text(source == .iso
+                         ? "ISO からの作成では、ディスクはまず Mac の中に作ります。インストールが終わったあと、「設定」タブから外付けドライブなどへ移せます。"
+                         : diskOnOtherDrive
                          ? "作成したあと、最初の起動の前にディスクを移します（作成の途中は、いったん Mac の中に作ります）。ドライブを外しているあいだは起動できません。"
                          : "一時的に使う仮想マシンなら、ディスクを外付けドライブに置いて Mac の空き容量を節約できます。あとから「設定」タブで移すこともできます。")
                         .font(.caption).foregroundStyle(.secondary)
@@ -157,7 +195,7 @@ struct CreateInstanceSheet: View {
                         Toggle("Rosetta で x86_64 バイナリを実行", isOn: $rosetta)
                             .disabled(vmType != .vz)
                     }
-                    Toggle("作成後すぐに起動", isOn: $startAfterCreate)
+                    Toggle(source == .iso ? "作成後にインストーラーを開く" : "作成後すぐに起動", isOn: $startAfterCreate)
                 }
 
                 Section("実行されるコマンド") {
@@ -176,11 +214,13 @@ struct CreateInstanceSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("作成") {
                     model.create(options, startAfterCreate: startAfterCreate,
-                                 diskFolder: diskOnOtherDrive ? diskFolder : nil)
+                                 diskFolder: diskOnOtherDrive ? diskFolder : nil,
+                                 installISO: source == .iso ? isoURL : nil)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(nameError != nil || !diskPlaceOK || (!shareHome && workFolderError != nil))
+                .disabled(nameError != nil || !diskPlaceOK || (!shareHome && workFolderError != nil)
+                          || (source == .iso && isoURL == nil))
             }
             .padding()
         }
@@ -191,6 +231,24 @@ struct CreateInstanceSheet: View {
                 rosetta = false
             }
         }
+        .onChange(of: source) { _, new in
+            // The installer runs on Virtualization.framework and writes ~/.lima/<name>/disk.
+            if new == .iso {
+                vmType = .vz
+                diskOnOtherDrive = false
+            }
+        }
+    }
+
+    private func chooseISO() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.diskImage, .data]
+        panel.prompt = String(localized: "選択")
+        panel.message = String(localized: "インストーラーの ISO（arm64）を選んでください。")
+        panel.directoryURL = isoURL?.deletingLastPathComponent() ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+        if panel.runModal() == .OK, let url = panel.url { isoURL = url }
     }
 
     // MARK: -
@@ -199,7 +257,9 @@ struct CreateInstanceSheet: View {
 
     /// Template name minus any directory prefix, de-duplicated against existing instances.
     private var suggestedName: String {
-        let base = template == "default" ? "default" : (template.split(separator: "/").last.map(String.init) ?? template)
+        let base = source == .iso
+            ? isoURL.map(InstallSupport.suggestedName(for:)) ?? "custom"
+            : template == "default" ? "default" : (template.split(separator: "/").last.map(String.init) ?? template)
         let taken = Set(model.sidebarNames)
         if !taken.contains(base) { return base }
         var i = 2
@@ -231,7 +291,7 @@ struct CreateInstanceSheet: View {
     private var options: CreateOptions {
         CreateOptions(
             name: effectiveName,
-            template: template,
+            template: source == .iso ? "default" : template,
             cpus: cpus,
             memoryGiB: Double(memoryGiB),
             diskGiB: Double(diskGiB),
@@ -240,7 +300,7 @@ struct CreateInstanceSheet: View {
             rosetta: rosetta,
             mountNone: !shareHome,
             mountOnly: shareHome ? [] : workFolderMount,
-            setExpressions: virtualNetworkExpression)
+            setExpressions: (source == .iso ? InstallSupport.createExpressions : []) + virtualNetworkExpression)
     }
 
     /// The work folder as a `--mount-only` value: `<path>` or `<path>:w`.

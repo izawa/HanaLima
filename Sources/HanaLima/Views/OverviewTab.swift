@@ -217,7 +217,11 @@ private struct OriginSection: View {
                 }
             } else if let template = record?.template {
                 LabeledContent("作成元") {
-                    Text(verbatim: "template:\(template)").monospaced()
+                    if template.hasPrefix("iso:") {
+                        Text("インストーラーの ISO（\(String(template.dropFirst(4)))）")
+                    } else {
+                        Text(verbatim: "template:\(template)").monospaced()
+                    }
                 }
             }
             if let created = record?.createdAt, record?.parent == nil {

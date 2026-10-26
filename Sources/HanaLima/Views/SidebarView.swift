@@ -98,7 +98,9 @@ private struct SidebarRow: View {
         }
         guard let instance else { return String(localized: "作成中…") }
         var parts = [instance.status.label]
-        if model.sharedDiskOwners[instance.name] != nil {
+        if model.pendingInstall(instance.name) != nil {
+            parts.append(String(localized: "インストール待ち"))
+        } else if model.sharedDiskOwners[instance.name] != nil {
             parts.append(String(localized: "ディスクを共有"))
         } else if case .missing = model.diskPlacement(of: instance) {
             parts.append(String(localized: "ディスクが見つからない"))

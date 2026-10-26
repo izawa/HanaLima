@@ -17,11 +17,12 @@ extension AppModel {
     }
 
     /// Records how HanaLima created `name` (the listing has already given it a bare record).
-    func recordCreation(of name: String, template: String) {
+    func recordCreation(of name: String, template: String, pendingISO: URL? = nil) {
         guard let inst = instance(named: name) else { return }
         var meta = metadata[name] ?? InstanceMetadata(instanceDir: URL(filePath: inst.dir, directoryHint: .isDirectory))
         meta.createdAt = Date(timeIntervalSince1970: Date.now.timeIntervalSince1970.rounded(.down))
         meta.template = template
+        meta.pendingInstall = pendingISO.map { InstanceMetadata.PendingInstall(iso: $0) }
         try? meta.save()
         metadata[name] = meta
     }
@@ -42,6 +43,7 @@ extension AppModel {
         guard let inst = instance(named: name) else { return "" }
         if inst.isRunning { return String(localized: "停止すると複製できます。") }
         if isBusy(name) { return String(localized: "処理中は複製できません。") }
+        if pendingInstall(name) != nil { return String(localized: "OS のインストールが終わると複製できます。") }
         if case .missing = diskPlacement(of: inst) {
             return String(localized: "ディスクのある外付けドライブを接続すると複製できます。")
         }
