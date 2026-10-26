@@ -28,6 +28,13 @@ struct HanaLimaApp: App {
             }
         }
 
+        // The installer's screen (Virtualization.framework) lives in its own window.
+        Window("インストール", id: "installer") {
+            InstallerWindowView()
+                .environment(model)
+        }
+        .windowResizability(.contentSize)
+
         MenuBarExtra(isInserted: $showMenuBarExtra) {
             MenuBarContent()
                 .environment(model)

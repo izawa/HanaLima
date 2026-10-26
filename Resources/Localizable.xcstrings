@@ -997,6 +997,22 @@
         }
       }
     },
+    "ISO から起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boot from ISO"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO から起動"
+          }
+        }
+      }
+    },
     "Kubernetes（kubeadm）": {
       "localizations": {
         "en": {
@@ -3480,6 +3496,22 @@
         }
       }
     },
+    "インストーラーの ISO から起動（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Booted from the installer ISO (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーの ISO から起動（%@）"
+          }
+        }
+      }
+    },
     "インストーラーの ISO（%@）": {
       "localizations": {
         "en": {
@@ -3528,6 +3560,70 @@
         }
       }
     },
+    "インストール": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール"
+          }
+        }
+      }
+    },
+    "インストール · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール · %@"
+          }
+        }
+      }
+    },
+    "インストールが終わって再起動したら、インストールした OS にログインして次を実行し、`sudo poweroff` で電源を切ってください。この画面にはクリップボードが届かないので、手で入力します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After the install and the reboot, log in to the installed OS, run the following, then power off with `sudo poweroff`. The clipboard doesn’t reach this screen, so type it by hand."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールが終わって再起動したら、インストールした OS にログインして次を実行し、`sudo poweroff` で電源を切ってください。この画面にはクリップボードが届かないので、手で入力します。"
+          }
+        }
+      }
+    },
+    "インストールと仕上げが済んでいれば「インストール完了」を押してください。Lima の仮想マシンとして起動します。\n仕上げがまだなら「ディスクから起動」で、インストールした OS を起動して仕上げのコマンドを実行してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the install and the fix-up are done, click Install Complete: the virtual machine starts under Lima.\nIf the fix-up is still to do, click Boot from Disk, log in to the installed OS and run the fix-up command."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールと仕上げが済んでいれば「インストール完了」を押してください。Lima の仮想マシンとして起動します。\n仕上げがまだなら「ディスクから起動」で、インストールした OS を起動して仕上げのコマンドを実行してください。"
+          }
+        }
+      }
+    },
     "インストール中": {
       "localizations": {
         "en": {
@@ -3540,6 +3636,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "インストール中"
+          }
+        }
+      }
+    },
+    "インストール中の仮想マシンはありません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Virtual Machine Is Being Installed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール中の仮想マシンはありません"
+          }
+        }
+      }
+    },
+    "インストール完了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install Complete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール完了"
           }
         }
       }
@@ -3716,6 +3844,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲストにファイルを書き込みます（実行はしません）。所有者は root:root、権限は 644 が既定です。"
+          }
+        }
+      }
+    },
+    "ゲストに終了を要求します。応答しないときは「強制停止」を使ってください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks the guest to shut down. If it doesn’t respond, use Force Stop."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストに終了を要求します。応答しないときは「強制停止」を使ってください。"
           }
         }
       }
@@ -4677,6 +4821,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスク「%@」を削除しますか？"
+          }
+        }
+      }
+    },
+    "ディスクから起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boot from Disk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクから起動"
           }
         }
       }
@@ -6234,6 +6394,38 @@
         }
       }
     },
+    "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。ウインドウを閉じるとインストールは中断します（やり直せます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The fix-up script sets up cloud-init and sshd. From the next boot, Lima configures the user, key, guest agent, shared folders and provisioning. Closing this window interrupts the install (you can start over)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。ウインドウを閉じるとインストールは中断します（やり直せます）。"
+          }
+        }
+      }
+    },
+    "仕上げ用の ISO を作れませんでした: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t make the fix-up ISO: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仕上げ用の ISO を作れませんでした: %@"
+          }
+        }
+      }
+    },
     "仮想 CPU": {
       "localizations": {
         "en": {
@@ -6631,6 +6823,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンは停止しています"
+          }
+        }
+      }
+    },
+    "仮想マシンは停止しています。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The virtual machine is stopped."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンは停止しています。"
           }
         }
       }
@@ -8123,6 +8331,22 @@
         }
       }
     },
+    "強制停止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Force Stop"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "強制停止"
+          }
+        }
+      }
+    },
     "強制停止して削除": {
       "localizations": {
         "en": {
@@ -9319,6 +9543,22 @@
         }
       }
     },
+    "記録を保存できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Save the Record"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を保存できませんでした"
+          }
+        }
+      }
+    },
     "設定": {
       "localizations": {
         "en": {
@@ -9811,6 +10051,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "閉じる"
+          }
+        }
+      }
+    },
+    "電源を切る（要求）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shut Down (Request)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電源を切る（要求）"
           }
         }
       }

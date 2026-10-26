@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(AppModel.self) private var model
     @State private var showCreate = false
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var model = model
@@ -73,6 +74,11 @@ struct ContentView: View {
             CreateInstanceSheet()
         }
         .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source, snapshot: $0.snapshot) }
+        .onChange(of: model.installRequest) { _, request in
+            guard let request else { return }
+            model.installRequest = nil
+            if model.beginInstall(request.name) != nil { openWindow(id: "installer") }
+        }
         // A request made before limactl was found waits until it is.
         .onChange(of: model.createRequested && model.client != nil, initial: true) { _, ready in
             guard ready else { return }

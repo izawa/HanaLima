@@ -10,6 +10,7 @@ struct Operation: Sendable {
         case snapshotCreate, snapshotApply, snapshotDelete
         case moveDisk, moveDiskBack, separateDisk
         case clone
+        case install
 
         var label: String {
             switch self {
@@ -26,6 +27,7 @@ struct Operation: Sendable {
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻す処理")
             case .separateDisk: String(localized: "ディスクの独立")
             case .clone: String(localized: "複製")
+            case .install: String(localized: "インストール")
             }
         }
 
@@ -46,6 +48,7 @@ struct Operation: Sendable {
             case .moveDiskBack: String(localized: "ディスクを内蔵に戻しています")
             case .separateDisk: String(localized: "ディスクを独立させています")
             case .clone: String(localized: "複製中")
+            case .install: String(localized: "インストール中")
             }
         }
     }
@@ -136,6 +139,8 @@ final class AppModel {
     var copyRequest: CopyRequest?
     /// The VM whose installer should open (see InstallerVM).
     var installRequest: InstallRequest?
+    /// The installer run shown in the installer window, if any.
+    var installSession: InstallSession?
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -204,6 +209,12 @@ final class AppModel {
         // After the networks are loaded, so the conflict check sees them.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
         if let name = DebugSnapshot.env["HANALIMA_VZPROBE"] { Task { await self.vzProbe(name) } }
+        if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_INSTALL"] {
+            Task {
+                while self.instance(named: name) == nil || self.metadata[name] == nil { try? await Task.sleep(for: .milliseconds(200)) }
+                self.installRequest = InstallRequest(name: name)
+            }
+        }
         // A made-up download in progress, to check the banner and the sidebar without downloading.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_DOWNLOAD"] {
             var op = Operation(kind: .create)
