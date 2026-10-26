@@ -16,19 +16,33 @@ final class InstallerVM {
         case failed(String)
     }
 
+    /// What to attach besides the instance's disk.
+    struct Options {
+        /// The installer ISO (USB). Nil boots from the disk.
+        var iso: URL?
+        /// The fix-up ISO (USB, label HANALIMA).
+        var helper: URL?
+        /// A FAT image with EFI loaders and a grub.cfg, attached before the ISO so EFI boots it
+        /// (unattended installs, see InstallerAutoinstall).
+        var bootImage: URL?
+        /// A NoCloud seed ISO, attached as a virtio block device.
+        var seed: URL?
+        /// No display, keyboard or pointer (the serial log is the only output).
+        var headless = false
+    }
+
     let instanceDir: URL
-    let iso: URL?
+    let options: Options
     private(set) var state: State = .starting
     let machine: VZVirtualMachine
     private let delegate = Delegate()
 
     /// `iso` nil boots from the disk (after the install, to run the fix-up or to check it boots).
     /// `helper` is the small ISO with limaify.sh. CPUs and memory come from lima.yaml.
-    init(instanceDir: URL, iso: URL?, helper: URL?, cpus: Int, memoryBytes: UInt64) throws {
+    init(instanceDir: URL, options: Options, cpus: Int, memoryBytes: UInt64) throws {
         self.instanceDir = instanceDir
-        self.iso = iso
-        let config = try Self.configuration(instanceDir: instanceDir, iso: iso, helper: helper,
-                                            cpus: cpus, memoryBytes: memoryBytes)
+        self.options = options
+        let config = try Self.configuration(instanceDir: instanceDir, options: options, cpus: cpus, memoryBytes: memoryBytes)
         machine = VZVirtualMachine(configuration: config)
         machine.delegate = delegate
         delegate.owner = self
@@ -81,7 +95,7 @@ final class InstallerVM {
 
     // MARK: - Configuration (what the prototype did, see Prototypes/vz-installer)
 
-    static func configuration(instanceDir: URL, iso: URL?, helper: URL?, cpus: Int,
+    static func configuration(instanceDir: URL, options: Options, cpus: Int,
                               memoryBytes: UInt64) throws -> VZVirtualMachineConfiguration {
         let fm = FileManager.default
         let disk = instanceDir.appending(path: "disk")
@@ -115,9 +129,13 @@ final class InstallerVM {
 
         config.storageDevices = [VZVirtioBlockDeviceConfiguration(
             attachment: try VZDiskImageStorageDeviceAttachment(url: disk, readOnly: false))]
+        if let seed = options.seed {
+            config.storageDevices.append(VZVirtioBlockDeviceConfiguration(
+                attachment: try VZDiskImageStorageDeviceAttachment(url: seed, readOnly: true)))
+        }
         // ISOs as USB mass storage: EFI boots the installer from there, and the guest sees them
         // as removable media (the helper ISO is mounted by its label).
-        let cds = try [iso, helper].compactMap { $0 }.map {
+        let cds = try [options.bootImage, options.iso, options.helper].compactMap { $0 }.map {
             VZUSBMassStorageDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: $0, readOnly: true))
         }
         if !cds.isEmpty {
@@ -132,11 +150,13 @@ final class InstallerVM {
         config.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]
         config.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
 
-        let graphics = VZVirtioGraphicsDeviceConfiguration()
-        graphics.scanouts = [VZVirtioGraphicsScanoutConfiguration(widthInPixels: 1280, heightInPixels: 800)]
-        config.graphicsDevices = [graphics]
-        config.keyboards = [VZUSBKeyboardConfiguration()]
-        config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
+        if !options.headless {
+            let graphics = VZVirtioGraphicsDeviceConfiguration()
+            graphics.scanouts = [VZVirtioGraphicsScanoutConfiguration(widthInPixels: 1280, heightInPixels: 800)]
+            config.graphicsDevices = [graphics]
+            config.keyboards = [VZUSBKeyboardConfiguration()]
+            config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
+        }
 
         // The guest's serial console, kept next to the instance for diagnosis.
         let log = instanceDir.appending(path: "hanalima-installer-serial.log")

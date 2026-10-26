@@ -212,6 +212,7 @@ final class AppModel {
         // After the networks are loaded, so the conflict check sees them.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
         if let name = DebugSnapshot.env["HANALIMA_VZPROBE"] { Task { await self.vzProbe(name) } }
+        if let name = DebugSnapshot.env["HANALIMA_E2E_AUTOINSTALL"] { Task { await self.e2eAutoinstall(name) } }
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_INSTALL"] {
             Task {
                 while self.instance(named: name) == nil || self.metadata[name] == nil { try? await Task.sleep(for: .milliseconds(200)) }

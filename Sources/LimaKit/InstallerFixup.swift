@@ -11,7 +11,23 @@ public enum InstallerFixup {
     /// What the user types in the installed OS (no clipboard reaches the installer's screen).
     public static let command = "sudo mount -L \(volumeLabel) /mnt && sudo sh /mnt/\(scriptName)"
 
-    public static let script = #"""
+    /// What makes cloud-init take Lima's `cidata.iso` at the next boot (installers such as
+    /// Ubuntu's subiquity pin the datasource or switch cloud-init off). Run as root in the
+    /// installed OS, or in the installer's target (`curtin in-target`), so paths are absolute.
+    public static let cloudInitSteps: [String] = [
+        "rm -f /etc/cloud/cloud-init.disabled /etc/cloud/cloud.cfg.d/99-installer.cfg /etc/cloud/cloud.cfg.d/90-installer-network.cfg",
+        "rm -rf /var/lib/cloud/seed",
+        "printf 'datasource_list: [ NoCloud, None ]\\n' > /etc/cloud/cloud.cfg.d/95-hanalima.cfg",
+        "cloud-init clean --logs",
+    ]
+
+    /// The script, with `cloudInitSteps` spliced in (the template's placeholder sits at the
+    /// indentation the raw literal keeps: two spaces).
+    public static var script: String {
+        scriptTemplate.replacingOccurrences(of: "  CLOUD_INIT_STEPS", with: cloudInitSteps.map { "  " + $0 }.joined(separator: "\n"))
+    }
+
+    static let scriptTemplate = #"""
     #!/bin/sh
     # HanaLima: prepares an OS installed from an ISO for Lima. Installs cloud-init and sshd and
     # lets NoCloud run, so at the next boot Lima's cidata.iso sets up its user, key, guest agent,
@@ -27,9 +43,7 @@ public enum InstallerFixup {
     fi
     if command -v cloud-init >/dev/null 2>&1; then
       # Installers (Ubuntu's subiquity) may pin the datasource or switch cloud-init off.
-      rm -f /etc/cloud/cloud-init.disabled /etc/cloud/cloud.cfg.d/99-installer.cfg /etc/cloud/cloud.cfg.d/90-installer-network.cfg
-      printf 'datasource_list: [ NoCloud, None ]\n' > /etc/cloud/cloud.cfg.d/95-hanalima.cfg
-      cloud-init clean --logs
+      CLOUD_INIT_STEPS
       echo "cloud-init is ready: Lima configures this VM at the next boot."
     else
       # No cloud-init available: Lima's user and key, so limactl can ssh in (no guest agent, so

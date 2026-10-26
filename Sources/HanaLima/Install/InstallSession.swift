@@ -42,7 +42,8 @@ final class InstallSession {
         error = nil
         do {
             let helper = try Self.helperISO()
-            let vm = try InstallerVM(instanceDir: instanceDir, iso: phase == .installer ? iso : nil, helper: helper,
+            let vm = try InstallerVM(instanceDir: instanceDir,
+                                     options: .init(iso: phase == .installer ? iso : nil, helper: helper),
                                      cpus: cpus, memoryBytes: memoryBytes)
             self.vm = vm
             vm.start()
