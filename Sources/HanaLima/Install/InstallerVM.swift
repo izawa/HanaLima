@@ -38,16 +38,24 @@ final class InstallerVM {
         state = .starting
         machine.start { [weak self] result in
             Task { @MainActor in
+                guard let self else { return }
                 switch result {
-                case .success: self?.state = .running
-                case .failure(let error): self?.state = .failed(error.localizedDescription)
+                case .success:
+                    self.state = .running
+                    if self.stopWhenStarted { self.stop(force: true) }
+                case .failure(let error):
+                    self.state = .failed(error.localizedDescription)
                 }
             }
         }
     }
 
-    /// Asks the guest to shut down (ACPI power button); `force` pulls the plug.
+    private var stopWhenStarted = false
+
+    /// Asks the guest to shut down (ACPI power button); `force` pulls the plug. While the VM is
+    /// still starting, the stop happens once it has started.
     func stop(force: Bool = false) {
+        if state == .starting { stopWhenStarted = true; return }
         guard state == .running else { return }
         if !force, machine.canRequestStop, (try? machine.requestStop()) != nil { return }
         guard machine.canStop else { return }

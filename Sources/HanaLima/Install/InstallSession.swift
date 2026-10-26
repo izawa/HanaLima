@@ -86,24 +86,35 @@ extension AppModel {
         }
     }
 
-    /// The install is done: clears the marker and starts the VM under Lima.
+    /// The install is done: starts the VM under Lima. The marker is cleared only once that start
+    /// succeeds, so a VM that doesn't boot yet (fix-up skipped, say) keeps "Open Installer".
     func finishInstall(_ session: InstallSession) {
-        guard !session.isRunning, var meta = metadata[session.name] else { return }
+        guard !session.isRunning else { return }
+        installSession = nil
+        start(session.name, allowPending: true)
+    }
+
+    func clearPendingInstall(_ name: String) {
+        guard var meta = metadata[name], meta.pendingInstall != nil else { return }
         meta.pendingInstall = nil
         do {
             try meta.save()
-            metadata[session.name] = meta
+            metadata[name] = meta
         } catch {
             alert = AlertMessage(title: String(localized: "記録を保存できませんでした"), message: error.localizedDescription)
-            return
         }
-        installSession = nil
-        start(session.name)
     }
 
     func closeInstallSession() {
-        installSession?.stop(force: true)
-        if let name = installSession?.name, operations[name]?.kind == .install { operations[name] = nil }
+        guard let session = installSession else { return }
         installSession = nil
+        if operations[session.name]?.kind == .install { operations[session.name] = nil }
+        guard session.isRunning else { return }
+        session.stop(force: true)
+        closingInstallSessions.append(session)
+        Task {
+            while session.isRunning { try? await Task.sleep(for: .milliseconds(200)) }
+            closingInstallSessions.removeAll { $0 === session }
+        }
     }
 }

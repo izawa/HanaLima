@@ -47,8 +47,8 @@ extension AppModel {
 
     /// A VM whose disk is on a drive that isn't connected can't start; say so instead of letting
     /// Lima fail with a file error. Nor can one that shares another VM's disk: it would write it.
-    func refuseIfDiskUnusable(_ name: String) -> Bool {
-        if pendingInstall(name) != nil {
+    func refuseIfDiskUnusable(_ name: String, allowPending: Bool = false) -> Bool {
+        if !allowPending, pendingInstall(name) != nil {
             alert = AlertMessage(title: String(localized: "「\(name)」はまだ OS が入っていません"),
                                  message: String(localized: "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。"))
             return true

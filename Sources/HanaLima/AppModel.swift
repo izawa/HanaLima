@@ -141,6 +141,9 @@ final class AppModel {
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
     var installSession: InstallSession?
+    /// Sessions whose VM is being stopped after the window closed: a VZVirtualMachine must stay
+    /// referenced until it has stopped (it holds the disk open).
+    @ObservationIgnored var closingInstallSessions: [InstallSession] = []
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -381,11 +384,14 @@ final class AppModel {
 
     /// Starts `name`. If it would mix socket_vmnet and HanaLima networks, asks first
     /// (see NetworkConflict) unless `confirmed`.
-    func start(_ name: String, confirmed: Bool = false) {
-        guard !refuseIfDiskUnusable(name) else { return }
+    /// `allowPending`: the installer window finished; a successful start clears the marker.
+    func start(_ name: String, confirmed: Bool = false, allowPending: Bool = false) {
+        guard !refuseIfDiskUnusable(name, allowPending: allowPending) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: false) else { return }
         guard confirmed || !askIfConflicting(name, restart: false) else { return }
-        run(.start, on: name, client.start(name))
+        run(.start, on: name, client.start(name)) { [weak self] ok in
+            if ok, allowPending { self?.clearPendingInstall(name) }
+        }
     }
 
     /// Returns true (and asks the user) if starting `name` would mix socket_vmnet and HanaLima
