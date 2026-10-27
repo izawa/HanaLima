@@ -37,6 +37,25 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     /// Set while the OS is still to be installed from an ISO (docs/07): the disk is blank, so
     /// Lima must not start it yet. Cleared when the install is done.
     public var pendingInstall: PendingInstall?
+    /// The playbook last chosen for this VM (docs/08). Lives outside the VM's folder, so only its path.
+    public var ansible: AnsibleRecord?
+
+    public struct AnsibleRecord: Codable, Equatable, Sendable {
+        public var playbook: String
+        /// Extra `ansible-playbook` arguments as typed (split like a shell for simple cases).
+        public var extraArguments: String
+        public var lastRunAt: Date?
+        public var lastExitStatus: Int32?
+
+        public init(playbook: URL, extraArguments: String = "", lastRunAt: Date? = nil, lastExitStatus: Int32? = nil) {
+            self.playbook = playbook.path(percentEncoded: false)
+            self.extraArguments = extraArguments
+            self.lastRunAt = lastRunAt
+            self.lastExitStatus = lastExitStatus
+        }
+
+        public var playbookURL: URL { URL(filePath: playbook) }
+    }
 
     public struct PendingInstall: Codable, Equatable, Sendable {
         public var iso: String

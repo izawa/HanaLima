@@ -743,6 +743,22 @@
         }
       }
     },
+    "Ansible のインベントリを書けませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could Not Write the Ansible Inventory"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansible のインベントリを書けませんでした"
+          }
+        }
+      }
+    },
     "Ansible（非推奨）": {
       "localizations": {
         "en": {

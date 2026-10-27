@@ -53,6 +53,12 @@ struct HanaLimaApp: App {
 
 enum AppSettings {
     static let showMenuBarExtra = "showMenuBarExtra"
+    /// `ansible-playbook` chosen by the user (empty: look in the usual places).
+    static let ansiblePathKey = "ansiblePath"
+    static var ansiblePath: String? {
+        let s = UserDefaults.standard.string(forKey: ansiblePathKey) ?? ""
+        return s.isEmpty ? nil : s
+    }
 
     /// UserDefaults has no value until the user changes the setting; the default is on.
     static var isMenuBarExtraShown: Bool {

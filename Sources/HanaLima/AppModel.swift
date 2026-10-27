@@ -146,6 +146,8 @@ final class AppModel {
     var installSession: InstallSession?
     /// A script running in a guest right now, shown in a sheet (see ScriptRun).
     var scriptRun: ScriptRun?
+    /// `ansible-playbook` on this Mac, once probed (see AppModel+Ansible).
+    var ansibleState = AnsibleState()
     /// Sessions whose VM is being stopped after the window closed: a VZVirtualMachine must stay
     /// referenced until it has stopped (it holds the disk open).
     @ObservationIgnored var closingInstallSessions: [InstallSession] = []
