@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <meta property="og:image" content="https://izawa.github.io/HanaLima/assets/img/icon-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=2026102601">
+<link rel="stylesheet" href="assets/css/site.css?v=2026102701">
 <script>
   // Pick the language before first paint: saved choice, else the browser's.
   (function () {
@@ -61,7 +61,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.6.0 · macOS 26+ · Lima 2.2+ · MIT</span>
+      <span class="eyebrow">● v0.7.0 · macOS 26+ · Lima 2.2+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -262,6 +262,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
           <tr><td><span class="en">Copying a VM whose disk is on another drive</span><span class="ja">ディスクを別のドライブに置いた VM の複製</span></td><td class="no"><span class="en">both share one disk</span><span class="ja">2 台で 1 つのディスク</span></td><td class="hl yes"><span class="en">its own clone</span><span class="ja">専用のクローン</span></td></tr>
           <tr><td><span class="en">Hand-set MAC addresses on a copy</span><span class="ja">コピーの、手で指定した MAC アドレス</span></td><td class="no"><span class="en">copied (duplicates)</span><span class="ja">そのまま（重複）</span></td><td class="hl yes"><span class="en">dropped</span><span class="ja">消す</span></td></tr>
           <tr><td><span class="en">What a deleted VM leaves behind</span><span class="ja">削除した VM が残すデータ</span></td><td class="no"><span class="en">not tracked</span><span class="ja">把握しない</span></td><td class="hl yes"><span class="en">listed, deletable</span><span class="ja">一覧にして削除できる</span></td></tr>
+          <tr><td><span class="en">Run a provisioning script right now</span><span class="ja">プロビジョニングを今すぐ実行</span></td><td class="no"><span class="en">at the next boot, or by hand over ssh</span><span class="ja">次の起動か、ssh で手作業</span></td><td class="hl yes"><span class="en">yes · output in a sheet</span><span class="ja">yes · 出力をシートに</span></td></tr>
+          <tr><td><span class="en">A provisioning script that runs only once</span><span class="ja">一度だけ実行するプロビジョニング</span></td><td class="no"><span class="en">every boot; write your own guard</span><span class="ja">毎回の起動。自分で判定を書く</span></td><td class="hl yes"><span class="en">yes · stamp, retry on failure</span><span class="ja">yes · 印を残し、失敗は再試行</span></td></tr>
           <tr><td><span class="en">Where a copy came from</span><span class="ja">コピー元の記録</span></td><td class="no">—</td><td class="hl yes"><span class="en">shown, with a note</span><span class="ja">表示（メモつき）</span></td></tr>
         </tbody>
       </table>
@@ -428,7 +430,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <div class="card reveal"><span class="status done">v0.4</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
         <h3><span class="en">Logs &amp; provisioning</span><span class="ja">ログとプロビジョニング</span></h3>
-        <p><span class="en">Follow the host agent log and serial consoles live, with search. Edit the provisioning scripts and data files Lima applies on every boot — in an editor that won't smart-quote your shell script. Or start from ready-made examples: basic tools, your dotfiles and public key, Docker Engine, and an XDP development toolchain.</span><span class="ja">ホストエージェントのログとシリアルコンソールを、検索しながらリアルタイムに。Lima が起動のたびに適用するスクリプトやファイルも、スマート引用符に化けないエディタで編集。基本ツール一式、dotfiles・公開鍵、Docker Engine、XDP の開発環境といった例から、ワンクリックで始められます。</span></p>
+        <p><span class="en">Follow the host agent log and serial consoles live, with search. Edit the provisioning scripts and data files Lima applies on every boot — in an editor that won't smart-quote your shell script. Or start from ready-made examples: basic tools, your dotfiles and public key, Docker Engine, an XDP development toolchain and more.</span><span class="ja">ホストエージェントのログとシリアルコンソールを、検索しながらリアルタイムに。Lima が起動のたびに適用するスクリプトやファイルも、スマート引用符に化けないエディタで編集。基本ツール一式、dotfiles・公開鍵、Docker Engine、XDP の開発環境などの例から、ワンクリックで始められます。</span></p>
       </div>
       <div class="card reveal"><span class="status done">v0.4</span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></div>
@@ -454,6 +456,11 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
         <h3><span class="en">Create from an installer ISO</span><span class="ja">インストーラーの ISO から作成</span></h3>
         <p><span class="en">Pick a Linux installer ISO instead of a template. HanaLima boots it in its own window, installs straight into the VM's disk, and after a one-line fix-up hands the VM to Lima, which configures it like any other. Ubuntu Server 26.04 verified; VZ only.</span><span class="ja">テンプレートの代わりに Linux のインストーラーの ISO を選べます。HanaLima が専用のウインドウで起動し、VM のディスクに直接インストールします。仕上げの 1 行のあとは Lima に引き渡され、ほかの VM と同じように設定されます。Ubuntu Server 26.04 で確認済み。VZ 専用です。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.7</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l14 8-14 8z"/></svg></div>
+        <h3><span class="en">Provisioning, now or once</span><span class="ja">プロビジョニングを今すぐ、または一度だけ</span></h3>
+        <p><span class="en">Lima runs provisioning scripts at every boot. HanaLima adds two things: <strong>Run now</strong> runs an entry or a ready-made example in the running VM without saving, with the output in a sheet; <strong>Run only once</strong> wraps a script so it leaves a stamp and later boots skip it — a failure retries next time, and “Run Again” resets it. Nine examples, from basic tools to a one-shot full upgrade.</span><span class="ja">Lima のプロビジョニングは起動のたびに走ります。HanaLima はそこに 2 つを足しました。<strong>今すぐ実行</strong>は、項目や例を保存せずに実行中の VM で走らせ、出力をシートに表示します。<strong>一度だけ実行する</strong>は、スクリプトを包んで成功の印を残し、以後の起動では飛ばします。失敗なら次の起動で再試行、「もう一度実行」で印を新しくします。例は基本ツールから一度だけの全パッケージ更新まで 9 つ。</span></p>
       </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
@@ -513,6 +520,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">Snapshots for VZ</span><span class="ja">VZ のスナップショット</span></li><li><span class="en">Copies with lineage</span><span class="ja">系譜つきの複製</span></li><li><span class="en">Disks on external drives</span><span class="ja">ディスクを外付けに</span></li><li><span class="en">Home sharing optional</span><span class="ja">ホームを共有しない選択</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.6</h3>
         <ul><li><span class="en">Create from an installer ISO</span><span class="ja">インストーラーの ISO から作成</span></li><li><span class="en">Provisioning examples</span><span class="ja">プロビジョニングの例</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.7</h3>
+        <ul><li><span class="en">Run provisioning now</span><span class="ja">プロビジョニングを今すぐ実行</span></li><li><span class="en">Run-once scripts</span><span class="ja">一度だけ実行</span></li><li><span class="en">More examples</span><span class="ja">例の追加</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
@@ -556,6 +565,6 @@ scripts/make-app.sh --install --open</pre>
   </div>
 </footer>
 
-<script src="assets/js/site.js?v=2026102601"></script>
+<script src="assets/js/site.js?v=2026102701"></script>
 </body>
 </html>
