@@ -209,7 +209,10 @@ h3 { font-size: 19px; margin: 0 0 8px; letter-spacing: -.005em; }
 }
 .dive:hover { border-color: color-mix(in srgb, var(--hana) 45%, var(--line)); }
 @media (max-width: 900px) { .dive { grid-template-columns: 1fr; gap: 14px; } }
-.dive .num { font: 700 30px var(--mono); color: transparent; -webkit-text-stroke: 1px var(--hana); }
+.dive { scroll-margin-top: 84px; }
+.dive .num { font: 700 30px var(--mono); color: transparent; -webkit-text-stroke: 1px var(--hana); text-decoration: none; }
+a.dive .num:hover, .dive .num:hover { color: var(--hana); }
+.dive:target { border-color: var(--hana); }
 .dive p { margin: 0 0 10px; color: var(--muted); }
 .dive .tag { display: inline-block; margin-top: 4px; }
 pre.code {

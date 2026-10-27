@@ -44,3 +44,4 @@ python3 -m http.server 8642 --directory .
 ```
 
 Then open http://localhost:8642/.
+7. **Permalinks**: each “how it works” item has an `id` (e.g. `#rootless-nat`, `#installer-iso`); its number is the link. Give a new item a short English slug.
