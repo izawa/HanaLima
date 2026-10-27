@@ -343,7 +343,7 @@ public struct ProvisionConfig: Hashable, Sendable, Identifiable {
     public var summary: String {
         if mode == .data || mode == .yq { return path.isEmpty ? String(localized: "（パス未設定）") : path }
         if let file = extra["file"] { return "file: \(file.stringValue ?? file["url"]?.stringValue ?? file.jsonText)" }
-        let line = script.split(whereSeparator: \.isNewline)
+        let line = scriptBody.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first { !$0.isEmpty && !$0.hasPrefix("#!") && !$0.hasPrefix("set -") }
         return line ?? String(localized: "（空のスクリプト）")

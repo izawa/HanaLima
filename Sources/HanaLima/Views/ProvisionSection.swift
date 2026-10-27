@@ -77,7 +77,16 @@ struct ProvisionSection: View {
                         .foregroundStyle(.tint)
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.mode.label)
+                        HStack(spacing: 6) {
+                            Text(entry.mode.label)
+                            if entry.onceID != nil {
+                                Text("1 回")
+                                    .font(.caption2.bold())
+                                    .padding(.horizontal, 5).padding(.vertical, 1)
+                                    .background(.tint.opacity(0.15), in: Capsule())
+                                    .help("一度だけ実行する項目です（印が残ると、以後の起動では何もしません）。")
+                            }
+                        }
                         Text(entry.summary)
                             .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
@@ -116,7 +125,7 @@ struct ProvisionSection: View {
         } header: {
             Text("プロビジョニング")
         } footer: {
-            Text("仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書いてください。変更は次回の起動から反映されます。")
+            Text("仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書くか、編集画面で「一度だけ実行する」を選んでください。変更は次回の起動から反映されます。")
                 .font(.caption).foregroundStyle(.secondary)
         }
         #if DEBUG
@@ -153,6 +162,10 @@ struct ProvisionSection: View {
 private struct ProvisionEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State var entry: ProvisionConfig
+    /// The script as written; for a one-shot entry, the wrapper is added on save.
+    @State private var body_: String
+    @State private var once: Bool
+    @State private var onceID: String
     let isNew: Bool
     /// Viewing while the VM runs: everything shown, nothing editable, only a Close button.
     var isReadOnly = false
@@ -160,15 +173,29 @@ private struct ProvisionEditorSheet: View {
 
     init(entry: ProvisionConfig, isNew: Bool, isReadOnly: Bool = false, onSave: @escaping (ProvisionConfig) -> Void) {
         _entry = State(initialValue: entry)
+        let parsed = ProvisionOnce.parse(entry.script)
+        _body_ = State(initialValue: parsed?.body ?? entry.script)
+        _once = State(initialValue: parsed != nil)
+        _onceID = State(initialValue: parsed?.id ?? ProvisionOnce.newID())
         self.isNew = isNew
         self.isReadOnly = isReadOnly
         self.onSave = onSave
     }
 
+    private var canBeOnce: Bool { ProvisionOnce.supports(entry.mode) }
+
+    private var saved: ProvisionConfig {
+        var e = entry
+        if e.mode.isScript {
+            e.script = once && canBeOnce ? ProvisionOnce.wrap(body: body_, mode: e.mode, id: onceID) : body_
+        }
+        return e
+    }
+
     private var error: String? {
         if entry.mode == .data {
             if !entry.path.hasPrefix("/") && !entry.path.hasPrefix("{{") { return String(localized: "ゲスト内の絶対パスを指定してください。") }
-        } else if entry.script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        } else if body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return String(localized: "スクリプトを入力してください。")
         }
         return nil
@@ -193,8 +220,23 @@ private struct ProvisionEditorSheet: View {
                 CodeEditor(text: $entry.content, isEditable: !isReadOnly)
                     .border(.separator)
             } else {
-                CodeEditor(text: $entry.script, isEditable: !isReadOnly)
+                CodeEditor(text: $body_, isEditable: !isReadOnly)
                     .border(.separator)
+                if canBeOnce {
+                    HStack {
+                        Toggle("一度だけ実行する（次の起動で 1 回）", isOn: $once)
+                            .disabled(isReadOnly)
+                        if once && !isNew && !isReadOnly {
+                            Button("もう一度実行") { onceID = ProvisionOnce.newID() }
+                                .help("次の起動でもう一度実行します（新しい印を付けます）。")
+                        }
+                    }
+                    if once {
+                        Text("成功すると印（\(ProvisionOnce.stampDirectory(for: entry.mode))/<id>.done）を残し、以後の起動では何もしません。失敗したときは印を残さず、次の起動で再試行します。「今すぐ実行」でも印を残します。")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 if entry.mode == .dependency {
                     Toggle("Lima 標準のパッケージ導入を行わない（skipDefaultDependencyResolution）",
                            isOn: $entry.skipDefaultDependencyResolution)
@@ -219,7 +261,7 @@ private struct ProvisionEditorSheet: View {
                     Button("キャンセル", role: .cancel) { dismiss() }
                         .keyboardShortcut(.cancelAction)
                     Button(isNew ? "追加" : "完了") {
-                        onSave(entry)
+                        onSave(saved)
                         dismiss()
                     }
                     .keyboardShortcut(.defaultAction)

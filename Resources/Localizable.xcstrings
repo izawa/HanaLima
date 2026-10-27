@@ -617,6 +617,22 @@
         }
       }
     },
+    "1 回": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 回"
+          }
+        }
+      }
+    },
     "127.0.0.1": {
       "localizations": {
         "ja": {
@@ -3477,6 +3493,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだ OS が入っていません。インストーラーの ISO（%@）から OS を入れると、仮想マシンとして使えるようになります。"
+          }
+        }
+      }
+    },
+    "もう一度実行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run Again"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度実行"
           }
         }
       }
@@ -6427,6 +6459,38 @@
         }
       }
     },
+    "一度だけ実行する項目です（印が残ると、以後の起動では何もしません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs once: after its stamp is left, later starts do nothing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度だけ実行する項目です（印が残ると、以後の起動では何もしません）。"
+          }
+        }
+      }
+    },
+    "一度だけ実行する（次の起動で 1 回）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run only once (at the next start)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度だけ実行する（次の起動で 1 回）"
+          }
+        }
+      }
+    },
     "一時的に使う仮想マシンなら、ディスクを外付けドライブに置いて Mac の空き容量を節約できます。あとから「設定」タブで移すこともできます。": {
       "localizations": {
         "en": {
@@ -7053,6 +7117,7 @@
       }
     },
     "仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書いてください。変更は次回の起動から反映されます。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7064,6 +7129,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書いてください。変更は次回の起動から反映されます。"
+          }
+        }
+      }
+    },
+    "仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書くか、編集画面で「一度だけ実行する」を選んでください。変更は次回の起動から反映されます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs every time the virtual machine starts (not only the first time). Write scripts so that running them again gives the same result, or choose “Run only once” in the editor. Changes take effect from the next start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンを起動するたびに実行されます（初回だけではありません）。何度実行しても同じ結果になるように書くか、編集画面で「一度だけ実行する」を選んでください。変更は次回の起動から反映されます。"
           }
         }
       }
@@ -8668,6 +8749,22 @@
         }
       }
     },
+    "成功すると印（%@/<id>.done）を残し、以後の起動では何もしません。失敗したときは印を残さず、次の起動で再試行します。「今すぐ実行」でも印を残します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On success it leaves a stamp (%@/<id>.done) and later starts do nothing. On failure no stamp is left, so the next start retries. “Run Now” leaves the stamp too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成功すると印（%@/<id>.done）を残し、以後の起動では何もしません。失敗したときは印を残さず、次の起動で再試行します。「今すぐ実行」でも印を残します。"
+          }
+        }
+      }
+    },
     "戻す": {
       "localizations": {
         "en": {
@@ -9188,6 +9285,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "次の仮想マシンがこのネットワークを使っています: %@。削除すると、実行中のものはこのネットワークで通信できなくなり、次の起動前にこの NIC を外すことになります（起動するときに外すかどうかを尋ねます）。"
+          }
+        }
+      }
+    },
+    "次の起動でもう一度実行します（新しい印を付けます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs once more at the next start (with a new stamp)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の起動でもう一度実行します（新しい印を付けます）。"
           }
         }
       }

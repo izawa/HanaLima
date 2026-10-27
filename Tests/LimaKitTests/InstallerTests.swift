@@ -68,3 +68,27 @@ import Testing
         #expect(ProvisionScripts.heredocTag(for: "x HANALIMA_EOF y") == "HANALIMA_EOF_")
     }
 }
+
+@Suite struct ProvisionOnceTests {
+    @Test func wrapAndParseRoundTrip() {
+        let body = "#!/bin/sh\nset -eu\napt-get -y full-upgrade\n"
+        let wrapped = ProvisionOnce.wrap(body: body, mode: .system, id: "abc")
+        #expect(wrapped.hasPrefix("#!/bin/sh\n# hanalima: once abc\n"))
+        #expect(wrapped.contains("HL_STAMP=\"/var/lib/hanalima/once/abc.done\"\n[ -e \"$HL_STAMP\" ] && exit 0\n"))
+        #expect(wrapped.hasSuffix("}\n(hl_once) && mkdir -p \"$(dirname \"$HL_STAMP\")\" && touch \"$HL_STAMP\"\n"))
+        let parsed = ProvisionOnce.parse(wrapped)
+        #expect(parsed?.id == "abc")
+        #expect(parsed?.body == "set -eu\napt-get -y full-upgrade\n")  // the shebang moves to the wrapper
+        #expect(ProvisionOnce.parse(body) == nil)
+        #expect(ProvisionOnce.wrap(body: "x", mode: .user, id: "u").contains("$HOME/.local/state/hanalima/once/u.done"))
+    }
+
+    @Test func summaryAndBodySeeThroughTheWrapper() {
+        var e = ProvisionConfig(mode: .system)
+        e.script = ProvisionOnce.wrap(body: "# upgrade everything\napt-get -y full-upgrade\n", mode: .system, id: "id1")
+        #expect(e.onceID == "id1")
+        #expect(e.summary == "# upgrade everything")
+        #expect(e.scriptBody == "# upgrade everything\napt-get -y full-upgrade\n")
+        #expect(ProvisionConfig(mode: .system, script: "echo hi").onceID == nil)
+    }
+}
