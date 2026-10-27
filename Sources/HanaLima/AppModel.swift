@@ -294,7 +294,11 @@ final class AppModel {
             }
             readyInstances.formIntersection(list.map(\.name))
             hasListedOnce = true
-            if list != instances { instances = list }
+            if list != instances {
+                instances = list
+                // The Ansible inventory lists every VM, for use from the terminal too (docs/08).
+                try? writeAnsibleInventory()
+            }
             updateDiskPlacements()
             updateMetadata(list)
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
