@@ -77,7 +77,7 @@ extension AppModel {
 
     /// Provisioning entries run now, in order, as Lima's boot would (see `ProvisionScripts`).
     func runProvisionNow(_ entries: [ProvisionConfig], in name: String, title: String) {
-        runScript(ProvisionScripts.combined(entries, user: NSUserName()), in: name, asRoot: true, title: title)
+        runScript(ProvisionScripts.combined(entries, instanceName: name), in: name, asRoot: false, title: title)
     }
 }
 

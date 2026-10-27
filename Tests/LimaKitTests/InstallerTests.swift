@@ -41,21 +41,26 @@ import Testing
     }
 
     @Test func combinedScriptRunsEntriesInOrderAsTheRightUser() {
-        var file = ProvisionConfig(mode: .data)
-        file.path = "/etc/it's.conf"
+        var file = ProvisionConfig(mode: .data, owner: "{{.User}}")
+        file.path = "{{.Home}}/it's.conf"
         file.content = "a=1"
         file.extra["permissions"] = .string("0644")
         var user = ProvisionConfig(mode: .user)
         user.script = "echo $HOME\n"
         var system = ProvisionConfig(mode: .system)
         system.script = "apk add x"
-        let s = ProvisionScripts.combined([file, user, system], user: "izawa")
+        let s = ProvisionScripts.combined([file, user, system], instanceName: "vm")
         #expect(s.hasPrefix("set -e\n"))
+        #expect(s.contains("HL_NAME='vm'"))
         #expect(s.contains("### 1/3 [data]"))
-        #expect(s.contains("cat > '/etc/it'\\''s.conf' <<'HANALIMA_EOF'\na=1\nHANALIMA_EOF\n"))
-        #expect(s.contains("chmod '0644' '/etc/it'\\''s.conf'"))
-        #expect(s.contains("sudo -u 'izawa' -i sh -s <<'HANALIMA_EOF'\necho $HOME\nHANALIMA_EOF\n"))
-        #expect(s.contains("sh -s <<'HANALIMA_EOF'\napk add x\nHANALIMA_EOF\n"))
+        // Bodies pass through a quoted heredoc, then the guest expands Lima's template fields.
+        #expect(s.contains("hl_expand > \"$HL_TMP/data\" <<'HANALIMA_EOF'\na=1\nHANALIMA_EOF\n"))
+        #expect(s.contains("HL_PATH=$(printf %s '{{.Home}}/it'\\''s.conf' | hl_expand)"))
+        #expect(s.contains("HL_OWNER=\"$(printf %s '{{.User}}' | hl_expand)\"\nhl_mkdir \"$(dirname \"$HL_PATH\")\" \"$HL_OWNER\"\n"))
+        #expect(s.contains("[ -n \"$HL_OWNER\" ] && sudo -- chown \"$HL_OWNER\" \"$HL_PATH\""))
+        #expect(s.contains("sudo -- chmod '0644' \"$HL_PATH\""))
+        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\necho $HOME\nHANALIMA_EOF\nsh \"$HL_TMP/script\"\n"))
+        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\napk add x\nHANALIMA_EOF\nsudo -- sh \"$HL_TMP/script\"\n"))
         #expect(s.range(of: "### 2/3 ")!.lowerBound > s.range(of: "### 1/3 ")!.lowerBound)
     }
 
