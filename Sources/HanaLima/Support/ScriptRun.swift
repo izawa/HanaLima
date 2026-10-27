@@ -121,6 +121,7 @@ struct ScriptRunSheet: View {
                 Spacer()
                 if run.isRunning {
                     Button("中止") { run.cancel() }
+                        .help("接続を切ります。ゲストで実行中のコマンドは、終わるまで動き続けることがあります。")
                 } else {
                     Button("閉じる") { dismiss() }.keyboardShortcut(.defaultAction)
                 }

@@ -10,12 +10,21 @@ public enum ProvisionScripts {
     /// Lima sets up without a password). Stops at the first failure. Entries that only YAML can
     /// express (`yq`, `file:`) are skipped with a note.
     public static func combined(_ entries: [ProvisionConfig], instanceName: String) -> String {
+        let inner = sequence(entries, instanceName: instanceName)
+        // `sh -s` reads the script from the pipe as it goes, so an entry that reads stdin (an
+        // installer without -y, `read`) would swallow the rest. Save it to a file first and run
+        // that with stdin closed, as Lima's boot runs files.
+        let tag = heredocTag(for: inner)
+        return "HL_ALL=$(mktemp); cat > \"$HL_ALL\" <<'\(tag)'\n\(inner)\(tag)\nexec sh \"$HL_ALL\" </dev/null\n"
+    }
+
+    static func sequence(_ entries: [ProvisionConfig], instanceName: String) -> String {
         var s = """
         set -e
         HL_USER=$(id -un); HL_HOME=$HOME; HL_UID=$(id -u); HL_NAME=\(quote(instanceName)); HL_HOST=$(hostname)
         hl_expand() { sed -e "s|{{\\.User}}|$HL_USER|g" -e "s|{{\\.Home}}|$HL_HOME|g" -e "s|{{\\.UID}}|$HL_UID|g" -e "s|{{\\.Name}}|$HL_NAME|g" -e "s|{{\\.Hostname}}|$HL_HOST|g"; }
         hl_mkdir() { [ -d "$1" ] && return 0; hl_mkdir "$(dirname "$1")" "$2"; sudo -- mkdir "$1"; [ -n "$2" ] && sudo -- chown "$2" "$1"; }
-        HL_TMP=$(mktemp -d); trap 'rm -rf "$HL_TMP"' EXIT
+        HL_TMP=$(mktemp -d); trap 'rm -rf "$HL_TMP" "$HL_ALL"' EXIT
 
         """
         for (i, entry) in entries.enumerated() {

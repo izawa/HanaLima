@@ -173,7 +173,8 @@ public struct LimaClient: Sendable {
     /// Runs `script` in the guest through `limactl shell`, fed to `sh -s` on stdin (so nothing
     /// in it needs quoting), as root with `asRoot`. Streams its output; the VM must be ready.
     public func runScript(in name: String, script: String, asRoot: Bool) -> AsyncThrowingStream<OutputLine, Error> {
-        runner.lines(Self.scriptArguments(name: name, asRoot: asRoot), input: Data(script.utf8))
+        // SIGTERM on cancel: limactl shell ignores SIGINT and waits for the remote command.
+        runner.lines(Self.scriptArguments(name: name, asRoot: asRoot), input: Data(script.utf8), terminateOnCancel: true)
     }
 
     static func scriptArguments(name: String, asRoot: Bool) -> [String] {

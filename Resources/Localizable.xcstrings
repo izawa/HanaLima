@@ -8969,6 +8969,22 @@
         }
       }
     },
+    "接続を切ります。ゲストで実行中のコマンドは、終わるまで動き続けることがあります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnects. A command already running in the guest may keep running until it finishes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を切ります。ゲストで実行中のコマンドは、終わるまで動き続けることがあります。"
+          }
+        }
+      }
+    },
     "接続中のディスクは削除できません": {
       "localizations": {
         "en": {

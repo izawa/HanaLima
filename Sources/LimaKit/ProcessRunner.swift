@@ -66,15 +66,18 @@ public struct ProcessRunner: Sendable {
     /// Pass `background: true` for long-lived helpers (e.g. `limactl watch`) that must not
     /// outlive the app; see `ProcessRunner.terminateBackgroundProcesses()`.
     /// `input` is written to the process's stdin, then stdin is closed (nil: no stdin).
+    /// `terminateOnCancel`: SIGTERM instead of SIGINT when the stream is cancelled.
     public func lines(_ arguments: [String], background: Bool = false,
-                      extraEnvironment: [String: String] = [:], input: Data? = nil) -> AsyncThrowingStream<OutputLine, Error> {
+                      extraEnvironment: [String: String] = [:], input: Data? = nil,
+                      terminateOnCancel: Bool = false) -> AsyncThrowingStream<OutputLine, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 var out = LineSplitter()
                 var err = LineSplitter()
                 do {
                     for try await chunk in chunks(arguments, background: background,
-                                                  extraEnvironment: extraEnvironment, input: input) {
+                                                  extraEnvironment: extraEnvironment, input: input,
+                                                  terminateOnCancel: terminateOnCancel) {
                         switch chunk {
                         case .stdout(let d): out.feed(d).forEach { continuation.yield(.stdout($0)) }
                         case .stderr(let d): err.feed(d).forEach { continuation.yield(.stderr($0)) }
@@ -105,9 +108,10 @@ public struct ProcessRunner: Sendable {
     }
 
     private func chunks(_ arguments: [String], background: Bool = false,
-                        extraEnvironment: [String: String] = [:], input: Data? = nil) -> AsyncThrowingStream<Chunk, Error> {
+                        extraEnvironment: [String: String] = [:], input: Data? = nil,
+                        terminateOnCancel: Bool = false) -> AsyncThrowingStream<Chunk, Error> {
         let (stream, continuation) = AsyncThrowingStream<Chunk, Error>.makeStream()
-        let handle = ProcessHandle()
+        let handle = ProcessHandle(terminateOnCancel: terminateOnCancel)
         let executableURL = executableURL
         let environment = environment.merging(extraEnvironment) { _, new in new }
         let currentDirectoryURL = currentDirectoryURL
@@ -193,6 +197,10 @@ private final class ProcessHandle: @unchecked Sendable {
     private let lock = NSLock()
     private var process: Process?
     private var cancelled = false
+    /// SIGTERM instead of SIGINT: `limactl shell` ignores SIGINT and waits for the remote command.
+    private let terminateOnCancel: Bool
+
+    init(terminateOnCancel: Bool = false) { self.terminateOnCancel = terminateOnCancel }
 
     var wasCancelled: Bool { lock.withLock { cancelled } }
 
@@ -207,7 +215,7 @@ private final class ProcessHandle: @unchecked Sendable {
     func cancel() {
         lock.withLock {
             cancelled = true
-            if let process, process.isRunning { process.interrupt() }
+            if let process, process.isRunning { terminateOnCancel ? process.terminate() : process.interrupt() }
         }
     }
 }

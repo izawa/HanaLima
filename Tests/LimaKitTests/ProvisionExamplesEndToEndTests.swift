@@ -93,7 +93,8 @@ struct ProvisionExamplesEndToEndTests {
             case .fullUpgrade:
                 // Ran once and left its stamp; the second boot didn't touch the stamp.
                 #expect(try await sh("ls /var/lib/hanalima/once/*.done | wc -l | tr -d ' '") == "1")
-                #expect(try await sh("sudo sh -c 'command -v apt-get >/dev/null && apt-get -s full-upgrade | grep -c \"^Inst \" || echo 0'") == "0")
+                // Nothing left to upgrade on apt guests (grep -c prints 0 and exits 1, hence || true).
+                #expect(try await sh("sudo sh -c 'if command -v apt-get >/dev/null; then apt-get -s full-upgrade | grep -c \"^Inst \" || true; else echo 0; fi'") == "0")
             }
         }
     }

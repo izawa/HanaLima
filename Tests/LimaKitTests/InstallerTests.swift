@@ -49,7 +49,11 @@ import Testing
         user.script = "echo $HOME\n"
         var system = ProvisionConfig(mode: .system)
         system.script = "apk add x"
-        let s = ProvisionScripts.combined([file, user, system], instanceName: "vm")
+        let whole = ProvisionScripts.combined([file, user, system], instanceName: "vm")
+        // The sequence is saved to a file and run with stdin closed.
+        #expect(whole.hasPrefix("HL_ALL=$(mktemp); cat > \"$HL_ALL\" <<'HANALIMA_EOF_'\nset -e\n"))
+        #expect(whole.hasSuffix("HANALIMA_EOF_\nexec sh \"$HL_ALL\" </dev/null\n"))
+        let s = ProvisionScripts.sequence([file, user, system], instanceName: "vm")
         #expect(s.hasPrefix("set -e\n"))
         #expect(s.contains("HL_NAME='vm'"))
         #expect(s.contains("### 1/3 [data]"))
