@@ -206,6 +206,8 @@ private struct ConfigForm: View {
             .disabled(isLocked)
             // Handles the lock itself, so the scripts can still be opened read-only.
             ProvisionSection(provision: $config.provision, isLocked: isLocked, instance: instance)
+            // Acts right away and never touches lima.yaml, so it isn't locked while the VM runs.
+            AnsibleSection(instance: instance)
         }
         .formStyle(.grouped)
     }

@@ -14,7 +14,8 @@ import LimaKit
 /// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it),
 /// `HANALIMA_SNAPSHOT_MOVEDISK=<folder>` (open the move-disk sheet with that destination; use
 /// with `_SELECT=<instance>` and `_TAB=設定`), `HANALIMA_SNAPSHOT_RUNNOW=<example id, e.g. basicTools>` (run
-/// that provisioning example in the selected, ready instance and show the output sheet).
+/// that provisioning example in the selected, ready instance and show the output sheet),
+/// `HANALIMA_SNAPSHOT_SCROLL=bottom` (scroll every window to the end before capturing, for long forms).
 @MainActor
 enum DebugSnapshot {
     static var env: [String: String] { ProcessInfo.processInfo.environment }
@@ -46,6 +47,10 @@ enum DebugSnapshot {
 
     private static func capture(prefix: String) {
         let windows = NSApp.windows.filter { $0.isVisible && $0.contentView != nil }
+        if env["HANALIMA_SNAPSHOT_SCROLL"] == "bottom" {
+            for w in windows { scrollToBottom(w.contentView) }
+            windows.forEach { $0.contentView?.layoutSubtreeIfNeeded(); $0.displayIfNeeded() }
+        }
         if env["HANALIMA_SNAPSHOT_DUMP"] == "1" {
             for w in NSApp.windows {
                 print("window \(type(of: w)) title=\(w.title) visible=\(w.isVisible) frame=\(w.frame)")
@@ -61,6 +66,16 @@ enum DebugSnapshot {
                 try? png.write(to: URL(fileURLWithPath: "\(prefix)-\(i).png"))
             }
         }
+    }
+
+    /// Scrolls every vertical scroll view to its end, so the bottom of a long form can be captured.
+    private static func scrollToBottom(_ view: NSView?) {
+        guard let view else { return }
+        if let scroll = view as? NSScrollView, let doc = scroll.documentView, doc.frame.height > scroll.contentSize.height {
+            scroll.contentView.scroll(to: NSPoint(x: 0, y: doc.frame.height - scroll.contentSize.height))
+            scroll.reflectScrolledClipView(scroll.contentView)
+        }
+        view.subviews.forEach(scrollToBottom)
     }
 
     /// Prints table/outline views and their visible text, to tell rendering artifacts from real bugs.

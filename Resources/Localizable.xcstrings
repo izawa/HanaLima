@@ -743,6 +743,22 @@
         }
       }
     },
+    "Ansible": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansible"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansible"
+          }
+        }
+      }
+    },
     "Ansible のインベントリを書けませんでした": {
       "localizations": {
         "en": {
@@ -907,6 +923,22 @@
         }
       }
     },
+    "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima writes the inventory %@ (group [hanalima], host lima-<name>) and points ssh at Lima’s ssh.config. It runs ansible-playbook -i … --limit lima-<name> <playbook> in the playbook’s folder, so the roles/, group_vars/ and ansible.cfg next to it apply. The same inventory can be used from the terminal with -i. Lima’s user has passwordless sudo, so become: true works without any settings. Write playbooks to be idempotent in Ansible’s own way (HanaLima does not mark them as “run once”)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。"
+          }
+        }
+      }
+    },
     "HanaLima を終了": {
       "localizations": {
         "en": {
@@ -951,6 +983,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "HanaLima 仮想ネットワーク"
+          }
+        }
+      }
+    },
+    "Homebrew、pyenv、~/.local/bin などの通常の場所から探し直します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looks again in the usual places, such as Homebrew, pyenv and ~/.local/bin."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew、pyenv、~/.local/bin などの通常の場所から探し直します。"
           }
         }
       }
@@ -1688,6 +1736,54 @@
         }
       }
     },
+    "Playbook": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playbook"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playbook"
+          }
+        }
+      }
+    },
+    "Playbook の選択を外します（記録した引数と前回の結果も消えます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clears the playbook (the recorded arguments and the last result are cleared too)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playbook の選択を外します（記録した引数と前回の結果も消えます）。"
+          }
+        }
+      }
+    },
+    "Playbook を選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a playbook."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playbook を選んでください。"
+          }
+        }
+      }
+    },
     "Podman（rootful）": {
       "localizations": {
         "en": {
@@ -1984,6 +2080,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "YAML で編集"
+          }
+        }
+      }
+    },
+    "ansible-playbook": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook"
+          }
+        }
+      }
+    },
+    "ansible-playbook が見つかりません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook was not found."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook が見つかりません。"
+          }
+        }
+      }
+    },
+    "ansible-playbook の場所": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location of ansible-playbook"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook の場所"
+          }
+        }
+      }
+    },
+    "ansible-playbook の実行ファイルを選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the ansible-playbook executable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook の実行ファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "ansible-playbook を探しています…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for ansible-playbook…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook を探しています…"
+          }
+        }
+      }
+    },
+    "ansible-playbook を探しています。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for ansible-playbook."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ansible-playbook を探しています。"
+          }
+        }
+      }
+    },
+    "brew install ansible か pip install ansible で入れてください。別の場所にあるときは「場所を指定…」で選べます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install it with brew install ansible or pip install ansible. If it is somewhere else, choose it with “Choose Location…”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "brew install ansible か pip install ansible で入れてください。別の場所にあるときは「場所を指定…」で選べます。"
           }
         }
       }
@@ -3139,6 +3347,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
+          }
+        }
+      }
+    },
+    "この仮想マシンで実行する Playbook（.yml / .yaml）を選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the playbook (.yml / .yaml) to run on this virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンで実行する Playbook（.yml / .yaml）を選んでください。"
+          }
+        }
+      }
+    },
+    "この仮想マシンに対して Playbook を実行し、出力を表示します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs the playbook against this virtual machine and shows the output."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンに対して Playbook を実行し、出力を表示します。"
           }
         }
       }
@@ -8221,6 +8461,54 @@
         }
       }
     },
+    "前回: %@ · 中止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last run: %@ · canceled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回: %@ · 中止"
+          }
+        }
+      }
+    },
+    "前回: %@ · 失敗（終了コード %d）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last run: %@ · failed (exit code %d)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "前回: %1$@ · 失敗（終了コード %2$d）"
+          }
+        }
+      }
+    },
+    "前回: %@ · 成功": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last run: %@ · succeeded"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回: %@ · 成功"
+          }
+        }
+      }
+    },
     "取り外す": {
       "localizations": {
         "en": {
@@ -8493,6 +8781,22 @@
         }
       }
     },
+    "場所を指定…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Location…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "場所を指定…"
+          }
+        }
+      }
+    },
     "変更": {
       "localizations": {
         "en": {
@@ -8505,6 +8809,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "変更"
+          }
+        }
+      }
+    },
+    "変更…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更…"
           }
         }
       }
@@ -8649,6 +8969,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "完了"
+          }
+        }
+      }
+    },
+    "実行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行"
           }
         }
       }
@@ -8925,6 +9261,22 @@
         }
       }
     },
+    "指定がなければ Homebrew、pyenv、~/.local/bin などの通常の場所から探します。仮想マシンの設定タブの「Ansible」で Playbook を選んで実行できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When unset, HanaLima looks in the usual places, such as Homebrew, pyenv and ~/.local/bin. Choose and run a playbook under “Ansible” in a virtual machine’s Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定がなければ Homebrew、pyenv、~/.local/bin などの通常の場所から探します。仮想マシンの設定タブの「Ansible」で Playbook を選んで実行できます。"
+          }
+        }
+      }
+    },
     "指定した MAC アドレスの NIC に常に同じ IP を割り当てます。VM の一覧には、このネットワークに接続している VM が表示されます。反映には VM の再起動が必要です。": {
       "localizations": {
         "en": {
@@ -9189,6 +9541,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "既定"
+          }
+        }
+      }
+    },
+    "既定に戻す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Default"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定に戻す"
           }
         }
       }
@@ -9845,6 +10213,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "自動"
+          }
+        }
+      }
+    },
+    "自動で探す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found automatically"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動で探す"
           }
         }
       }
@@ -10517,6 +10901,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "追加"
+          }
+        }
+      }
+    },
+    "追加の引数": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extra Arguments"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加の引数"
           }
         }
       }
