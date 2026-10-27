@@ -67,6 +67,29 @@ struct ProvisionExamplesEndToEndTests {
                 #expect(try await sh("cd /tmp/xdp && clang -O2 -g -target bpf -I/usr/include/$(uname -m)-linux-gnu -c pass.c -o pass.o && echo ok") == "ok")
                 #expect(try await sh("sudo xdp-loader load -m skb lo /tmp/xdp/pass.o && sudo xdp-loader status lo | grep -q pass && sudo xdp-loader unload -a lo && echo ok") == "ok")
                 #expect(try await sh("sudo bpftool version >/dev/null && echo ok") == "ok")
+            case .japan:
+                #expect(try await sh("date +%Z") == "JST")
+                #expect(try await sh("readlink -f /etc/localtime") == "/usr/share/zoneinfo/Asia/Tokyo")
+                if !Self.template.hasPrefix("alpine") {
+                    #expect(try await sh("locale -a | grep -qi '^ja_JP.utf-\\?8$' && echo ok") == "ok")
+                    #expect(try await sh("LANG=ja_JP.UTF-8 date +%A | grep -q 曜日 && echo ok") == "ok")
+                }
+                // The system default is untouched.
+                #expect(try await sh("cat /etc/default/locale /etc/locale.conf 2>/dev/null | grep -c ja_JP || true") == "0")
+            case .noAutoUpdates:
+                // No update timer is active (list-timers --all would still show masked ones), and the
+                // ones we know of are masked.
+                #expect(try await sh("systemctl list-timers --no-legend | grep -Ec 'apt-daily|dnf.*(automatic|makecache)' || true") == "0")
+                #expect(try await sh("systemctl list-unit-files --no-legend --state=masked 'apt-daily*' 'dnf*makecache*' | wc -l | tr -d ' '") != "0")
+            case .swap:
+                #expect(try await sh("grep -q '^/swapfile[[:space:]]' /proc/swaps && echo ok") == "ok")
+                #expect(try await sh("grep -c '^/swapfile[[:space:]]' /etc/fstab") == "1")
+                #expect(try await sh("stat -c %a /swapfile") == "600")
+            case .devLanguages:
+                #expect(try await sh("/usr/local/bin/go version | grep -q '^go version go' && echo ok") == "ok")
+                #expect(try await sh("node --version | grep -q '^v' && npm --version >/dev/null && echo ok") == "ok")
+                #expect(try await sh("~/.local/bin/uv --version | grep -q '^uv ' && echo ok") == "ok")
+                #expect(try await sh("~/.cargo/bin/cargo --version | grep -q '^cargo ' && echo ok") == "ok")
             }
         }
     }

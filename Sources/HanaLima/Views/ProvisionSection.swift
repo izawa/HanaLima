@@ -292,6 +292,10 @@ extension ProvisionExample {
         case .dotfiles: String(localized: "自分の dotfiles・公開鍵")
         case .containerEngine: String(localized: "コンテナのエンジン（Docker Engine）")
         case .xdp: String(localized: "XDP の開発環境")
+        case .japan: String(localized: "日本向けの設定")
+        case .noAutoUpdates: String(localized: "自動更新の停止")
+        case .swap: String(localized: "スワップファイル")
+        case .devLanguages: String(localized: "開発言語（Go、Node.js、Python、Rust）")
         }
     }
 
@@ -305,6 +309,14 @@ extension ProvisionExample {
             String(localized: "Docker Engine を公式の手順で入れ、ユーザーを docker グループに入れます（root で動く構成。グループは次のログインから有効）。rootless で使うなら、作成時に Lima の docker テンプレートを選びます。")
         case .xdp:
             String(localized: "clang、llvm、libbpf、libxdp、xdp-tools、bpftool、カーネルのヘッダーを入れ、XDP のプログラムをビルドして読み込めるようにします（カーネルはそのまま）。VM のネットワークでは、汎用モード（xdpgeneric）から試してください。")
+        case .japan:
+            String(localized: "タイムゾーンを Asia/Tokyo にし、ja_JP.UTF-8 のロケールを用意します（apt は locales と locale-gen、dnf は glibc-langpack-ja）。システムの既定の LANG は変えないので、使うときはシェルで LANG=ja_JP.UTF-8 を設定します。Alpine にはロケールが無いので、タイムゾーンだけを設定します。")
+        case .noAutoUpdates:
+            String(localized: "パッケージの自動更新を止めます（apt は apt-daily のタイマーと unattended-upgrades、dnf は dnf-automatic と makecache のタイマーを mask）。起動直後の更新に CPU やロックを取られなくなります。更新は自分の手で行います。")
+        case .swap:
+            String(localized: "2 GiB のスワップファイル /swapfile を作り、/etc/fstab に登録して毎回の起動で有効にします（Fedora の btrfs では copy-on-write を外し、Alpine では swap サービスを boot に加えます）。メモリの少ない VM でビルドが落ちるのを防ぎます。")
+        case .devLanguages:
+            String(localized: "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。")
         }
     }
 }

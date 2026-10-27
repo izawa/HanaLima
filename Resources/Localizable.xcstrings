@@ -675,6 +675,22 @@
         }
       }
     },
+    "2 GiB のスワップファイル /swapfile を作り、/etc/fstab に登録して毎回の起動で有効にします（Fedora の btrfs では copy-on-write を外し、Alpine では swap サービスを boot に加えます）。メモリの少ない VM でビルドが落ちるのを防ぎます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creates a 2 GiB swap file, /swapfile, and lists it in /etc/fstab so it is active at every boot (copy-on-write is turned off on Fedora's btrfs; on Alpine the swap service is added to the boot runlevel). Keeps builds from failing in a VM with little memory."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 GiB のスワップファイル /swapfile を作り、/etc/fstab に登録して毎回の起動で有効にします（Fedora の btrfs では copy-on-write を外し、Alpine では swap サービスを boot に加えます）。メモリの少ない VM でビルドが落ちるのを防ぎます。"
+          }
+        }
+      }
+    },
     "52:55:55:xx:xx:xx": {
       "localizations": {
         "ja": {
@@ -4393,6 +4409,22 @@
         }
       }
     },
+    "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installs Go (the official build from go.dev, in /usr/local/go) and Node.js with npm (the distribution's packages) on the system, and uv (Python) and rustup (Rust, minimal profile) in your home with their official installers. uv and cargo are on the PATH from the next login."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。"
+          }
+        }
+      }
+    },
     "システム（root で実行）": {
       "localizations": {
         "en": {
@@ -4794,6 +4826,22 @@
         }
       }
     },
+    "スワップファイル": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swap File"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スワップファイル"
+          }
+        }
+      }
+    },
     "ソケット %@ が見つかりません。": {
       "localizations": {
         "en": {
@@ -4806,6 +4854,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ソケット %@ が見つかりません。"
+          }
+        }
+      }
+    },
+    "タイムゾーンを Asia/Tokyo にし、ja_JP.UTF-8 のロケールを用意します（apt は locales と locale-gen、dnf は glibc-langpack-ja）。システムの既定の LANG は変えないので、使うときはシェルで LANG=ja_JP.UTF-8 を設定します。Alpine にはロケールが無いので、タイムゾーンだけを設定します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets the time zone to Asia/Tokyo and makes the ja_JP.UTF-8 locale available (locales and locale-gen on apt, glibc-langpack-ja on dnf). The system default LANG is left alone; set LANG=ja_JP.UTF-8 in your shell when you want it. Alpine has no locales, so only the time zone is set there."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイムゾーンを Asia/Tokyo にし、ja_JP.UTF-8 のロケールを用意します（apt は locales と locale-gen、dnf は glibc-langpack-ja）。システムの既定の LANG は変えないので、使うときはシェルで LANG=ja_JP.UTF-8 を設定します。Alpine にはロケールが無いので、タイムゾーンだけを設定します。"
           }
         }
       }
@@ -5719,6 +5783,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "パスに「:」を含むフォルダは選べません。"
+          }
+        }
+      }
+    },
+    "パッケージの自動更新を止めます（apt は apt-daily のタイマーと unattended-upgrades、dnf は dnf-automatic と makecache のタイマーを mask）。起動直後の更新に CPU やロックを取られなくなります。更新は自分の手で行います。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops automatic package updates (masks the apt-daily timers and unattended-upgrades on apt, the dnf-automatic and makecache timers on dnf), so an update after boot never takes the CPU or the package lock. You update by hand."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッケージの自動更新を止めます（apt は apt-daily のタイマーと unattended-upgrades、dnf は dnf-automatic と makecache のタイマーを mask）。起動直後の更新に CPU やロックを取られなくなります。更新は自分の手で行います。"
           }
         }
       }
@@ -9065,6 +9145,22 @@
         }
       }
     },
+    "日本向けの設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japan Settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日本向けの設定"
+          }
+        }
+      }
+    },
     "明示的なポートフォワードはありません（ゲストで待ち受けたポートは自動で転送されます）": {
       "localizations": {
         "en": {
@@ -9685,6 +9781,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "自動"
+          }
+        }
+      }
+    },
+    "自動更新の停止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Automatic Updates"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動更新の停止"
           }
         }
       }
@@ -10453,6 +10565,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "閉じる"
+          }
+        }
+      }
+    },
+    "開発言語（Go、Node.js、Python、Rust）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Development Languages (Go, Node.js, Python, Rust)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開発言語（Go、Node.js、Python、Rust）"
           }
         }
       }
