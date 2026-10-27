@@ -67,7 +67,7 @@ struct AnsibleSection: View {
         } header: {
             Text("Ansible")
         } footer: {
-            Text("HanaLima はインベントリ \(inventoryPath)（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。")
+            Text("HanaLima はインベントリ \(inventoryPath)（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。pyenv の shim を使っている場合、Playbook のフォルダの .python-version が指す Python に ansible が入っている必要があります。")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .task {
@@ -97,6 +97,10 @@ struct AnsibleSection: View {
                 Text("ansible-playbook を探しています…").foregroundStyle(.secondary)
             }
         } else if let tool = state.tool {
+            if let chosen = AppSettings.ansiblePath, chosen != tool.url.path(percentEncoded: false) {
+                Label("設定で指定した場所（\(chosen)）は動かなかったので、見つかったものを使います。", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             LabeledContent("ansible-playbook") {
                 HStack {
                     VStack(alignment: .trailing, spacing: 2) {

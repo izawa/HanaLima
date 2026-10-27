@@ -54,6 +54,8 @@ extension AppModel {
                                    currentDirectoryURL: playbook.deletingLastPathComponent())
         let arguments = Ansible.arguments(playbook: playbook, inventory: inventory, limitTo: name,
                                           extra: Ansible.splitArguments(record.extraArguments))
+        // ansible-core 2.21 writes most of its display (plays, task results) to stderr when piped and
+        // only the recap to stdout, so stderr isn't an error here.
         let run = ScriptRun(title: "ansible-playbook \(playbook.lastPathComponent)", instance: name, highlightsStderr: false)
         operations[name] = Operation(kind: .runScript)
         scriptRun = run

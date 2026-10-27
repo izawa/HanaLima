@@ -17,7 +17,7 @@ public enum Ansible {
     /// The whole inventory: every instance under `[hanalima]`, so a playbook can target one
     /// (`--limit lima-<name>`) or all of them, also from the user's own terminal.
     public static func inventory(instances: [(name: String, dir: URL)]) -> String {
-        var s = "# Written by HanaLima. Hosts are Lima instances; ssh goes through each one's ssh.config.\n[hanalima]\n"
+        var s = "# Written by HanaLima. Hosts are Lima instances; ssh goes through each one's ssh.config.\n# Stopped VMs are unreachable: target running ones with --limit.\n[hanalima]\n"
         for inst in instances.sorted(by: { $0.name < $1.name }) {
             s += inventoryLine(instance: inst.name, instanceDir: inst.dir) + "\n"
         }

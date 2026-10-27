@@ -923,18 +923,18 @@
         }
       }
     },
-    "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。": {
+    "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。pyenv の shim を使っている場合、Playbook のフォルダの .python-version が指す Python に ansible が入っている必要があります。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "HanaLima writes the inventory %@ (group [hanalima], host lima-<name>) and points ssh at Lima’s ssh.config. It runs ansible-playbook -i … --limit lima-<name> <playbook> in the playbook’s folder, so the roles/, group_vars/ and ansible.cfg next to it apply. The same inventory can be used from the terminal with -i. Lima’s user has passwordless sudo, so become: true works without any settings. Write playbooks to be idempotent in Ansible’s own way (HanaLima does not mark them as “run once”)."
+            "value": "HanaLima writes the inventory %@ (group [hanalima], host lima-<name>) and points ssh at Lima’s ssh.config. It runs ansible-playbook -i … --limit lima-<name> <playbook> in the playbook’s folder, so the roles/, group_vars/ and ansible.cfg next to it apply. The same inventory can be used from the terminal with -i. Lima’s user has passwordless sudo, so become: true works without any settings. Write playbooks to be idempotent in Ansible’s own way (HanaLima does not mark them as “run once”). With a pyenv shim, the Python named by .python-version in the playbook’s folder must have ansible installed."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。"
+            "value": "HanaLima はインベントリ %@（グループ [hanalima]、ホスト lima-<名前>）を書き、ssh を Lima の ssh.config に向けます。実行は Playbook のあるフォルダで ansible-playbook -i … --limit lima-<名前> <Playbook> を行うので、隣の roles/、group_vars/、ansible.cfg が使われます。同じインベントリはターミナルから -i で使えます。Lima のユーザーはパスワードなしで sudo できるので、become: true は設定なしで動きます。Playbook は Ansible の流儀で冪等に書いてください（HanaLima は「一度だけ」の印を付けません）。pyenv の shim を使っている場合、Playbook のフォルダの .python-version が指す Python に ansible が入っている必要があります。"
           }
         }
       }
@@ -10501,6 +10501,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定…"
+          }
+        }
+      }
+    },
+    "設定で指定した場所（%@）は動かなかったので、見つかったものを使います。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The location set in Settings (%@) did not run, so the one found is used instead."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定で指定した場所（%@）は動かなかったので、見つかったものを使います。"
           }
         }
       }

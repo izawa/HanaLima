@@ -50,6 +50,9 @@ Lima にはプロビジョニングの `mode: ansible`（`playbook:` を指定�
 
 ## 7. Ansible の実装に依存しない形
 
+**状況（2026-10-27）**: 段階 1 と 3 を実装した（`Ansible`、`AppModel+Ansible`、設定タブの「Ansible」、設定ウインドウの場所の指定。E2E は `AnsibleEndToEndTests`）。段階 2（起動後の自動実行）は作っていない。
+
+
 Ansible が変わっても HanaLima の変更が要らないように、触るのは次の 3 点だけに限る。どれも Ansible が長く約束している外側のインターフェースで、モジュールや collection、Python の API には触れない。
 
 | HanaLima が使うもの | 安定している理由 |
@@ -67,3 +70,9 @@ Ansible が変わっても HanaLima の変更が要らないように、触る�
 3. **複数 VM（＋半日）**: インベントリを 1 ファイルにまとめ（`[hanalima]` グループに全 VM、VM ごとに `--limit`）、ユーザーが自分の `ansible-playbook` から `-i ~/Library/Application Support/HanaLima/ansible/inventory.ini` で HanaLima の VM を全部まとめて扱えるようにする。HanaLima を経由しない使い方への入口で、追加のコードはインベントリの書き出しだけ。
 
 段階 1 と 3 だけでも十分で、3 は「HanaLima に依存しない」方向（ターミナルから使う）を開く。
+
+### 注意
+
+- pyenv の shim（`~/.pyenv/shims/ansible-playbook`）は、作業ディレクトリの `.python-version` が指す Python を使う。HanaLima は Playbook のフォルダで実行するので、そこに ansible の無い Python を指す `.python-version` があると `pyenv: ansible-playbook: command not found` で失敗する（検出は通る）。shim を解決して回避するのは Ansible 側の実装への依存になるので、しない。設定タブの注記に書いた。
+- インベントリには停止中の VM も載る。ターミナルから `--limit` なしで実行すると、停止中の VM は `unreachable` になる（ファイルの冒頭にコメントで書いた）。
+- 設定で指定した場所が動かないときは、通常の場所から探したものを使い、設定タブに注意を出す。
