@@ -8,7 +8,7 @@ import Foundation
 /// lima.yaml.
 public struct ProvisionExample: Identifiable, Sendable {
     public enum ID: String, CaseIterable, Sendable {
-        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages
+        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade
     }
 
     public let id: ID
@@ -18,7 +18,7 @@ public struct ProvisionExample: Identifiable, Sendable {
 }
 
 public enum ProvisionExamples {
-    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages]
+    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade]
 
     public static func example(_ id: ProvisionExample.ID) -> ProvisionExample {
         all.first { $0.id == id }!
@@ -212,6 +212,28 @@ public enum ProvisionExamples {
         # Alpine turns on the swap in fstab from the "swap" service.
         if command -v rc-update >/dev/null 2>&1 && ! rc-update show boot | grep -qw swap; then rc-update add swap boot; fi
         """#),
+    ])
+
+    /// A one-shot example: wrapped with `ProvisionOnce` (the sheet gives it a fresh stamp id when added).
+    static let fullUpgrade = ProvisionExample(id: .fullUpgrade, distributions: ["Ubuntu", "Debian", "Fedora", "Alpine"], entries: [
+        ProvisionConfig(mode: .system, script: ProvisionOnce.wrap(body: #"""
+        # HanaLima example: upgrade every installed package once (run again from the editor when you want).
+        set -eu
+        if command -v apt-get >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade
+          apt-get -y autoremove
+        elif command -v dnf >/dev/null 2>&1; then
+          dnf -y upgrade --refresh
+        elif command -v apk >/dev/null 2>&1; then
+          apk update
+          apk upgrade
+        else
+          echo "HanaLima example: no apt, dnf or apk found" >&2
+          exit 1
+        fi
+        """#, mode: .system, id: "example")),
     ])
 
     static let devLanguages = ProvisionExample(id: .devLanguages, distributions: ["Ubuntu", "Fedora", "Alpine"], entries: [

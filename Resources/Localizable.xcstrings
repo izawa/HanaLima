@@ -5803,6 +5803,22 @@
         }
       }
     },
+    "パッケージをすべて更新（一度だけ）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upgrade All Packages (Once)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッケージをすべて更新（一度だけ）"
+          }
+        }
+      }
+    },
     "ファイルの編集（yq）": {
       "localizations": {
         "en": {
@@ -9397,6 +9413,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "次の起動でもう一度実行します（新しい印を付けます）。"
+          }
+        }
+      }
+    },
+    "次の起動で一度だけ、入っているパッケージをすべて更新します（apt は full-upgrade と autoremove、dnf は upgrade、apk は upgrade）。「一度だけ実行する」の例で、済むと印を残して以後は何もしません。もう一度更新したいときは、項目の編集画面で「もう一度実行」を押します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upgrades every installed package once, at the next start (full-upgrade and autoremove on apt, upgrade on dnf and apk). An example of “Run only once”: when done it leaves its stamp and later starts do nothing. To upgrade again, press “Run Again” in the entry’s editor."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の起動で一度だけ、入っているパッケージをすべて更新します（apt は full-upgrade と autoremove、dnf は upgrade、apk は upgrade）。「一度だけ実行する」の例で、済むと印を残して以後は何もしません。もう一度更新したいときは、項目の編集画面で「もう一度実行」を押します。"
           }
         }
       }

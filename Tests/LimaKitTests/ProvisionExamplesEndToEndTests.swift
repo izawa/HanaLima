@@ -90,6 +90,10 @@ struct ProvisionExamplesEndToEndTests {
                 #expect(try await sh("node --version | grep -q '^v' && npm --version >/dev/null && echo ok") == "ok")
                 #expect(try await sh("~/.local/bin/uv --version | grep -q '^uv ' && echo ok") == "ok")
                 #expect(try await sh("~/.cargo/bin/cargo --version | grep -q '^cargo ' && echo ok") == "ok")
+            case .fullUpgrade:
+                // Ran once and left its stamp; the second boot didn't touch the stamp.
+                #expect(try await sh("ls /var/lib/hanalima/once/*.done | wc -l | tr -d ' '") == "1")
+                #expect(try await sh("sudo sh -c 'command -v apt-get >/dev/null && apt-get -s full-upgrade | grep -c \"^Inst \" || echo 0'") == "0")
             }
         }
     }

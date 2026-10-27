@@ -296,6 +296,7 @@ extension ProvisionExample {
         case .noAutoUpdates: String(localized: "自動更新の停止")
         case .swap: String(localized: "スワップファイル")
         case .devLanguages: String(localized: "開発言語（Go、Node.js、Python、Rust）")
+        case .fullUpgrade: String(localized: "パッケージをすべて更新（一度だけ）")
         }
     }
 
@@ -315,6 +316,8 @@ extension ProvisionExample {
             String(localized: "パッケージの自動更新を止めます（apt は apt-daily のタイマーと unattended-upgrades、dnf は dnf-automatic と makecache のタイマーを mask）。起動直後の更新に CPU やロックを取られなくなります。更新は自分の手で行います。")
         case .swap:
             String(localized: "2 GiB のスワップファイル /swapfile を作り、/etc/fstab に登録して毎回の起動で有効にします（Fedora の btrfs では copy-on-write を外し、Alpine では swap サービスを boot に加えます）。メモリの少ない VM でビルドが落ちるのを防ぎます。")
+        case .fullUpgrade:
+            String(localized: "次の起動で一度だけ、入っているパッケージをすべて更新します（apt は full-upgrade と autoremove、dnf は upgrade、apk は upgrade）。「一度だけ実行する」の例で、済むと印を残して以後は何もしません。もう一度更新したいときは、項目の編集画面で「もう一度実行」を押します。")
         case .devLanguages:
             String(localized: "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。")
         }
@@ -323,6 +326,17 @@ extension ProvisionExample {
 
 /// HanaLima's ready-made provisioning: pick one, and its entries are added for editing.
 private struct ProvisionExamplesSheet: View {
+    /// A copy with its own id (the same example may be added twice) and, for a one-shot entry,
+    /// its own stamp id.
+    static func fresh(_ entry: ProvisionConfig) -> ProvisionConfig {
+        var e = entry
+        e.id = UUID()
+        if let parsed = ProvisionOnce.parse(e.script) {
+            e.script = ProvisionOnce.wrap(body: parsed.body, mode: e.mode, id: ProvisionOnce.newID())
+        }
+        return e
+    }
+
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     var instance: LimaInstance?
@@ -352,12 +366,12 @@ private struct ProvisionExamplesSheet: View {
                             VStack(spacing: 6) {
                                 Button("追加") {
                                     // Fresh ids: the same example may be added twice.
-                                    onAdd(example.entries.map { var e = $0; e.id = UUID(); return e })
+                                    onAdd(example.entries.map(Self.fresh))
                                     dismiss()
                                 }
                                 if let instance {
                                     Button("今すぐ実行") {
-                                        model.runProvisionNow(example.entries, in: instance.name, title: example.title)
+                                        model.runProvisionNow(example.entries.map(Self.fresh), in: instance.name, title: example.title)
                                         dismiss()
                                     }
                                     .disabled(!canRunNow)
