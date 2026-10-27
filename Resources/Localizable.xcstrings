@@ -559,6 +559,38 @@
         }
       }
     },
+    "%lld 秒で終了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finished in %lld s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 秒で終了"
+          }
+        }
+      }
+    },
+    "%lld 秒経過": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s elapsed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 秒経過"
+          }
+        }
+      }
+    },
     "/%lld（%@）": {
       "localizations": {
         "en": {
@@ -2471,6 +2503,22 @@
         }
       }
     },
+    "「%@」で実行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running in “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」で実行"
+          }
+        }
+      }
+    },
     "「%@」のスナップショット「%@」から新しい仮想マシンを作成": {
       "localizations": {
         "en": {
@@ -2819,6 +2867,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "「ディスクを独立させる」は、同じドライブの上に APFS のクローン（書き込むまで中身を共有するコピー）を作るので、すぐに終わり、容量もほとんど使いません。「この Mac に戻す」でも、この仮想マシン専用のディスクになります。"
+          }
+        }
+      }
+    },
+    "「今すぐ実行」は、保存せずにその項目を実行中の仮想マシンで一度だけ実行し、出力を表示します。起動のたびに実行したいものは保存してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Run Now” runs the entry once in the running virtual machine without saving, and shows its output. Save the entries you want to run at every start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「今すぐ実行」は、保存せずにその項目を実行中の仮想マシンで一度だけ実行し、出力を表示します。起動のたびに実行したいものは保存してください。"
+          }
+        }
+      }
+    },
+    "「追加」は起動のたびに実行する項目として入れます（済んでいれば何もしません。設定を保存すると次の起動から）。「今すぐ実行」は保存せずに一度だけ実行し、出力を表示します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Add” inserts the example as entries that run at every start (they do nothing when already done; from the next start once you save). “Run Now” runs it once without saving, and shows the output."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「追加」は起動のたびに実行する項目として入れます（済んでいれば何もしません。設定を保存すると次の起動から）。「今すぐ実行」は保存せずに一度だけ実行し、出力を表示します。"
           }
         }
       }
@@ -3224,6 +3304,22 @@
         }
       }
     },
+    "この項目を今すぐ一度だけ実行し、出力を表示します（保存はしません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs this entry once now and shows the output (nothing is saved)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この項目を今すぐ一度だけ実行し、出力を表示します（保存はしません）。"
+          }
+        }
+      }
+    },
     "すべて削除…": {
       "localizations": {
         "en": {
@@ -3305,6 +3401,7 @@
       }
     },
     "どれも起動のたびに実行され、済んでいれば何もしません。追加した項目は、そのまま編集できます。設定を保存すると、次の起動から実行されます。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4312,6 +4409,22 @@
         }
       }
     },
+    "スクリプトの実行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run Script"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトの実行"
+          }
+        }
+      }
+    },
     "スクリプトを入力してください。": {
       "localizations": {
         "en": {
@@ -4324,6 +4437,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "スクリプトを入力してください。"
+          }
+        }
+      }
+    },
+    "スクリプトを実行中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running a script"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトを実行中"
           }
         }
       }
@@ -6378,6 +6507,54 @@
         }
       }
     },
+    "中止しました": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中止しました"
+          }
+        }
+      }
+    },
+    "今すぐ実行": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run Now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ実行"
+          }
+        }
+      }
+    },
+    "今すぐ実行…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run Now…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ実行…"
+          }
+        }
+      }
+    },
     "今すぐ接続": {
       "localizations": {
         "en": {
@@ -7291,6 +7468,22 @@
         }
       }
     },
+    "保存せずに、実行中の仮想マシンで一度だけ実行します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs once in the running virtual machine, without saving."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存せずに、実行中の仮想マシンで一度だけ実行します。"
+          }
+        }
+      }
+    },
     "保存できませんでした（変更前の設定に戻しました）: %@": {
       "localizations": {
         "en": {
@@ -7639,6 +7832,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "処理中…"
+          }
+        }
+      }
+    },
+    "処理中は実行できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available while another operation is in progress."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中は実行できません。"
           }
         }
       }
@@ -8219,6 +8428,22 @@
         }
       }
     },
+    "失敗（終了コード %d）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed (exit code %d)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失敗（終了コード %d）"
+          }
+        }
+      }
+    },
     "完了": {
       "localizations": {
         "en": {
@@ -8423,6 +8648,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "復元…"
+          }
+        }
+      }
+    },
+    "成功": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Succeeded"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成功"
           }
         }
       }
@@ -9719,6 +9960,22 @@
         }
       }
     },
+    "起動して準備ができると実行できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available once the virtual machine has started and is ready."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動して準備ができると実行できます。"
+          }
+        }
+      }
+    },
     "起動すると、ここに仮想マシンの画面が表示されます。": {
       "localizations": {
         "en": {
@@ -9783,6 +10040,22 @@
         }
       }
     },
+    "起動すると実行できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available once the virtual machine is running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動すると実行できます。"
+          }
+        }
+      }
+    },
     "起動のごく初期（cloud-init の bootcmd）に /bin/sh で実行されます。": {
       "localizations": {
         "en": {
@@ -9795,6 +10068,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "起動のごく初期（cloud-init の bootcmd）に /bin/sh で実行されます。"
+          }
+        }
+      }
+    },
+    "起動の完了を待っています。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the start to finish."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動の完了を待っています。"
           }
         }
       }

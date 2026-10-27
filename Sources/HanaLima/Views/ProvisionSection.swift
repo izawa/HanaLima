@@ -44,10 +44,27 @@ extension ProvisionConfig.Mode {
 
 /// `provision:` entries of lima.yaml.
 struct ProvisionSection: View {
+    @Environment(AppModel.self) private var model
     @Binding var provision: [ProvisionConfig]
     var isLocked = false
+    /// The VM, for "run now" (needs it running and ready).
+    var instance: LimaInstance?
     @State private var editing: ProvisionConfig?
     @State private var showExamples = false
+
+    /// Running and ready (SSH up), with nothing else going on.
+    private var canRunNow: Bool {
+        guard let instance else { return false }
+        return instance.isRunning && model.isReady(instance.name) && !model.isBusy(instance.name)
+    }
+
+    private var runNowHelp: String {
+        guard let instance else { return "" }
+        if !instance.isRunning { return String(localized: "起動すると実行できます。") }
+        if !model.isReady(instance.name) { return String(localized: "起動の完了を待っています。") }
+        if model.isBusy(instance.name) { return String(localized: "処理中は実行できません。") }
+        return String(localized: "この項目を今すぐ一度だけ実行し、出力を表示します（保存はしません）。")
+    }
 
     var body: some View {
         Section {
@@ -68,6 +85,11 @@ struct ProvisionSection: View {
                             .truncationMode(.tail)
                     }
                     Spacer()
+                    if entry.isEditable, let instance {
+                        Button("今すぐ実行…") { model.runProvisionNow([entry], in: instance.name, title: entry.summary) }
+                            .disabled(!canRunNow)
+                            .help(runNowHelp)
+                    }
                     if entry.isEditable {
                         Button(isLocked ? "表示…" : "編集…") { editing = entry }
                     } else {
@@ -86,9 +108,11 @@ struct ProvisionSection: View {
                 Divider()
                 Button("例から追加…") { showExamples = true }
             }
+            .disabled(isLocked)
+            Text("「今すぐ実行」は、保存せずにその項目を実行中の仮想マシンで一度だけ実行し、出力を表示します。起動のたびに実行したいものは保存してください。")
+                .font(.caption).foregroundStyle(.secondary)
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .disabled(isLocked)
         } header: {
             Text("プロビジョニング")
         } footer: {
@@ -99,10 +123,19 @@ struct ProvisionSection: View {
         .task {
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_PROVISION"] == "1" { editing = provision.first }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_PROVISION_EXAMPLES"] == "1" { showExamples = true }
+            // Runs the named example now (the VM must be ready) and shows the output sheet.
+            if let title = DebugSnapshot.env["HANALIMA_SNAPSHOT_RUNNOW"], let instance,
+               let example = ProvisionExamples.all.first(where: { $0.id.rawValue == title }) {
+                try? await Task.sleep(for: .seconds(1))
+                model.runProvisionNow(example.entries, in: instance.name, title: example.title)
+            }
         }
         #endif
         .sheet(isPresented: $showExamples) {
-            ProvisionExamplesSheet { entries in provision.append(contentsOf: entries) }
+            ProvisionExamplesSheet(instance: instance, canRunNow: canRunNow) { entries in provision.append(contentsOf: entries) }
+        }
+        .sheet(item: Binding(get: { model.scriptRun }, set: { if $0 == nil { model.scriptRun = nil } })) { run in
+            ScriptRunSheet(run: run)
         }
         .sheet(item: $editing) { entry in
             ProvisionEditorSheet(entry: entry, isNew: !provision.contains { $0.id == entry.id },
@@ -236,7 +269,10 @@ extension ProvisionExample {
 
 /// HanaLima's ready-made provisioning: pick one, and its entries are added for editing.
 private struct ProvisionExamplesSheet: View {
+    @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    var instance: LimaInstance?
+    var canRunNow = false
     let onAdd: ([ProvisionConfig]) -> Void
 
     var body: some View {
@@ -259,10 +295,21 @@ private struct ProvisionExamplesSheet: View {
                                 .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("追加") {
-                                // Fresh ids: the same example may be added twice.
-                                onAdd(example.entries.map { var e = $0; e.id = UUID(); return e })
-                                dismiss()
+                            VStack(spacing: 6) {
+                                Button("追加") {
+                                    // Fresh ids: the same example may be added twice.
+                                    onAdd(example.entries.map { var e = $0; e.id = UUID(); return e })
+                                    dismiss()
+                                }
+                                if let instance {
+                                    Button("今すぐ実行") {
+                                        model.runProvisionNow(example.entries, in: instance.name, title: example.title)
+                                        dismiss()
+                                    }
+                                    .disabled(!canRunNow)
+                                    .help(canRunNow ? String(localized: "保存せずに、実行中の仮想マシンで一度だけ実行します。")
+                                                    : String(localized: "起動して準備ができると実行できます。"))
+                                }
                             }
                         }
                         .padding(.vertical, 4)
@@ -270,7 +317,7 @@ private struct ProvisionExamplesSheet: View {
                 } header: {
                     Text("プロビジョニングの例")
                 } footer: {
-                    Text("どれも起動のたびに実行され、済んでいれば何もしません。追加した項目は、そのまま編集できます。設定を保存すると、次の起動から実行されます。")
+                    Text("「追加」は起動のたびに実行する項目として入れます（済んでいれば何もしません。設定を保存すると次の起動から）。「今すぐ実行」は保存せずに一度だけ実行し、出力を表示します。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }

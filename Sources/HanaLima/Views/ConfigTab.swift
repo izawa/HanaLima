@@ -205,7 +205,7 @@ private struct ConfigForm: View {
             }
             .disabled(isLocked)
             // Handles the lock itself, so the scripts can still be opened read-only.
-            ProvisionSection(provision: $config.provision, isLocked: isLocked)
+            ProvisionSection(provision: $config.provision, isLocked: isLocked, instance: instance)
         }
         .formStyle(.grouped)
     }

@@ -33,3 +33,33 @@ import Testing
         #expect(InstallerAutoinstall.grubConfig.contains("search --set=iso --file /casper/vmlinuz"))
     }
 }
+
+@Suite struct ProvisionScriptsTests {
+    @Test func shellArgumentsRunAScriptFromStdin() {
+        #expect(LimaClient.scriptArguments(name: "vm", asRoot: true) == ["shell", "--tty=false", "vm", "sudo", "--", "sh", "-s"])
+        #expect(LimaClient.scriptArguments(name: "vm", asRoot: false) == ["shell", "--tty=false", "vm", "sh", "-s"])
+    }
+
+    @Test func combinedScriptRunsEntriesInOrderAsTheRightUser() {
+        var file = ProvisionConfig(mode: .data)
+        file.path = "/etc/it's.conf"
+        file.content = "a=1"
+        file.extra["permissions"] = .string("0644")
+        var user = ProvisionConfig(mode: .user)
+        user.script = "echo $HOME\n"
+        var system = ProvisionConfig(mode: .system)
+        system.script = "apk add x"
+        let s = ProvisionScripts.combined([file, user, system], user: "izawa")
+        #expect(s.hasPrefix("set -e\n"))
+        #expect(s.contains("### 1/3 [data]"))
+        #expect(s.contains("cat > '/etc/it'\\''s.conf' <<'HANALIMA_EOF'\na=1\nHANALIMA_EOF\n"))
+        #expect(s.contains("chmod '0644' '/etc/it'\\''s.conf'"))
+        #expect(s.contains("sudo -u 'izawa' -i sh -s <<'HANALIMA_EOF'\necho $HOME\nHANALIMA_EOF\n"))
+        #expect(s.contains("sh -s <<'HANALIMA_EOF'\napk add x\nHANALIMA_EOF\n"))
+        #expect(s.range(of: "### 2/3 ")!.lowerBound > s.range(of: "### 1/3 ")!.lowerBound)
+    }
+
+    @Test func heredocTagAvoidsTheBody() {
+        #expect(ProvisionScripts.heredocTag(for: "x HANALIMA_EOF y") == "HANALIMA_EOF_")
+    }
+}

@@ -170,6 +170,16 @@ public struct LimaClient: Sendable {
         logStream(["clone", "--tty=false"] + expressions.flatMap { ["--set", $0] } + [source, name])
     }
 
+    /// Runs `script` in the guest through `limactl shell`, fed to `sh -s` on stdin (so nothing
+    /// in it needs quoting), as root with `asRoot`. Streams its output; the VM must be ready.
+    public func runScript(in name: String, script: String, asRoot: Bool) -> AsyncThrowingStream<OutputLine, Error> {
+        runner.lines(Self.scriptArguments(name: name, asRoot: asRoot), input: Data(script.utf8))
+    }
+
+    static func scriptArguments(name: String, asRoot: Bool) -> [String] {
+        ["shell", "--tty=false", name] + (asRoot ? ["sudo", "--"] : []) + ["sh", "-s"]
+    }
+
     public func start(_ name: String) -> AsyncThrowingStream<LogEntry, Error> {
         logStream(["start", name])
     }

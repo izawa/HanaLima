@@ -11,6 +11,7 @@ struct Operation: Sendable {
         case moveDisk, moveDiskBack, separateDisk
         case clone
         case install
+        case runScript
 
         var label: String {
             switch self {
@@ -28,6 +29,7 @@ struct Operation: Sendable {
             case .separateDisk: String(localized: "ディスクの独立")
             case .clone: String(localized: "複製")
             case .install: String(localized: "インストール")
+            case .runScript: String(localized: "スクリプトの実行")
             }
         }
 
@@ -49,6 +51,7 @@ struct Operation: Sendable {
             case .separateDisk: String(localized: "ディスクを独立させています")
             case .clone: String(localized: "複製中")
             case .install: String(localized: "インストール中")
+            case .runScript: String(localized: "スクリプトを実行中")
             }
         }
     }
@@ -141,6 +144,8 @@ final class AppModel {
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
     var installSession: InstallSession?
+    /// A script running in a guest right now, shown in a sheet (see ScriptRun).
+    var scriptRun: ScriptRun?
     /// Sessions whose VM is being stopped after the window closed: a VZVirtualMachine must stay
     /// referenced until it has stopped (it holds the disk open).
     @ObservationIgnored var closingInstallSessions: [InstallSession] = []

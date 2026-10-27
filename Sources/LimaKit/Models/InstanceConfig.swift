@@ -309,6 +309,13 @@ public struct ProvisionConfig: Hashable, Sendable, Identifiable {
         extra = o
     }
 
+    /// A string key kept in `extra` (`owner`, `permissions`), if present.
+    public func extraString(_ key: String) -> String? {
+        if let s = extra[key]?.stringValue { return s }
+        if let n = extra[key]?.intValue { return String(n) }
+        return nil
+    }
+
     /// False for entries HanaLima shows read-only: a `file` source, `yq`, `ansible`, or an unknown mode.
     public var isEditable: Bool {
         extra["file"] == nil && extra["mode"] == nil && (mode.isScript || mode == .data)

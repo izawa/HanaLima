@@ -65,15 +65,16 @@ public struct ProcessRunner: Sendable {
     /// show up as successive lines. Cancelling the consuming task terminates the process.
     /// Pass `background: true` for long-lived helpers (e.g. `limactl watch`) that must not
     /// outlive the app; see `ProcessRunner.terminateBackgroundProcesses()`.
+    /// `input` is written to the process's stdin, then stdin is closed (nil: no stdin).
     public func lines(_ arguments: [String], background: Bool = false,
-                      extraEnvironment: [String: String] = [:]) -> AsyncThrowingStream<OutputLine, Error> {
+                      extraEnvironment: [String: String] = [:], input: Data? = nil) -> AsyncThrowingStream<OutputLine, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 var out = LineSplitter()
                 var err = LineSplitter()
                 do {
                     for try await chunk in chunks(arguments, background: background,
-                                                  extraEnvironment: extraEnvironment) {
+                                                  extraEnvironment: extraEnvironment, input: input) {
                         switch chunk {
                         case .stdout(let d): out.feed(d).forEach { continuation.yield(.stdout($0)) }
                         case .stderr(let d): err.feed(d).forEach { continuation.yield(.stderr($0)) }
@@ -104,7 +105,7 @@ public struct ProcessRunner: Sendable {
     }
 
     private func chunks(_ arguments: [String], background: Bool = false,
-                        extraEnvironment: [String: String] = [:]) -> AsyncThrowingStream<Chunk, Error> {
+                        extraEnvironment: [String: String] = [:], input: Data? = nil) -> AsyncThrowingStream<Chunk, Error> {
         let (stream, continuation) = AsyncThrowingStream<Chunk, Error>.makeStream()
         let handle = ProcessHandle()
         let executableURL = executableURL
@@ -117,7 +118,8 @@ public struct ProcessRunner: Sendable {
             process.arguments = arguments
             process.environment = environment
             if let currentDirectoryURL { process.currentDirectoryURL = currentDirectoryURL }
-            process.standardInput = FileHandle.nullDevice
+            let inPipe: Pipe? = input == nil ? nil : Pipe()
+            process.standardInput = inPipe ?? FileHandle.nullDevice
             let outPipe = Pipe()
             let errPipe = Pipe()
             process.standardOutput = outPipe
@@ -129,6 +131,14 @@ public struct ProcessRunner: Sendable {
             } catch {
                 continuation.finish(throwing: error)
                 return
+            }
+            if let inPipe, let input {
+                // Written on its own thread: a script longer than the pipe buffer would block us
+                // before we read the output.
+                DispatchQueue.global().async {
+                    try? inPipe.fileHandleForWriting.write(contentsOf: input)
+                    try? inPipe.fileHandleForWriting.close()
+                }
             }
             if background { BackgroundProcesses.shared.insert(process.processIdentifier) }
             defer { if background { BackgroundProcesses.shared.remove(process.processIdentifier) } }
