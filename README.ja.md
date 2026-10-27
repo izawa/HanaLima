@@ -35,6 +35,7 @@
 - **画面のサムネイル**（画面を有効にした VZ の VM）: 概要タブに VM の画面を表示します。
 - **ログ**: ホストエージェントのログとシリアルコンソールを、検索しながらリアルタイムに見られます。
 - **プロビジョニング**: Lima が起動のたびに適用するスクリプトとファイルを編集できます。**今すぐ実行**は、項目や例を保存せずに実行中の VM で走らせて出力を表示します。**一度だけ実行する**にすると、成功したら印を残して以後の起動では飛ばします（失敗は次の起動で再試行。「もう一度実行」で印を新しくします）。
+- **Mac から Ansible**: VM に Playbook を選んで、設定タブから実行できます。出力はシートに流れます。HanaLima は Lima の `ssh.config` を通る ssh のインベントリ（グループ `[hanalima]`、ホスト `lima-<名前>`）を書き、お使いの `ansible-playbook`（`brew install ansible` か `pip install ansible`）を Playbook のフォルダで起動するので、隣の roles や `ansible.cfg` がそのまま効きます。`become` は設定なしで使えます（Lima がパスワード無しの sudo を用意しています）。同じインベントリはターミナルからも使えます: `ansible-playbook -i ~/Library/Application\ Support/HanaLima/ansible/inventory.ini …`。
 - **英語と日本語の UI**: macOS の言語設定に合わせて表示します。
 
 ## 動作環境

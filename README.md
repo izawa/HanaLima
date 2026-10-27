@@ -35,6 +35,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Screen thumbnails** (VZ VMs with a display): a live view of the VM's screen on the overview.
 - **Logs**: the host agent log and serial consoles, followed live, with search.
 - **Provisioning**: edit the scripts and data files Lima applies on every boot. **Run now** runs an entry or an example in the running VM without saving and shows the output. **Run only once** turns a script into a one-shot: it leaves a stamp on success and later starts skip it (a failure retries at the next start; “Run Again” resets it).
+- **Ansible from your Mac**: pick a playbook for a VM and run it from the Settings tab; the output streams into a sheet. HanaLima writes an inventory that sends ssh through Lima's `ssh.config` (group `[hanalima]`, host `lima-<name>`) and runs your `ansible-playbook` (`brew install ansible` or `pip install ansible`) in the playbook's folder, so roles and `ansible.cfg` next to it apply. `become` works without setup (Lima gives you passwordless sudo). The same inventory works from the terminal: `ansible-playbook -i ~/Library/Application\ Support/HanaLima/ansible/inventory.ini …`.
 - **English and Japanese UI**: follows your macOS language.
 
 ## Requirements
