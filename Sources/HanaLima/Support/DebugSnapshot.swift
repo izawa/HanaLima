@@ -16,6 +16,7 @@ import LimaKit
 /// with `_SELECT=<instance>` and `_TAB=設定`), `HANALIMA_SNAPSHOT_RUNNOW=<example id, e.g. basicTools>` (run
 /// that provisioning example in the selected, ready instance and show the output sheet),
 /// `HANALIMA_SNAPSHOT_SCROLL=bottom` (scroll every window to the end before capturing, for long forms).
+/// `HANALIMA_SNAPSHOT_ANSIBLE_RUN=1` (run the selected, ready instance's recorded playbook; Settings tab).
 @MainActor
 enum DebugSnapshot {
     static var env: [String: String] { ProcessInfo.processInfo.environment }

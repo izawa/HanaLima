@@ -72,6 +72,13 @@ struct AnsibleSection: View {
         }
         .task {
             if !model.ansibleState.probed && !model.ansibleState.probing { await model.locateAnsible() }
+            #if DEBUG
+            // Runs the recorded playbook now (the VM must be ready) and shows the output sheet.
+            if DebugSnapshot.env["HANALIMA_SNAPSHOT_ANSIBLE_RUN"] == "1" {
+                try? await Task.sleep(for: .seconds(1))
+                model.runAnsible(in: instance.name)
+            }
+            #endif
         }
         // Follows the record (another VM selected, the record reconciled, or cleared), not just the name.
         .onChange(of: record?.extraArguments, initial: true) { _, saved in

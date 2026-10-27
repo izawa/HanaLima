@@ -54,7 +54,7 @@ extension AppModel {
                                    currentDirectoryURL: playbook.deletingLastPathComponent())
         let arguments = Ansible.arguments(playbook: playbook, inventory: inventory, limitTo: name,
                                           extra: Ansible.splitArguments(record.extraArguments))
-        let run = ScriptRun(title: "ansible-playbook \(playbook.lastPathComponent)", instance: name)
+        let run = ScriptRun(title: "ansible-playbook \(playbook.lastPathComponent)", instance: name, highlightsStderr: false)
         operations[name] = Operation(kind: .runScript)
         scriptRun = run
         run.start(runner.lines(arguments, terminateOnCancel: true)) { [weak self] state in

@@ -17,6 +17,8 @@ final class ScriptRun: Identifiable {
     let id = UUID()
     let title: String
     let instance: String
+    /// Show stderr in red (off for tools like ansible-playbook that write their log to stderr).
+    let highlightsStderr: Bool
     private(set) var lines: [OutputLine] = []
     private(set) var state: State = .running
     private(set) var startedAt = Date.now
@@ -24,9 +26,10 @@ final class ScriptRun: Identifiable {
     private var task: Task<Void, Never>?
     static let maxLines = 5000
 
-    init(title: String, instance: String) {
+    init(title: String, instance: String, highlightsStderr: Bool = true) {
         self.title = title
         self.instance = instance
+        self.highlightsStderr = highlightsStderr
     }
 
     var isRunning: Bool { state == .running }
@@ -132,7 +135,7 @@ struct ScriptRunSheet: View {
     }
 
     private func isError(_ line: OutputLine) -> Bool {
-        if case .stderr = line { return true }
+        if case .stderr = line { return run.highlightsStderr }
         return false
     }
 
