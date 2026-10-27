@@ -19,13 +19,21 @@ public enum ProvisionOnce {
 
     public static func newID() -> String { UUID().uuidString.lowercased() }
 
+    static let defaultShebang = "#!/bin/sh"
+
     /// The wrapped script. The body runs in a subshell, so its own `exit` doesn't skip the stamp.
+    /// The body's `#!` line (if any) becomes the wrapper's, so the script keeps its interpreter.
     public static func wrap(body: String, mode: ProvisionConfig.Mode, id: String) -> String {
         var b = body
-        if b.hasPrefix("#!") { b = b.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).dropFirst().joined() }
+        var shebang = defaultShebang
+        if b.hasPrefix("#!") {
+            let parts = b.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+            shebang = String(parts[0])
+            b = parts.count > 1 ? String(parts[1]) : ""
+        }
         if !b.hasSuffix("\n") { b += "\n" }
         return """
-        #!/bin/sh
+        \(shebang)
         \(marker)\(id)
         # Runs the part between the markers once; the stamp marks it done. Edit it in HanaLima.
         HL_STAMP="\(stampDirectory(for: mode))/\(id).done"
@@ -46,7 +54,8 @@ public enum ProvisionOnce {
         let id = String(lines[1].dropFirst(marker.count))
         guard let begin = lines.firstIndex(of: "# hanalima: body-begin"),
               let end = lines.lastIndex(of: "# hanalima: body-end"), begin < end else { return nil }
-        return (id, lines[(begin + 1)..<end].joined(separator: "\n") + "\n")
+        let shebang = lines[0] == defaultShebang ? "" : lines[0] + "\n"
+        return (id, shebang + lines[(begin + 1)..<end].joined(separator: "\n") + "\n")
     }
 }
 

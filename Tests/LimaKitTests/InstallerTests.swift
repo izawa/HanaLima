@@ -51,7 +51,7 @@ import Testing
         system.script = "apk add x"
         let whole = ProvisionScripts.combined([file, user, system], instanceName: "vm")
         // The sequence is saved to a file and run with stdin closed.
-        #expect(whole.hasPrefix("HL_ALL=$(mktemp); cat > \"$HL_ALL\" <<'HANALIMA_EOF_'\nset -e\n"))
+        #expect(whole.hasPrefix("HL_ALL=$(mktemp); export HL_ALL; cat > \"$HL_ALL\" <<'HANALIMA_EOF_'\nset -e\n"))
         #expect(whole.hasSuffix("HANALIMA_EOF_\nexec sh \"$HL_ALL\" </dev/null\n"))
         let s = ProvisionScripts.sequence([file, user, system], instanceName: "vm")
         #expect(s.hasPrefix("set -e\n"))
@@ -63,8 +63,10 @@ import Testing
         #expect(s.contains("HL_OWNER=\"$(printf %s '{{.User}}' | hl_expand)\"\nhl_mkdir \"$(dirname \"$HL_PATH\")\" \"$HL_OWNER\"\n"))
         #expect(s.contains("[ -n \"$HL_OWNER\" ] && sudo -- chown \"$HL_OWNER\" \"$HL_PATH\""))
         #expect(s.contains("sudo -- chmod '0644' \"$HL_PATH\""))
-        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\necho $HOME\nHANALIMA_EOF\nsh \"$HL_TMP/script\"\n"))
-        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\napk add x\nHANALIMA_EOF\nsudo -- sh \"$HL_TMP/script\"\n"))
+        // Run with the script's own interpreter (hl_run reads the #! line; sudo for system).
+        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\necho $HOME\nHANALIMA_EOF\nhl_run \"$HL_TMP/script\"\n"))
+        #expect(s.contains("hl_expand > \"$HL_TMP/script\" <<'HANALIMA_EOF'\napk add x\nHANALIMA_EOF\nhl_run \"$HL_TMP/script\" sudo\n"))
+        #expect(s.contains("hl_run() { HL_SH=$(sed -n '1s/^#![[:space:]]*//p' \"$1\"); ${2:-} ${HL_SH:-sh} \"$1\"; }"))
         #expect(s.range(of: "### 2/3 ")!.lowerBound > s.range(of: "### 1/3 ")!.lowerBound)
     }
 
@@ -85,6 +87,10 @@ import Testing
         #expect(parsed?.body == "set -eu\napt-get -y full-upgrade\n")  // the shebang moves to the wrapper
         #expect(ProvisionOnce.parse(body) == nil)
         #expect(ProvisionOnce.wrap(body: "x", mode: .user, id: "u").contains("$HOME/.local/state/hanalima/once/u.done"))
+        // Another interpreter is kept: it becomes the wrapper's #! and comes back with the body.
+        let bash = ProvisionOnce.wrap(body: "#!/bin/bash\necho ${BASH_VERSION}\n", mode: .system, id: "b")
+        #expect(bash.hasPrefix("#!/bin/bash\n# hanalima: once b\n"))
+        #expect(ProvisionOnce.parse(bash)?.body == "#!/bin/bash\necho ${BASH_VERSION}\n")
     }
 
     @Test func summaryAndBodySeeThroughTheWrapper() {

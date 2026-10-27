@@ -35,7 +35,7 @@ struct ProvisionOnceEndToEndTests {
 
         // Run now: a plain entry and the stamped one, in one combined script.
         var plain = ProvisionConfig(mode: .user)
-        plain.script = "echo ran-now > \"$HOME/ran-now\"\n"
+        plain.script = "#!/bin/sh -eu\necho ran-now > \"$HOME/ran-now\"\n"  // the #! line picks the interpreter
         var data = ProvisionConfig(mode: .data, path: "{{.Home}}/data.txt", content: "hello", owner: "{{.User}}")
         data.extra["permissions"] = .string("0600")
         let combined = ProvisionScripts.combined([plain, system, data], instanceName: vm)

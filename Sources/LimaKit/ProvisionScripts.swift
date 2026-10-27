@@ -3,6 +3,8 @@ import Foundation
 /// Turns provisioning entries into one shell script that runs them in order the way Lima's boot
 /// does (data files written with owner and mode, system scripts as root, user scripts as the
 /// user), for running them in a guest right now through `limactl shell … sh -s` as the user.
+/// Scripts run with the interpreter of their `#!` line (`sh` without one), as Lima's boot
+/// executes the files directly.
 /// Lima's template fields (`{{.User}}`, `{{.Home}}`, `{{.UID}}`, `{{.Name}}`, `{{.Hostname}}`) are
 /// expanded in the guest, so the result matches what the boot would have run.
 public enum ProvisionScripts {
@@ -15,7 +17,7 @@ public enum ProvisionScripts {
         // installer without -y, `read`) would swallow the rest. Save it to a file first and run
         // that with stdin closed, as Lima's boot runs files.
         let tag = heredocTag(for: inner)
-        return "HL_ALL=$(mktemp); cat > \"$HL_ALL\" <<'\(tag)'\n\(inner)\(tag)\nexec sh \"$HL_ALL\" </dev/null\n"
+        return "HL_ALL=$(mktemp); export HL_ALL; cat > \"$HL_ALL\" <<'\(tag)'\n\(inner)\(tag)\nexec sh \"$HL_ALL\" </dev/null\n"
     }
 
     static func sequence(_ entries: [ProvisionConfig], instanceName: String) -> String {
@@ -23,6 +25,7 @@ public enum ProvisionScripts {
         set -e
         HL_USER=$(id -un); HL_HOME=$HOME; HL_UID=$(id -u); HL_NAME=\(quote(instanceName)); HL_HOST=$(hostname)
         hl_expand() { sed -e "s|{{\\.User}}|$HL_USER|g" -e "s|{{\\.Home}}|$HL_HOME|g" -e "s|{{\\.UID}}|$HL_UID|g" -e "s|{{\\.Name}}|$HL_NAME|g" -e "s|{{\\.Hostname}}|$HL_HOST|g"; }
+        hl_run() { HL_SH=$(sed -n '1s/^#![[:space:]]*//p' "$1"); ${2:-} ${HL_SH:-sh} "$1"; }
         hl_mkdir() { [ -d "$1" ] && return 0; hl_mkdir "$(dirname "$1")" "$2"; sudo -- mkdir "$1"; [ -n "$2" ] && sudo -- chown "$2" "$1"; }
         HL_TMP=$(mktemp -d); trap 'rm -rf "$HL_TMP" "$HL_ALL"' EXIT
 
@@ -38,9 +41,9 @@ public enum ProvisionScripts {
             case .data:
                 s += writeFile(entry)
             case .user:
-                s += heredoc(entry.script, into: "$HL_TMP/script") + "sh \"$HL_TMP/script\"\n"
+                s += heredoc(entry.script, into: "$HL_TMP/script") + "hl_run \"$HL_TMP/script\"\n"
             default:
-                s += heredoc(entry.script, into: "$HL_TMP/script") + "sudo -- sh \"$HL_TMP/script\"\n"
+                s += heredoc(entry.script, into: "$HL_TMP/script") + "hl_run \"$HL_TMP/script\" sudo\n"
             }
         }
         return s
