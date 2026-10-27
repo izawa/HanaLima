@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <meta property="og:image" content="https://izawa.github.io/HanaLima/assets/img/icon-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=2026102702">
+<link rel="stylesheet" href="assets/css/site.css?v=2026102703">
 <script>
   // Pick the language before first paint: saved choice, else the browser's.
   (function () {
@@ -61,7 +61,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.7.0 · macOS 26+ · Lima 2.2+ · MIT</span>
+      <span class="eyebrow">● v0.8.0 · macOS 26+ · Lima 2.2+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を、</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -264,6 +264,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
           <tr><td><span class="en">What a deleted VM leaves behind</span><span class="ja">削除した VM が残すデータ</span></td><td class="no"><span class="en">not tracked</span><span class="ja">把握しない</span></td><td class="hl yes"><span class="en">listed, deletable</span><span class="ja">一覧にして削除できる</span></td></tr>
           <tr><td><span class="en">Run a provisioning script right now</span><span class="ja">プロビジョニングを今すぐ実行</span></td><td class="no"><span class="en">at the next boot, or by hand over ssh</span><span class="ja">次の起動か、ssh で手作業</span></td><td class="hl yes"><span class="en">yes · output in a sheet</span><span class="ja">yes · 出力をシートに</span></td></tr>
           <tr><td><span class="en">A provisioning script that runs only once</span><span class="ja">一度だけ実行するプロビジョニング</span></td><td class="no"><span class="en">every boot; write your own guard</span><span class="ja">毎回の起動。自分で判定を書く</span></td><td class="hl yes"><span class="en">yes · stamp, retry on failure</span><span class="ja">yes · 印を残し、失敗は再試行</span></td></tr>
+          <tr><td><span class="en">Ansible against a VM</span><span class="ja">VM に Ansible を当てる</span></td><td class="no"><span class="en">write the inventory yourself (the ansible mode is deprecated)</span><span class="ja">インベントリは自分で書く（ansible モードは非推奨）</span></td><td class="hl yes"><span class="en">yes · inventory written, run from the app or the terminal</span><span class="ja">yes · インベントリを生成、アプリでもターミナルでも</span></td></tr>
           <tr><td><span class="en">Where a copy came from</span><span class="ja">コピー元の記録</span></td><td class="no">—</td><td class="hl yes"><span class="en">shown, with a note</span><span class="ja">表示（メモつき）</span></td></tr>
         </tbody>
       </table>
@@ -462,6 +463,11 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <h3><span class="en">Provisioning, now or once</span><span class="ja">プロビジョニングを今すぐ、または一度だけ</span></h3>
         <p><span class="en">Lima runs provisioning scripts at every boot. HanaLima adds two things: <strong>Run now</strong> runs an entry or a ready-made example in the running VM without saving, with the output in a sheet; <strong>Run only once</strong> wraps a script so it leaves a stamp and later boots skip it — a failure retries next time, and “Run Again” resets it. Nine examples, from basic tools to a one-shot full upgrade.</span><span class="ja">Lima のプロビジョニングは起動のたびに走ります。HanaLima はそこに 2 つを足しました。<strong>今すぐ実行</strong>は、項目や例を保存せずに実行中の VM で走らせ、出力をシートに表示します。<strong>一度だけ実行する</strong>は、スクリプトを包んで成功の印を残し、以後の起動では飛ばします。失敗なら次の起動で再試行、「もう一度実行」で印を新しくします。例は基本ツールから一度だけの全パッケージ更新まで 9 つ。</span></p>
       </div>
+      <div class="card reveal"><span class="status done">v0.8</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg></div>
+        <h3><span class="en">Ansible from your Mac</span><span class="ja">Mac から Ansible</span></h3>
+        <p><span class="en">Pick a playbook for a VM and run it from the Settings tab, output in a sheet. HanaLima writes an inventory that sends ssh through Lima's <code>ssh.config</code> and runs your own <code>ansible-playbook</code> in the playbook's folder — roles, <code>ansible.cfg</code> and <code>become</code> just work. The same inventory works from the terminal, so nothing depends on HanaLima.</span><span class="ja">VM に Playbook を選んで設定タブから実行、出力はシートに。HanaLima は Lima の <code>ssh.config</code> を通る ssh のインベントリを書き、お使いの <code>ansible-playbook</code> を Playbook のフォルダで起動します。roles も <code>ansible.cfg</code> も <code>become</code> もそのまま。同じインベントリはターミナルからも使えるので、HanaLima に縛られません。</span></p>
+      </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
@@ -522,6 +528,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">Create from an installer ISO</span><span class="ja">インストーラーの ISO から作成</span></li><li><span class="en">Provisioning examples</span><span class="ja">プロビジョニングの例</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.7</h3>
         <ul><li><span class="en">Run provisioning now</span><span class="ja">プロビジョニングを今すぐ実行</span></li><li><span class="en">Run-once scripts</span><span class="ja">一度だけ実行</span></li><li><span class="en">More examples</span><span class="ja">例の追加</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.8</h3>
+        <ul><li><span class="en">Ansible from the host</span><span class="ja">Mac から Ansible</span></li><li><span class="en">Shared inventory</span><span class="ja">共通のインベントリ</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
@@ -565,6 +573,6 @@ scripts/make-app.sh --install --open</pre>
   </div>
 </footer>
 
-<script src="assets/js/site.js?v=2026102702"></script>
+<script src="assets/js/site.js?v=2026102703"></script>
 </body>
 </html>
