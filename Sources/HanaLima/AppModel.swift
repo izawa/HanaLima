@@ -297,7 +297,7 @@ final class AppModel {
             if list != instances {
                 instances = list
                 // The Ansible inventory lists every VM, for use from the terminal too (docs/08).
-                try? writeAnsibleInventory()
+                _ = try? writeAnsibleInventory()
             }
             updateDiskPlacements()
             updateMetadata(list)
