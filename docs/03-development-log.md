@@ -138,6 +138,25 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - 本実装（ブランチ `spike/iso-install`）: アプリ本体に virtualization の entitlement、作成画面の「インストーラーの ISO」、「インストール待ち」の印と起動の抑止、インストールのウインドウ（`InstallerVM`・`InstallSession`）、仕上げの ISO の自動生成。アプリからの往復も Ubuntu Server 26.04 で確認。
 - E2E: 直接のカーネル起動は EFI が無くブートローダーの設定で失敗。ISO の shim と GRUB を FAT イメージに写して HanaLima の `grub.cfg` で `autoinstall` を付ける方式にし、無人インストール → Lima で起動までを `ISOInstallEndToEndTests` で自動化した（372 秒）。無人設定の YAML で `: ` を含む行を引用符なしで書くと黙って対話式になる、という落とし穴があった。
 
+## 28. プロビジョニングの「今すぐ実行」「一度だけ実行」、Ansible（2026-10-27）
+- 今すぐ実行（`ScriptRun`、`ProvisionScripts`）: `limactl shell --tty=false <名前> sh -s` に合成スクリプトを渡す。分かったこと: `sh -s` は標準入力を読みながら実行するので、標準入力を読む項目が残りを飲み込む → 一度ファイルに保存して `</dev/null` で実行。`limactl shell` は SIGINT を無視してリモートの完了を待つ → 中止は SIGTERM（ゲスト側のコマンドは動き続けることがある）。Lima はプロビジョニングのファイルを直接実行する（`boot.sh` の `"$f"`）ので `#!` の解釈系を尊重する。テンプレート変数はゲストの中で `sed` で展開。
+- 一度だけ実行（`ProvisionOnce`）: 固定のラッパー＋印（`/var/lib/hanalima/once/<id>.done`）。本体はサブシェルで走らせ、`exit` でも印が付く。E2E `ProvisionOnceEndToEndTests`（Alpine、2 回起動）。
+- 例を 5 つ追加（日本向け、自動更新の停止、swap、開発言語、一度だけの全更新）。E2E は ubuntu-lts・alpine・fedora。
+- Ansible（docs/08）: Lima の `ssh.config` を指す 1 行のインベントリだけで `ansible-playbook` が通る（`become` も）。ansible-core 2.21 はパイプ越しだと表示の大半を stderr に書く。pyenv の shim は作業ディレクトリの `.python-version` を見る。Intel 版の残骸（`/usr/local/bin`）は `--version` の実行で弾く。E2E `AnsibleEndToEndTests`（Ubuntu LTS、49 秒）。v0.8.0。
+
+## 29. Lima 2.3.0-rc.0 の調査（2026-10-31、未着手）
+- 2026-10-30 公開、2.2.1 から 545 コミット。ハイライト: Windows の HCS ドライバー、VZ へのホストのブロックデバイス接続（`--block-device`、`blockDevices:`。sudoers と root 所有の配置が要り Homebrew では不可）、Linux ホストの `lima:shared/host/bridged`、`limactl menu`（引数なしの `limactl` が TUI を開く）。
+- HanaLima に関わるもの:
+  - **`networkOpts.hostLoopback: false`**（#5581、VZ のみ）: `host.lima.internal` と `0.0.0.0` を経路のない `0.0.0.1` に向け、Mac の 127.0.0.1 で待つサービスへの到達を即座に拒否する。docs/06 で「閉じられなかった」経路のうち 1 つが設定で閉じられる（インターネット・LAN は残る）。`user-v2` とは併用不可、ホストのプロキシが見えなくなる。作成画面の隔離の選択肢の候補。
+  - `autostart enable --keep-alive`（既定 true、異常終了時に launchd が再起動）: plist の形が変わるだけで、HanaLima の判定（plist の存在）は不変。
+  - `additionalDisks` の `mountPoint` と `mount: false`（#5198）: 追加ディスクの設定に足せる。
+  - 起動進捗の `(N/total)` カウンター（#5602）: ログの行が変わる。READY と `watch` で判定しているので壊れないはずだが実機で確認する。
+  - `limactl screenshot` が QEMU でも動く（#5478）: 「VZ のみ」の文言を直す。
+  - lima.yaml の JSON Schema が配布物に入る（#5339）: YAML エディタの検証に使える。
+  - 既定の Ubuntu が 26.10: テンプレート一覧は `limactl info` から作るので自動で追随。
+  - Unix ソケットの転送が gRPC に（#5653）、`limactl stop` の複数指定、`shell --sync-exclude`: 影響なし。
+- 正式版が出たら: Homebrew 更新 → docs/04 の更新確認の表（`list --format json`、`watch --json`、起動ログ、autostart の plist）→ `hostLoopback` を実機で確かめて docs/06 の表に列を足す → 隔離の選択肢に加えるか判断 → 追加ディスクの `mountPoint`、QEMU のサムネイル、文言の追随。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
