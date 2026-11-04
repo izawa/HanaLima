@@ -157,6 +157,13 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
   - Unix ソケットの転送が gRPC に（#5653）、`limactl stop` の複数指定、`shell --sync-exclude`: 影響なし。
 - 正式版が出たら: Homebrew 更新 → docs/04 の更新確認の表（`list --format json`、`watch --json`、起動ログ、autostart の plist）→ `hostLoopback` を実機で確かめて docs/06 の表に列を足す → 隔離の選択肢に加えるか判断 → 追加ディスクの `mountPoint`、QEMU のサムネイル、文言の追随。
 
+## 30. ゲストの sshd を lima0 に縛ると Lima から入れなくなる（2026-11-04）
+- 事象: Ubuntu 24.04 の VM（ブリッジ `lima0` 付き）で、`ssh.socket` のドロップインに `BindToDevice=lima0` を書いたところ、HanaLima（Lima）から接続できなくなった（`limactl shell` が `kex_exchange_identification: read: Connection reset by peer`）。`systemctl status ssh.socket` は `Listen: 0.0.0.0:22` と出るので気づきにくいが、`ss -tlnp` では `0.0.0.0%lima0:22` で、ゲストの中から `ssh 192.168.5.15` も refused。
+- 理由: Lima は Mac の `127.0.0.1:<port>` を VZ の usernet で転送し、ゲストには **NIC 0（eth0、192.168.5.15）宛て**として届く。ゲストの 127.0.0.1 ではない。sshd をどう絞るときも eth0 側を残す必要がある。Ubuntu 22.10 以降は `ssh.socket` のソケットアクティベーションが既定なので、`sshd_config` の `ListenAddress` ではなく `ssh.socket` の `ListenStream`／`BindToDevice` が待ち受けを決める。
+- 止め方: SSH が切れても `limactl stop` は効く（hostagent に SIGINT → VZ の ACPI。だめなら `--force` で hostagent と VM を kill）。起動は SSH が使えないと 10 分でタイムアウトするが VM は動き続け、`list` では Running。
+- 復旧: ドロップインを消して `systemctl daemon-reload && systemctl restart ssh.socket`。LAN 側だけに絞るなら `ListenStream=192.168.5.15:22` と LAN 側の IP を並べる（`BindToDevice` と違い IP 固定なので DHCP で変わるおそれあり）。中に入るには、別 NIC の IP で `ssh -F ~/.lima/<名前>/ssh.config -o Hostname=<IP> -o Port=22 lima-<名前>`。
+- HanaLima への示唆: 準備完了の判定も停止も Lima の SSH 経路に依存しているので、接続できないときの案内（「SSH が届かない。eth0 の sshd を確認」）を出す余地がある。未着手。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
