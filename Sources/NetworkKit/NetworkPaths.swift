@@ -29,6 +29,8 @@ public enum NetworkPaths {
 
     public static func socket(for name: String) -> URL { socketDirectory.appending(path: "\(name).sock") }
     public static func status(for name: String) -> URL { socketDirectory.appending(path: "\(name).status.json") }
+    /// Leases of a guest-only network, written by netd's own DHCP server in dhcpd_leases format.
+    public static func leases(for name: String) -> URL { socketDirectory.appending(path: "\(name).leases") }
     /// flock(2)ed by every hanalima-netd around vmnet calls, so the helpers never call vmnet at once.
     public static var vmnetLock: URL { socketDirectory.appending(path: "vmnet.lock") }
 

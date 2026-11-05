@@ -88,6 +88,7 @@ public struct LaunchAgentManager: Sendable {
         try? fm.removeItem(at: NetworkPaths.launchAgentPlist(for: name))
         try? fm.removeItem(at: NetworkPaths.socket(for: name))
         try? fm.removeItem(at: NetworkPaths.status(for: name))
+        try? fm.removeItem(at: NetworkPaths.leases(for: name))
     }
 
     /// Stops the helper without unregistering; launchd starts it again on the next connection.

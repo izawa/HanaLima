@@ -153,3 +153,15 @@ hanalima-dev に `demo`（NAT、固定 IP）と `lan`（netd のブリッジ）�
    - → 失敗した状態は、**そのプロセスの中に残る**と考えられる。対策として、netd どうしでファイルロック（`net/vmnet.lock`）を取り、ネットワークの作成とインターフェースの開始を 1 つずつ行うようにした。socket_vmnet との重なりは防げない。
 2. **ヘルパーを更新すると、登録済みの LaunchAgent が起動できなくなった。** launchd は、登録したときのプログラムの cdhash を記録している（`launchctl print` の `LWCR` の `cdhash`）。そのため、ファイルを別のビルドで上書きすると、次の起動が `spawn failed`（last exit code 78: EX_CONFIG）になる。動いているプロセスは、古いファイルのまま動き続けるので気づきにくい。
    - → ヘルパーは、内容のハッシュを含む名前（`bin/hanalima-netd-<hash>`）で、バージョンごとに配置する。`bin/current` で現在のものを指す。登録済みのエージェントは、ヘルパーが動いていないときに新しいコピーへ登録し直す（`upgradeIdleAgents`）。どのエージェントも使わなくなった古いコピーは削除する。
+
+## ゲスト専用ネットワーク（2026-11-05、段階 5）
+
+vmnet を使わない 4 つ目の種類。`hanalima-netd` が VM のあいだのフレームを自分で中継する（`GuestSwitch`: 送信元 MAC を学習、既知の宛先はそのポートへ、ブロードキャスト・マルチキャスト・未知は全員へ）。Mac にはインターフェースもブリッジも生えないので、Mac はそのセグメットに参加できず、vmnet の不具合（1001、FB25122122、DHCP 予約の消失）の影響も受けない。
+
+- **DHCP は netd が持つ**（`GuestOnlyDHCP`、NetworkKit。Codex が書き、単体テストつき）。DISCOVER/OFFER/REQUEST/ACK/NAK/RELEASE/DECLINE/INFORM、予約は chaddr（MAC）で引くのでオプション 61 の問題（上記「固定 IP」）は無い。配るのは 53・54・51・1・58・59 だけで、**ルーター（3）と DNS（6）は配らない**。経路も名前解決も無いのがこのネットワークの意味。サーバーのアドレス（設定の `gateway`）には ARP で答え（局所管理の MAC `02:68:6c:…`、名前のハッシュ）、ICMP には答えない。
+- **VM への送信は VM ごとの上限つきキュー＋書き込みスレッド**。既存の中継は `write` が詰まると送り手のスレッドを止めるので、読まない VM（停止中、一時停止）が居ると全員が止まる。キューがあふれた分は捨てて数える（ログの「n frames dropped」）。
+- **リース**は `net/<名前>.leases` に macOS の `dhcpd_leases` と同じ書式で書き、アプリの `DHCPLeases.load()` が両方を読む（概要タブの IP、`address(of:on:)`）。ホスト名はオプション 12（Lima は `lima-<名前>`）。
+- 既存の NAT／ホストオンリー／ブリッジのコードは触らない。`NetworkHolder.current()` が nil を返す点はブリッジと同じで、`Relay.run()` の先頭で分岐する。
+- 古い netd（この版より前の `hanalima-netd-<hash>`）は `networks.json` 全体を読むので、`guestOnly` の項目があると起動できない。アプリの `upgradeIdleAgents` が、止まっている LaunchAgent を新しいヘルパーに付け替える。
+- **Codex のレビュー（5 回目）で直した点**: 書き込みスレッドが閉じた fd（番号が別の接続に再利用されうる）に書かないよう、読み手は detach → キューを閉じる → `shutdown` → 書き手の終了を待つ → `close` の順にする。NAK は要求のブロードキャストフラグに関わらずブロードキャスト（RFC 2131 §4.3.2）。MAC の学習は DHCP/ARP の応答より先に行い（同じ MAC で再接続した VM をすぐ新しいポートに向ける）、ポートごとに 32 個まで。リースファイルは `GuestOnlyDHCP.stateVersion` が変わったときだけ、スイッチのロックの中で書く（RELEASE・DECLINE・期限切れも拾い、古いスナップショットが後から上書きしない）。アプリが読むリースファイルは、いま存在するゲスト専用ネットワークの分だけで、LaunchAgent の削除時に消す。
+- E2E（`GuestOnlyEndToEndTests`）: Alpine 2 台（vz）、予約した MAC が .50、もう 1 台が .2 を取り、互いに ping、lima0 に既定経路も DNS も無く、サーバーのアドレスは ARP だけに答え、Mac の `ifconfig` にそのサブネットは無く、停止後に netd のクライアントは 0。既存の NAT の E2E（`NetworkEndToEndTests`・`DHCPReservationEndToEndTests`）も通る（複数スイートは `--no-parallel` で。並列に走らせると `networks.json` を互いに戻し合って落ちる）。

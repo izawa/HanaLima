@@ -6,6 +6,9 @@
 // vmnet_network APIs only require the com.apple.security.virtualization entitlement.
 // Bridged networks use the legacy vmnet_start_interface API in VMNET_BRIDGED_MODE, one interface
 // per VM, which also runs without root under that entitlement (macOS 27.0.1).
+// Guest-only networks use no vmnet at all: netd itself switches frames between the connected VMs
+// (GuestSwitch) and answers DHCP and ARP for a server address that exists nowhere else, so the
+// Mac is not on the segment and the guests get no default route and no DNS.
 //
 // Usage:
 //   hanalima-netd --network NAME            (under launchd; the socket comes from launchd)
@@ -141,7 +144,7 @@ final class NetworkHolder: @unchecked Sendable {
 
     /// The network, creating it if needed; nil if vmnet refused this time (see `Relay.waitForNetwork`).
     func current(quiet: Bool = false) -> vmnet_network_ref? {
-        if config.mode == .bridged { return nil }
+        guard config.usesVmnetNetwork else { return nil }
         return lock.withLock {
             if let network { return network }
             let created = withVmnetLock {
@@ -169,6 +172,108 @@ final class NetworkHolder: @unchecked Sendable {
 
 let holder = NetworkHolder(config: config)
 if config.mode == .bridged { log("network \(config.name): bridged to \(config.bridgedInterface)") }
+
+// MARK: - Guest-only switch
+
+/// A userspace Ethernet switch for a guest-only network: learns each VM's source MACs, delivers
+/// known unicast to its port, floods the rest, and answers DHCP/ARP for the server address.
+/// Frames to a VM go through that VM's bounded outgoing queue (see Relay) so a VM that stops
+/// reading never stalls the others.
+final class GuestSwitch: @unchecked Sendable {
+    private let lock = NSLock()
+    private var ports: [ObjectIdentifier: Relay] = [:]
+    private var table: [UInt64: ObjectIdentifier] = [:]
+    /// Learned MACs per port, so a guest spraying source addresses can't grow the table forever.
+    private var learnedPerPort: [ObjectIdentifier: Int] = [:]
+    private static let learnLimit = 32
+    private var writtenVersion = -1
+    let dhcp: GuestOnlyDHCP
+    let serverMAC: [UInt8]
+    let leasesFile: URL
+
+    init(config: VirtualNetwork) {
+        // A locally administered MAC for the DHCP/ARP responder, derived from the name.
+        var hash: UInt32 = 2166136261
+        for b in config.name.utf8 { hash = (hash ^ UInt32(b)) &* 16777619 }
+        serverMAC = [0x02, 0x68, 0x6c, UInt8(hash >> 16 & 0xff), UInt8(hash >> 8 & 0xff), UInt8(hash & 0xff)]
+        let subnet = config.subnet ?? IPv4Subnet(cidr: "192.168.233.0/24")!
+        dhcp = GuestOnlyDHCP(subnet: subnet, serverIP: config.gatewayAddress ?? IPv4(subnet.network.value + 1),
+                             serverMAC: serverMAC, reservations: config.reservations)
+        leasesFile = NetworkPaths.leases(for: config.name)
+        try? FileManager.default.removeItem(at: leasesFile)
+    }
+
+    func attach(_ relay: Relay) { lock.withLock { ports[ObjectIdentifier(relay)] = relay } }
+
+    func detach(_ relay: Relay) {
+        lock.withLock {
+            let id = ObjectIdentifier(relay)
+            ports[id] = nil
+            learnedPerPort[id] = nil
+            table = table.filter { $0.value != id }
+        }
+    }
+
+    private static func mac(_ frame: UnsafeRawBufferPointer, at offset: Int) -> UInt64 {
+        var v: UInt64 = 0
+        for i in 0..<6 { v = v << 8 | UInt64(frame[offset + i]) }
+        return v
+    }
+
+    /// Switches one frame that `source` sent.
+    func forward(_ frame: UnsafeRawBufferPointer, from source: Relay) {
+        guard frame.count >= 14 else { return }
+        let dst = Self.mac(frame, at: 0)
+        let src = Self.mac(frame, at: 6)
+        let sourceID = ObjectIdentifier(source)
+        // Learn first, so a VM that reconnects (new relay, same MAC) is found by its DHCP
+        // traffic too, not only after its first switched frame.
+        lock.withLock {
+            guard src & 0x010000000000 == 0, ports[sourceID] != nil else { return }  // unicast sources of attached ports
+            if let owner = table[src], owner == sourceID { return }
+            let learned = learnedPerPort[sourceID, default: 0]
+            guard learned < Self.learnLimit else { return }
+            table[src] = sourceID
+            learnedPerPort[sourceID] = learned + 1
+        }
+        if let reply = dhcp.handle(frame) {
+            source.enqueue(reply)
+            writeLeasesIfChanged()
+            return
+        }
+        if dst == Self.serverMACValue(serverMAC) { return }  // for the responder only; not switched
+        let targets: [Relay] = lock.withLock {
+            if frame[0] & 1 == 0, let id = table[dst] {
+                return id == sourceID ? [] : [ports[id]].compactMap { $0 }
+            }
+            return ports.filter { $0.key != sourceID }.map(\.value)
+        }
+        if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { writeLeasesIfChanged() }  // a RELEASE/DECLINE answers nothing
+        guard !targets.isEmpty else { return }
+        let bytes = [UInt8](frame)
+        for target in targets { target.enqueue(bytes) }
+    }
+
+    private static func serverMACValue(_ mac: [UInt8]) -> UInt64 { mac.reduce(0) { $0 << 8 | UInt64($1) } }
+
+    /// One writer at a time, and only when the leases changed (the snapshot and the file replace
+    /// happen under the lock, so an older snapshot can't land after a newer one).
+    private func writeLeasesIfChanged() {
+        lock.withLock {
+            let version = dhcp.stateVersion
+            guard version != writtenVersion else { return }
+            writtenVersion = version
+            try? Data(dhcp.leaseFileText().utf8).write(to: leasesFile, options: .atomic)
+        }
+    }
+
+    func shutdown() { try? FileManager.default.removeItem(at: leasesFile) }
+}
+
+let guestSwitch: GuestSwitch? = config.isGuestOnly ? GuestSwitch(config: config) : nil
+if let guestSwitch {
+    log("network \(config.name): guest-only switch, DHCP \(config.gateway)/\(config.prefixLength), no router, no DNS, server MAC \(guestSwitch.serverMAC.map { String(format: "%02x", $0) }.joined(separator: ":"))")
+}
 
 // MARK: - Client registry (status file + idle exit)
 
@@ -279,6 +384,14 @@ final class Relay: @unchecked Sendable {
     private var iface: interface_ref?
     private var maxPacket = 1514
     private var id = 0
+    /// Guest-only mode: frames for this VM wait here for the writer thread (bounded; a VM that
+    /// stops reading loses frames instead of stalling the switch).
+    private var outgoing: [[UInt8]] = []
+    private var outgoingClosed = false
+    private var dropped = 0
+    private let outgoingReady = DispatchSemaphore(value: 0)
+    private let writerDone = DispatchSemaphore(value: 0)
+    private static let outgoingLimit = 512
 
     init(fd: Int32, holder: NetworkHolder, registry: Registry, reservedMACs: Set<String>) {
         self.fd = fd
@@ -290,6 +403,10 @@ final class Relay: @unchecked Sendable {
     func run() {
         registry.track(self)
         defer { registry.untrack(self) }
+        if let guestSwitch {
+            runGuestOnly(guestSwitch)
+            return
+        }
         guard start() else {
             close(fd)
             return
@@ -302,6 +419,75 @@ final class Relay: @unchecked Sendable {
         // Last VM gone: release the network so the next one gets a fresh network (see NetworkHolder).
         let registry = registry
         holder.discard(if: { registry.isIdle })
+    }
+
+    /// Guest-only: no vmnet interface; the switch delivers frames to `outgoing`, a writer thread
+    /// sends them, and the read loop hands the VM's frames to the switch.
+    private func runGuestOnly(_ guestSwitch: GuestSwitch) {
+        id = registry.add(mac: "-")
+        log("client \(id) connected (guest-only)")
+        guestSwitch.attach(self)
+        Thread.detachNewThread { self.writeOutgoing() }
+        let capacity = 65536
+        let buf = UnsafeMutableRawPointer.allocate(byteCount: capacity, alignment: 16)
+        defer { buf.deallocate() }
+        while true {
+            var header: UInt32 = 0
+            guard readFully(fd, &header, 4) else { break }
+            let size = Int(UInt32(bigEndian: header))
+            guard size > 0, size <= capacity, readFully(fd, buf, size) else { break }
+            guestSwitch.forward(UnsafeRawBufferPointer(start: buf, count: size), from: self)
+        }
+        // Order matters for the descriptor: detach (no new frames), close the queue, shut the
+        // socket down to unblock the writer, wait for it, and only then close the number so a
+        // later accept() can't hand it to a connection the old writer still touches.
+        guestSwitch.detach(self)
+        closeOutgoing()
+        Darwin.shutdown(fd, SHUT_RDWR)
+        writerDone.wait()
+        log("client \(id) disconnected" + (dropped > 0 ? " (\(dropped) frames dropped)" : ""))
+        close(fd)
+        registry.remove(id)
+    }
+
+    /// Queues a frame for this VM (guest-only). Drops it when the VM isn't keeping up.
+    func enqueue(_ frame: [UInt8]) {
+        let accepted: Bool = writeLock.withLock {
+            guard !outgoingClosed else { return false }
+            guard outgoing.count < Self.outgoingLimit else { dropped += 1; return false }
+            outgoing.append(frame)
+            return true
+        }
+        if accepted { outgoingReady.signal() }
+    }
+
+    private func closeOutgoing() {
+        writeLock.withLock { outgoingClosed = true }
+        outgoingReady.signal()
+    }
+
+    private func writeOutgoing() {
+        defer { writerDone.signal() }
+        while true {
+            outgoingReady.wait()
+            let next: [UInt8]? = writeLock.withLock {
+                if outgoingClosed { outgoing.removeAll(); return nil }  // closed: drop what's left
+                if outgoing.isEmpty { return nil }
+                return outgoing.removeFirst()
+            }
+            guard let next else {
+                if writeLock.withLock({ outgoingClosed }) { return }
+                continue
+            }
+            var header = UInt32(next.count).bigEndian
+            let ok = next.withUnsafeBytes { writeFully(fd, &header, 4) && writeFully(fd, $0.baseAddress!, $0.count) }
+            if !ok {
+                // The VM went away; wake the read loop so run() finishes, and stop writing.
+                writeLock.withLock { outgoingClosed = true }
+                Darwin.shutdown(fd, SHUT_RDWR)
+                return
+            }
+        }
     }
 
     private func start() -> Bool {
@@ -482,6 +668,7 @@ final class Relay: @unchecked Sendable {
     /// finishes `run()` normally.
     func shutdown() {
         stop()
+        closeOutgoing()
         Darwin.shutdown(fd, SHUT_RDWR)
     }
 }
@@ -549,6 +736,7 @@ final class Terminator: Sendable {
         log("\(reason); stopping \(relays.count) interface(s)")
         for relay in relays { relay.shutdown() }
         holder.discard()
+        guestSwitch?.shutdown()
         try? FileManager.default.removeItem(at: statusFile)
         exit(code)
     }

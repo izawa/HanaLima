@@ -227,7 +227,8 @@ extension AppModel {
         }
         // hanalima-netd's bridged networks use the legacy API like socket_vmnet, but netd never
         // reuses a vmnet_network, and both mixes were tested on real VMs (docs/02).
-        if let socket, let vn = virtualNetwork(forSocket: socket), !vn.isBridged { return .virtualNetwork(vn.name) }
+        // Guest-only networks touch no vmnet at all, so they can't collide with anything.
+        if let socket, let vn = virtualNetwork(forSocket: socket), vn.usesVmnetNetwork { return .virtualNetwork(vn.name) }
         return .other
     }
 

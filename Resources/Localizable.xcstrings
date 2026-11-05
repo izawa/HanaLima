@@ -285,6 +285,22 @@
         }
       }
     },
+    "%@・VM 同士のみ（Mac は参加しない）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · VMs only (the Mac is not on it)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@・VM 同士のみ（Mac は参加しない）"
+          }
+        }
+      }
+    },
     "%@・ゲートウェイ %@": {
       "localizations": {
         "en": {
@@ -813,6 +829,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "DHCP"
+          }
+        }
+      }
+    },
+    "DHCP サーバーのアドレス": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DHCP Server Address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DHCP サーバーのアドレス"
           }
         }
       }
@@ -2852,6 +2884,22 @@
         }
       }
     },
+    "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No vmnet: HanaLima's helper relays frames between the VMs itself. The Mac gets no interface, and the DHCP hands out no route and no DNS. This NIC leads nowhere outside (Lima's standard NIC 0 is separate; to cut a VM off entirely, combine this with the isolation profile of HanaLima's driver)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。"
+          }
+        }
+      }
+    },
     "vzNAT は VZ でのみ使えます。": {
       "localizations": {
         "en": {
@@ -3530,6 +3578,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "このまま起動すると「%@」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"
+          }
+        }
+      }
+    },
+    "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assigns every address but this one to VMs automatically (no route, no DNS)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）"
           }
         }
       }
@@ -4636,6 +4700,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲスト内の絶対パスを指定してください。"
+          }
+        }
+      }
+    },
+    "ゲスト専用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guest-only"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲスト専用"
+          }
+        }
+      }
+    },
+    "ゲスト専用（VM 同士のみ・Mac は参加しない）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guest-Only (VMs only; the Mac is not on it)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲスト専用（VM 同士のみ・Mac は参加しない）"
           }
         }
       }

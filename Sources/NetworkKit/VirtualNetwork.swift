@@ -12,6 +12,10 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         /// Uses the legacy vmnet bridged mode, which needs no root when the helper is signed
         /// with com.apple.security.virtualization.
         case bridged
+        /// VMs only: a userspace switch inside hanalima-netd, no vmnet and no host interface, so
+        /// the Mac is not on the segment. netd's own DHCP hands out addresses with no router and
+        /// no DNS; `gateway` is just the DHCP server's address.
+        case guestOnly
 
         public var id: String { rawValue }
     }
@@ -57,6 +61,10 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
     }
 
     public var isBridged: Bool { mode == .bridged }
+    public var isGuestOnly: Bool { mode == .guestOnly }
+    /// Whether netd serves this network through vmnet (shared and host modes). Bridged uses the
+    /// legacy per-VM interface; guest-only uses no vmnet at all.
+    public var usesVmnetNetwork: Bool { mode == .shared || mode == .host }
     /// nil in bridged mode: the LAN owns the addressing.
     public var gatewayAddress: IPv4? { isBridged ? nil : IPv4(gateway) }
     public var subnet: IPv4Subnet? { gatewayAddress.map { IPv4Subnet(containing: $0, prefixLength: prefixLength) } }
@@ -68,6 +76,7 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         case .shared: "NAT"
         case .host: String(localized: "ホストオンリー")
         case .bridged: String(localized: "ブリッジ")
+        case .guestOnly: String(localized: "ゲスト専用")
         }
     }
 

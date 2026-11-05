@@ -134,7 +134,7 @@ private struct NetworkRow: View {
     var body: some View {
         let users = model.instances(using: network)
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: network.isBridged ? "cable.connector" : network.mode == .shared ? "globe" : "house")
+            Image(systemName: network.isBridged ? "cable.connector" : network.isGuestOnly ? "point.3.connected.trianglepath.dotted" : network.mode == .shared ? "globe" : "house")
                 .frame(width: 20)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 3) {
@@ -148,6 +148,8 @@ private struct NetworkRow: View {
                 Group {
                     if network.isBridged {
                         Text("\(network.bridgedInterface) の LAN に接続・IP は LAN の DHCP から")
+                    } else if network.isGuestOnly {
+                        Text("\(network.subnet?.description ?? "—")・VM 同士のみ（Mac は参加しない）")
                     } else {
                         Text("\(network.subnet?.description ?? "—")・ゲートウェイ \(network.gateway)")
                     }
@@ -317,7 +319,7 @@ struct NetworkEditorSheet: View {
     }
     private var addressSection: some View {
         Section("アドレス") {
-            TextField("ゲートウェイ（ホスト側）", text: $draft.gateway)
+            TextField(draft.isGuestOnly ? "DHCP サーバーのアドレス" : "ゲートウェイ（ホスト側）", text: $draft.gateway)
                 .font(.body.monospaced())
             Picker("プレフィックス長", selection: $draft.prefixLength) {
                 ForEach(VirtualNetwork.prefixLengths, id: \.self) { len in
@@ -326,7 +328,9 @@ struct NetworkEditorSheet: View {
             }
             if let subnet = draft.subnet {
                 LabeledContent("サブネット", value: subnet.description)
-                LabeledContent("DHCP") { Text("ゲートウェイ以外のアドレスを VM に自動で割り当てます") }
+                LabeledContent("DHCP") {
+                    Text(draft.isGuestOnly ? "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）" : "ゲートウェイ以外のアドレスを VM に自動で割り当てます")
+                }
             }
         }
     }
@@ -348,6 +352,11 @@ struct NetworkEditorSheet: View {
                         Text("NAT（外部に接続できる）").tag(VirtualNetwork.Mode.shared)
                         Text("ホストオンリー（ホストと VM のみ）").tag(VirtualNetwork.Mode.host)
                         Text("ブリッジ（LAN に直接接続）").tag(VirtualNetwork.Mode.bridged)
+                        Text("ゲスト専用（VM 同士のみ・Mac は参加しない）").tag(VirtualNetwork.Mode.guestOnly)
+                    }
+                    if draft.isGuestOnly {
+                        Text("vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     TextField("説明", text: $draft.comment, prompt: Text("任意"))
                 }

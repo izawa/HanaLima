@@ -18,9 +18,16 @@ public struct DHCPLease: Hashable, Sendable {
 public enum DHCPLeases {
     public static let path = "/var/db/dhcpd_leases"
 
+    /// macOS's leases (vmnet networks) plus the lease files netd writes for guest-only networks.
     public static func load(from path: String = path) -> [DHCPLease] {
-        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return [] }
-        return parse(text)
+        var leases = (try? String(contentsOfFile: path, encoding: .utf8)).map(parse) ?? []
+        // Only networks that still exist as guest-only: a file left by a deleted or re-typed
+        // network must not answer for a subnet that is now someone else's.
+        let networks = (try? NetworkStore.load()) ?? []
+        for network in networks where network.isGuestOnly {
+            if let text = try? String(contentsOf: NetworkPaths.leases(for: network.name), encoding: .utf8) { leases += parse(text) }
+        }
+        return leases
     }
 
     static func parse(_ text: String) -> [DHCPLease] {
