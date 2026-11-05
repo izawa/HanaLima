@@ -1,0 +1,14 @@
+{
+  "protocPath": "/opt/homebrew/bin/protoc",
+  "invocations": [
+    {
+      "protoFiles": [
+        "driver.proto"
+      ],
+      "visibility": "internal"
+    }
+  ],
+  "protoc": {
+    "executablePath": "/opt/homebrew/bin/protoc"
+  }
+}
