@@ -84,7 +84,7 @@ actor DriverCore {
         }
         var vmOpts = config["vmOpts"] as? [String: Any] ?? [:]
         if vmOpts["vz"] == nil {
-            vmOpts["vz"] = ["rosetta": ["enabled": false, "binFmt": false], "diskImageFormat": "raw"]
+            vmOpts["vz"] = ["rosetta": ["enabled": false, "binfmt": false], "diskImageFormat": "raw"]
         }
         config["vmOpts"] = vmOpts
         inst["config"] = config
@@ -102,7 +102,6 @@ actor DriverCore {
         let spec = try requireSpec()
         guard spec.os == "Linux" else { throw DriverError("hanalima: only Linux guests are supported, got \(spec.os)") }
         guard spec.arch == "aarch64" else { throw DriverError("hanalima: only aarch64 guests are supported, got \(spec.arch)") }
-        guard !spec.rosetta else { throw DriverError("hanalima: Rosetta (vmOpts.vz.rosetta) is not supported yet") }
         guard spec.mounts.isEmpty || spec.mountType == "virtiofs" else {
             throw DriverError("hanalima: mountType must be virtiofs, got \(spec.mountType)")
         }

@@ -107,7 +107,7 @@ struct CreateInstanceSheet: View {
                     }
                     .disabled(source == .iso)
                     if vmType == .hanalima {
-                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。")
+                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -249,7 +249,7 @@ struct CreateInstanceSheet: View {
                 Section("オプション") {
                     if HostInfo.isAppleSilicon {
                         Toggle("Rosetta で x86_64 バイナリを実行", isOn: $rosetta)
-                            .disabled(vmType != .vz)
+                            .disabled(vmType != .vz && vmType != .hanalima)
                     }
                     Toggle(source == .iso ? "作成後にインストーラーを開く" : "作成後すぐに起動", isOn: $startAfterCreate)
                 }
@@ -285,7 +285,7 @@ struct CreateInstanceSheet: View {
         .onChange(of: vmType) { _, new in
             if extraNIC == .vzNAT, new != .vz, new != .hanalima { extraNIC = .none }
             if new != .hanalima { isolated = false; isolationPreset = false }
-            if new != .vz { rosetta = false }
+            if new != .vz, new != .hanalima { rosetta = false }
         }
         .onAppear { if Self.initialIsolationPreset { isolationPreset = true } }
         .onChange(of: isolationPreset) { _, on in

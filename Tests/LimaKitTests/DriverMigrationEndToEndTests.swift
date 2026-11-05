@@ -54,8 +54,8 @@ struct DriverMigrationEndToEndTests {
         _ = try await drain(client.stop(vm))
 
         // What the driver refuses at edit time (Validate), with the reason for lima.REJECTED.yaml.
-        await #expect(throws: Error.self, "Rosetta is refused by the driver's Validate") {
-            _ = try await drain(client.edit(vm, set: [".vmType = \"hanalima\"", ".vmOpts.vz.rosetta.enabled = true"]))
+        await #expect(throws: Error.self, "a lima: network is refused by the driver's Validate") {
+            _ = try await drain(client.edit(vm, set: [".vmType = \"hanalima\"", #".networks = [{"lima": "shared"}]"#]))
         }
         listed = try #require(try await client.list().first { $0.name == vm })
         #expect(listed.vmType == "vz", "a rejected edit leaves lima.yaml alone")

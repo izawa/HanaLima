@@ -9,11 +9,13 @@ struct DriverService: Driver.SimpleServiceProtocol {
     let core: DriverCore
 
     func info(request: Google_Protobuf_Empty, context: ServerContext) async throws -> InfoResponse {
+        // cidata takes the Rosetta flags from here (LIMA_CIDATA_ROSETTA_ENABLED/_BINFMT).
+        let spec = await core.spec
         let json: [String: Any] = [
             "name": "hanalima", "vsockPort": Int(InstanceSpec.guestAgentVsockPort), "virtioPort": "", "instanceDir": core.instanceDir.path,
             "features": [
                 "dynamicSSHAddress": false, "staticSSHPort": false, "skipSocketForwarding": false,
-                "noCloudInit": false, "rosettaEnabled": false, "rosettaBinFmt": false,
+                "noCloudInit": false, "rosettaEnabled": spec?.rosetta ?? false, "rosettaBinFmt": spec?.rosettaBinFmt ?? false,
                 "supportedImageFormats": ["raw"],
             ],
         ]

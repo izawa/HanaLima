@@ -45,8 +45,10 @@ struct InstanceSpec: Sendable {
     var display: Bool
     var mountType: String
     var sshOverVsock: Bool
-    /// `vmOpts.vz.rosetta`: not supported by this driver (Validate rejects it).
+    /// `vmOpts.vz.rosetta.enabled`: share macOS's Rosetta with the guest (`vz-rosetta`).
     var rosetta: Bool
+    /// `vmOpts.vz.rosetta.binFmt`: the guest registers it for x86_64 binaries (Lima's boot script).
+    var rosettaBinFmt: Bool
     /// `vmOpts.hanalima.usernet` (default true): Lima's user-mode network on NIC 0. Off, the VM
     /// has only the NICs in `networks:` (or none), and SSH must go over vsock: the isolation
     /// profile (docs/06, docs/09).
@@ -106,7 +108,8 @@ struct InstanceSpec: Sendable {
         mountType = config["mountType"] as? String ?? "virtiofs"
         sshOverVsock = (config["ssh"] as? [String: Any])?["overVsock"] as? Bool ?? false
         let rosettaOpts = ((config["vmOpts"] as? [String: Any])?["vz"] as? [String: Any])?["rosetta"] as? [String: Any]
-        rosetta = rosettaOpts?["enabled"] as? Bool == true || rosettaOpts?["binFmt"] as? Bool == true
+        rosetta = rosettaOpts?["enabled"] as? Bool == true
+        rosettaBinFmt = (rosettaOpts?["binfmt"] as? Bool ?? rosettaOpts?["binFmt"] as? Bool) == true  // Lima's tag is lowercase
         let hanalimaOpts = (config["vmOpts"] as? [String: Any])?["hanalima"] as? [String: Any]
         usernet = hanalimaOpts?["usernet"] as? Bool ?? true
     }
@@ -130,6 +133,7 @@ struct InstanceSpec: Sendable {
         mountType = "virtiofs"
         sshOverVsock = false
         rosetta = false
+        rosettaBinFmt = false
         usernet = true
         self.hosted = hosted
     }

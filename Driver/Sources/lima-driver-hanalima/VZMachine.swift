@@ -239,6 +239,9 @@ final class VZMachine: @unchecked Sendable {
             device.share = share
             return device
         }
+        if spec.rosetta, let rosetta = rosettaShare() {
+            config.directorySharingDevices.append(rosetta)
+        }
 
         // The console both ways: SerialConsole logs it to serialv.log and serves serialv.sock.
         let console = VZVirtioConsoleDeviceSerialPortConfiguration()
@@ -258,6 +261,34 @@ final class VZMachine: @unchecked Sendable {
         config.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
         try config.validate()
         return config
+    }
+
+    /// macOS's Rosetta as the `vz-rosetta` share (what Lima's vz attaches), with the AOT cache
+    /// socket Lima's boot script sets up. Unlike Lima this never installs Rosetta: when it's
+    /// missing the VM boots without the share and the log says what to run.
+    private static func rosettaShare() -> VZVirtioFileSystemDeviceConfiguration? {
+        switch VZLinuxRosettaDirectoryShare.availability {
+        case .notSupported:
+            log("Rosetta is not supported on this Mac; starting without it")
+            return nil
+        case .notInstalled:
+            log("Rosetta is not installed on this Mac (softwareupdate --install-rosetta); starting without it")
+            return nil
+        case .installed:
+            break
+        @unknown default:
+            return nil
+        }
+        do {
+            let share = try VZLinuxRosettaDirectoryShare()
+            try share.setCachingOptions(.unixSocket("/run/rosettad/rosetta.sock"))
+            let device = VZVirtioFileSystemDeviceConfiguration(tag: "vz-rosetta")
+            device.share = share
+            return device
+        } catch {
+            log("Rosetta share failed: \(error); starting without it")
+            return nil
+        }
     }
 
     private static func nic(handle: FileHandle, mac: String) -> VZVirtioNetworkDeviceConfiguration {

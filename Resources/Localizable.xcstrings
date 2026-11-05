@@ -1378,6 +1378,7 @@
       }
     },
     "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1389,6 +1390,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。"
+          }
+        }
+      }
+    },
+    "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima itself runs the VM on Virtualization.framework instead of Lima's VZ. The screen window can be closed and reopened, and the console tab offers the serial console. Still experimental: socket_vmnet networks are unavailable, and the VM can't start where HanaLima isn't installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。"
           }
         }
       }
@@ -4066,6 +4083,7 @@
       }
     },
     "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、Rosetta と socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4077,6 +4095,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、Rosetta と socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。"
+          }
+        }
+      }
+    },
+    "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both run on Virtualization.framework and keep the disk and the EFI variables as they are. With HanaLima's driver the screen window can be closed and reopened and the console tab offers the serial console, while socket_vmnet networks are unavailable. The VM can no longer start where HanaLima isn't installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。"
           }
         }
       }
