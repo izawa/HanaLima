@@ -167,7 +167,7 @@
 <li><strong>停止は後片付けの完了まで返さない。</strong> Lima は <code>Stop</code> が返ると hostagent を終え、ドライバーに SIGTERM を送る。デリゲート経由の後片付け（usernet の終了、pid・ソケットの削除）の途中で exit すると残骸が出るので、<code>stop()</code> は <code>run == nil &amp;&amp; !busy</code> まで待つ。</li>
 <li><strong>アプリ本体は VM を持たない。</strong> 救出起動と ISO インストールもドライバーの hosted モード（<code>--hosted</code>、gRPC なし、制御ソケットと <code>hanalima-hosted.pid</code>）で動く。アプリは起動して見ているだけなので、終了しても VM は残り、次の起動で再接続する。VZ を触る場所がドライバー 1 つになった。</li>
 <li><strong>隔離は 2 つの層の組み合わせ。</strong> VM をホストから切るのはドライバーの隔離プロファイル（usernet なし、SSH は vsock）、切った VM 同士をつなぐのは netd のゲスト専用ネットワーク（vmnet なしの L2 スイッチ。DHCP は経路も DNS も配らない）。後者は Lima の vz の VM にも付くが、vz には usernet が残るので隔離にはならない（docs/06 §8）。</li>
-<li><strong>済んだもの（2026-11-05）</strong>: Rosetta（<code>vz</code> と同じ共有と起動スクリプト）、<code>lima:</code> のネットワーク（socket_vmnet は <code>socket:</code> と同じ中継、最初の user-v2 は NIC 0 の usernet の代わり）。<strong>残っているもの</strong>: スナップショットの RPC、macOS ゲスト、一時停止。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで、ゲスト専用ネットワークは <code>GuestOnlyEndToEndTests</code> と docs/02 まで済み。</li>
+<li><strong>済んだもの（2026-11-05）</strong>: Rosetta（<code>vz</code> と同じ共有と起動スクリプト）、<code>lima:</code> のネットワーク（socket_vmnet は <code>socket:</code> と同じ中継、最初の user-v2 は NIC 0 の usernet の代わり）。スナップショットの RPC（<code>limactl snapshot</code> がアプリと同じ <code>DiskSnapshot</code> を使う）。<strong>残っているもの</strong>: macOS ゲスト、一時停止。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで、ゲスト専用ネットワークは <code>GuestOnlyEndToEndTests</code> と docs/02 まで済み。</li>
 </ul>
 <p class="note">関連: docs/09（外部ドライバーの調査と段階 0〜4 の結果）、docs/02（ゲスト専用ネットワーク、段階 5）、docs/06（隔離の調査）、docs/04（設計メモ）。</p>
 </main>

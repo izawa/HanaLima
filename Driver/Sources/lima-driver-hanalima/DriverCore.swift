@@ -39,8 +39,6 @@ actor DriverCore {
 
     private var run: Run?
     private var generation = 0
-    /// Whether a VM ran and stopped (the watchdog in Main exits once the host agent is gone).
-    private(set) var hasStopped = false
     /// A start or a teardown in progress (they suspend); no other start or stop meanwhile.
     private var busy = false
 
@@ -428,7 +426,6 @@ actor DriverCore {
         guard let current = run, current.generation == generation else { return }
         run = nil
         busy = true
-        hasStopped = true
         log(error.map { "guest stopped with error: \($0)" } ?? "guest stopped")
         await tearDown(current)
         busy = false
@@ -503,6 +500,85 @@ actor DriverCore {
 
     /// For the watchdog: no VM and nothing in progress.
     var isIdle: Bool { run == nil && !busy }
+
+    // MARK: - Snapshots
+
+    /// `limactl snapshot` on a `hanalima` VM: the same APFS-clone snapshots as the app's
+    /// snapshot tab (`DiskSnapshot`), so both see one list. Lima calls these through whichever
+    /// driver process answers on the socket: the running VM's, or one it spawns for the command.
+    /// The disk is only consistent while the VM is off, so a running VM is refused — here when
+    /// this process has it, or by the host agent's pid when another process does.
+    func snapshotCreate(tag: String) throws {
+        try requireStoppedForSnapshot()
+        try validateTag(tag)
+        if findSnapshot(tag) != nil { throw DriverError("a snapshot named \(tag) already exists") }
+        _ = try DiskSnapshot.create(instanceDir: instanceDir, name: tag)
+        log("snapshot \(tag) created")
+    }
+
+    func snapshotApply(tag: String) throws {
+        try requireStoppedForSnapshot()
+        guard let snapshot = findSnapshot(tag) else { throw DriverError("no snapshot named \(tag)") }
+        try DiskSnapshot.restore(snapshot, of: instanceDir, into: instanceDir)
+        log("snapshot \(tag) applied")
+    }
+
+    func snapshotDelete(tag: String) throws {
+        guard let snapshot = findSnapshot(tag) else { throw DriverError("no snapshot named \(tag)") }
+        try DiskSnapshot.delete(snapshot, instanceDir: instanceDir)
+        log("snapshot \(tag) deleted")
+    }
+
+    /// QEMU's `info snapshots` layout, which `limactl snapshot list --quiet` parses (the tag is
+    /// the second column, so a tag with spaces shows only its first word there).
+    func snapshotList() -> String {
+        let snapshots = DiskSnapshot.list(instanceDir: instanceDir)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let rows = snapshots.enumerated().map { index, snapshot -> [String] in
+            let size = DiskSnapshot.folder(instanceDir: instanceDir).map { allocatedSize(of: $0.appending(path: snapshot.id.uuidString)) } ?? 0
+            return [String(index + 1), snapshot.name, ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .binary),
+                    formatter.string(from: snapshot.createdAt), "--", "--"]
+        }
+        let header = ["ID", "TAG", "VM SIZE", "DATE", "VM CLOCK", "ICOUNT"]
+        let widths = (0..<header.count).map { column in ([header] + rows).map { $0[column].count }.max() ?? 0 }
+        func line(_ fields: [String]) -> String {
+            fields.enumerated().map { $0.offset == fields.count - 1 ? $0.element : $0.element.padding(toLength: widths[$0.offset], withPad: " ", startingAt: 0) }
+                .joined(separator: "  ")
+        }
+        return ([header] + rows).map(line).joined(separator: "\n") + "\n"
+    }
+
+    private func findSnapshot(_ tag: String) -> DiskSnapshot? {
+        DiskSnapshot.list(instanceDir: instanceDir).last { $0.name == tag }
+    }
+
+    private func validateTag(_ tag: String) throws {
+        guard !tag.isEmpty, tag.rangeOfCharacter(from: .whitespacesAndNewlines.union(.controlCharacters)) == nil, !tag.contains("/") else {
+            throw DriverError("the tag must be one word without spaces or slashes")
+        }
+    }
+
+    private func requireStoppedForSnapshot() throws {
+        if run != nil || busy { throw DriverError("stop the VM before taking or applying a snapshot") }
+        let haPID = instanceDir.appending(path: "ha.pid")
+        if let text = try? String(contentsOf: haPID, encoding: .utf8), let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)),
+           kill(pid, 0) == 0 {
+            throw DriverError("stop the VM before taking or applying a snapshot (the host agent is running)")
+        }
+    }
+
+    /// Blocks actually allocated under `folder` (a clone shares its blocks until the disk diverges).
+    private func allocatedSize(of folder: URL) -> Int {
+        guard let items = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) else { return 0 }
+        var total = 0
+        for case let item as URL in items {
+            total += (try? item.resourceValues(forKeys: [.totalFileAllocatedSizeKey]).totalFileAllocatedSize) ?? 0
+        }
+        return total
+    }
 
     private func requireSpec() throws -> InstanceSpec {
         guard let spec else { throw DriverError("Configure must be called first") }

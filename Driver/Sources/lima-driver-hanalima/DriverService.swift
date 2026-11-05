@@ -116,20 +116,28 @@ struct DriverService: Driver.SimpleServiceProtocol {
         throw RPCError(code: .unimplemented, message: "hanalima has no GUI yet")
     }
 
+    // `limactl snapshot`: HanaLima's APFS-clone snapshots (DiskSnapshot), shared with the app.
     func createSnapshot(request: CreateSnapshotRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        throw RPCError(code: .unimplemented, message: "snapshots are not implemented")
+        log("CreateSnapshot \(request.tag)")
+        try await wrap { try await core.snapshotCreate(tag: request.tag) }
+        return .init()
     }
 
     func applySnapshot(request: ApplySnapshotRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        throw RPCError(code: .unimplemented, message: "snapshots are not implemented")
+        log("ApplySnapshot \(request.tag)")
+        try await wrap { try await core.snapshotApply(tag: request.tag) }
+        return .init()
     }
 
     func deleteSnapshot(request: DeleteSnapshotRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        throw RPCError(code: .unimplemented, message: "snapshots are not implemented")
+        log("DeleteSnapshot \(request.tag)")
+        try await wrap { try await core.snapshotDelete(tag: request.tag) }
+        return .init()
     }
 
     func listSnapshots(request: Google_Protobuf_Empty, context: ServerContext) async throws -> ListSnapshotsResponse {
-        throw RPCError(code: .unimplemented, message: "snapshots are not implemented")
+        let text = await core.snapshotList()
+        return .with { $0.snapshots = text }
     }
 
     /// Driver errors become gRPC statuses with their message (Lima logs the message).
