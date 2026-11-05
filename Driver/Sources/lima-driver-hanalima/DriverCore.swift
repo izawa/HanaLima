@@ -39,6 +39,8 @@ actor DriverCore {
 
     private var run: Run?
     private var generation = 0
+    /// Whether a VM ran and stopped (the watchdog in Main exits once the host agent is gone).
+    private(set) var hasStopped = false
     /// A start or a teardown in progress (they suspend); no other start or stop meanwhile.
     private var busy = false
 
@@ -60,9 +62,15 @@ actor DriverCore {
         if ssh["overVsock"] == nil { ssh["overVsock"] = (config["os"] as? String ?? "Linux") == "Linux" }
         config["ssh"] = ssh
         let usernet = ((config["vmOpts"] as? [String: Any])?["hanalima"] as? [String: Any])?["usernet"] as? Bool ?? true
+        // A lima: user-v2 network as NIC 0 (Lima's first usernet) serves DNS at its own gateway.
+        let limaNetworks = LimaNetworks.load(from: URL(fileURLWithPath: inst["LimaHome"] as? String ?? LimaNetworks.limaHome.path)
+            .appending(path: "_config/networks.yaml"))
+        let userV2Gateway = (config["networks"] as? [[String: Any]] ?? [])
+            .compactMap { $0["lima"] as? String }.compactMap { limaNetworks.network(named: $0) }
+            .first { $0.mode == "user-v2" }.flatMap(LimaNetworks.usernetGateway(of:))
         if usernet {
             if (config["dns"] as? [Any])?.isEmpty ?? true {
-                config["dns"] = [Usernet.gateway]
+                config["dns"] = [userV2Gateway ?? Usernet.gateway]
                 var resolver = config["hostResolver"] as? [String: Any] ?? [:]
                 resolver["enabled"] = false
                 config["hostResolver"] = resolver
@@ -106,10 +114,15 @@ actor DriverCore {
             throw DriverError("hanalima: mountType must be virtiofs, got \(spec.mountType)")
         }
         for case .lima(let name) in spec.nics {
-            throw DriverError("hanalima: network lima:\(name) is not supported (use a HanaLima network or vzNAT)")
+            throw DriverError("hanalima: network lima:\(name) is not defined in networks.yaml")
+        }
+        let limaNetworks = LimaNetworks.load(from: spec.limaHome.appending(path: "_config/networks.yaml"))
+        for case .socketVMNet(let name, _, _) in spec.nics where !limaNetworks.socketVMNetInstalled {
+            throw DriverError("hanalima: network lima:\(name) needs socket_vmnet, which isn't installed (see Lima's docs); a HanaLima network needs no root")
         }
         if !spec.usernet {
             guard spec.sshOverVsock else { throw DriverError("hanalima: without usernet (vmOpts.hanalima.usernet: false) SSH must go over vsock; set ssh.overVsock to true") }
+            guard spec.sharedUsernet == nil else { throw DriverError("hanalima: a lima: user-v2 network is usernet; it can't be combined with vmOpts.hanalima.usernet: false") }
         }
     }
 
@@ -150,7 +163,12 @@ actor DriverCore {
             var handles: [FileHandle?] = [nil]
             if spec.usernet {
                 // usernet's start-up waits on its sockets (up to 15 s); not on the actor's executor.
-                current.usernet = try await Task.detached { try Usernet.start(spec: spec) }.value
+                // A shared user-v2 usernet is Lima's to start (it did, before Start).
+                if let shared = spec.sharedUsernet {
+                    log("NIC 0 on Lima's user-v2 network \(shared.name) (\(shared.fdSocket))")
+                } else {
+                    current.usernet = try await Task.detached { try Usernet.start(spec: spec) }.value
+                }
                 let pair = try makeDatagramSocketPair()
                 current.usernetPass = try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: spec.usernetFDSocket)
                 try pair.remote.close()
@@ -161,10 +179,17 @@ actor DriverCore {
             }
             for nic in spec.nics {
                 switch nic {
-                case .socket(let path, _):
+                case .socket(let path, _), .socketVMNet(_, let path, _):
                     let relay = try connectQemuStreamSocket(path: path)
                     current.relays.append(relay)
                     handles.append(relay)
+                case .userV2(_, let fdSocket, _):
+                    // Like NIC 0 on usernet: the shared daemon takes one end of a socket pair.
+                    let pair = try makeDatagramSocketPair()
+                    current.relays.append(try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: fdSocket))
+                    try pair.remote.close()
+                    current.relays.append(pair.local)
+                    handles.append(pair.local)
                 case .vzNAT, .lima:
                     handles.append(nil)
                 }
@@ -403,6 +428,7 @@ actor DriverCore {
         guard let current = run, current.generation == generation else { return }
         run = nil
         busy = true
+        hasStopped = true
         log(error.map { "guest stopped with error: \($0)" } ?? "guest stopped")
         await tearDown(current)
         busy = false
@@ -474,6 +500,9 @@ actor DriverCore {
             }
         }
     }
+
+    /// For the watchdog: no VM and nothing in progress.
+    var isIdle: Bool { run == nil && !busy }
 
     private func requireSpec() throws -> InstanceSpec {
         guard let spec else { throw DriverError("Configure must be called first") }

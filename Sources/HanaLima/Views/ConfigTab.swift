@@ -245,7 +245,7 @@ private struct HardwareSection: View {
                     Text("VZ（Lima）").tag("vz")
                     Text("HanaLima のドライバー（VZ、試験的）").tag("hanalima")
                 }
-                Text("どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。")
+                Text("どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。HanaLima が無い環境では起動できなくなります。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

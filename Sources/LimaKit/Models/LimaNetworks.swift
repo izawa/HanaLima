@@ -17,6 +17,8 @@ public struct LimaNetworks: Sendable, Hashable {
 
     public var networks: [Network]
     public var socketVMNetPath: String?
+    /// `paths.varRun`: where socket_vmnet's sockets live (`socket_vmnet.<name>`).
+    public var varRun: String = "/private/var/run/lima"
 
     public var socketVMNetInstalled: Bool {
         guard let socketVMNetPath else { return false }
@@ -59,8 +61,40 @@ public struct LimaNetworks: Sendable, Hashable {
             if (a.mode == "user-v2") != (b.mode == "user-v2") { return a.mode == "user-v2" }
             return a.name < b.name
         }
-        return LimaNetworks(networks: sorted, socketVMNetPath: yaml["paths"]?["socketVMNet"]?.stringValue)
+        var networks = LimaNetworks(networks: sorted, socketVMNetPath: yaml["paths"]?["socketVMNet"]?.stringValue)
+        if let varRun = yaml["paths"]?["varRun"]?.stringValue, !varRun.isEmpty { networks.varRun = varRun }
+        return networks
     }
 
     public func network(named name: String) -> Network? { networks.first { $0.name == name } }
+
+    /// socket_vmnet's socket for `name` (Lima's `Config.Sock`): the QEMU stream protocol, like
+    /// HanaLima's own `socket:` networks.
+    public func socketVMNetSocket(for name: String) -> String { "\(varRun)/socket_vmnet.\(name)" }
+
+    /// A user-v2 network's shared usernet sockets (Lima's `usernet.Sock`): `<LIMA_HOME>/_networks/<name>/<name>_fd.sock` and `_ep.sock`.
+    public static func usernetSocket(limaHome: URL, network name: String, kind: String) -> String {
+        limaHome.appending(path: "_networks/\(name)/\(name)_\(kind).sock").path
+    }
+
+    /// The gateway usernet serves for a user-v2 network: the subnet's second address (Lima's
+    /// `usernet.GatewayIP`; the yaml's `gateway` names the first). DNS is served there too.
+    public static func usernetGateway(of network: Network) -> String? {
+        guard let g = network.gateway, let ip = IPv4Address(g), let mask = IPv4Address(network.netmask ?? "255.255.255.0") else { return nil }
+        return IPv4Address((ip.value & mask.value) + 2).description
+    }
+
+    /// A tiny IPv4 helper (NetworkKit's IPv4 isn't visible from LimaKit).
+    public struct IPv4Address {
+        public var value: UInt32
+        public init(_ value: UInt32) { self.value = value }
+        public init?(_ text: String) {
+            let parts = text.split(separator: ".", omittingEmptySubsequences: false)
+            guard parts.count == 4 else { return nil }
+            var v: UInt32 = 0
+            for p in parts { guard let o = UInt8(p) else { return nil }; v = v << 8 | UInt32(o) }
+            value = v
+        }
+        public var description: String { "\(value >> 24).\(value >> 16 & 0xff).\(value >> 8 & 0xff).\(value & 0xff)" }
+    }
 }

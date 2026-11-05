@@ -220,11 +220,11 @@ final class VZMachine: @unchecked Sendable {
                 net.attachment = VZNATNetworkDeviceAttachment()
                 if let m = VZMACAddress(string: mac) { net.macAddress = m }
                 nics.append(net)
-            case .socket(_, let mac):
+            case .socket(_, let mac), .socketVMNet(_, _, let mac), .userV2(_, _, let mac):
                 guard let handle = networkHandles[i + 1] else { throw DriverError("no handle for NIC \(i + 1)") }
                 nics.append(nic(handle: handle, mac: mac))
             case .lima(let name):
-                throw DriverError("network lima:\(name) is not supported by this driver (use a HanaLima network or vzNAT)")
+                throw DriverError("network lima:\(name) is not defined in networks.yaml")
             }
         }
         config.networkDevices = nics

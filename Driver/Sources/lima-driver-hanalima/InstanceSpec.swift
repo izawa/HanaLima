@@ -18,9 +18,27 @@ struct InstanceSpec: Sendable {
         case vzNAT(mac: String)
         /// A QEMU/socket_vmnet stream socket (HanaLima's netd, or Lima's `socket:`).
         case socket(path: String, mac: String)
-        /// Lima's `lima:` networks (socket_vmnet, user-v2): not supported by this driver.
+        /// A Lima `lima:` network served by socket_vmnet (shared/host/bridged): the same stream
+        /// protocol as `socket:`, at `<varRun>/socket_vmnet.<name>`, started by Lima before Start.
+        case socketVMNet(name: String, path: String, mac: String)
+        /// A further `lima:` user-v2 network (the first one is NIC 0, see `sharedUsernet`): its
+        /// shared usernet's fd socket.
+        case userV2(name: String, fdSocket: String, mac: String)
+        /// A `lima:` network that networks.yaml doesn't define (Validate refuses it).
         case lima(name: String)
     }
+
+    /// Lima's "first usernet network": a `lima:` user-v2 entry replaces the driver's own usernet
+    /// as NIC 0 (Lima starts that shared daemon under `_networks/<name>/`; cidata and SSH go
+    /// through it). nil when NIC 0 is the per-instance usernet.
+    struct SharedUsernet: Sendable {
+        var name: String
+        var fdSocket: String
+        var endpointSocket: String
+        /// Where that usernet serves DHCP's gateway and DNS (the subnet's second address).
+        var gateway: String
+    }
+    var sharedUsernet: SharedUsernet?
 
     /// Lima's `additionalDisks`: `<limaHome>/_disks/<name>/datadisk`, locked with `in_use_by`.
     struct Disk: Sendable {
@@ -92,13 +110,30 @@ struct InstanceSpec: Sendable {
                          writable: m["writable"] as? Bool ?? false)
         }
         limaHome = URL(fileURLWithPath: json["LimaHome"] as? String ?? self.dir.deletingLastPathComponent().path, isDirectory: true)
-        nics = (config["networks"] as? [[String: Any]] ?? []).compactMap { n in
+        let limaNetworks = LimaNetworks.load(from: limaHome.appending(path: "_config/networks.yaml"))
+        var shared: SharedUsernet?
+        var resolved: [NIC] = []
+        for n in config["networks"] as? [[String: Any]] ?? [] {
             let mac = n["macAddress"] as? String ?? ""
-            if n["vzNAT"] as? Bool == true { return .vzNAT(mac: mac) }
-            if let socket = n["socket"] as? String, !socket.isEmpty { return .socket(path: socket, mac: mac) }
-            if let lima = n["lima"] as? String, !lima.isEmpty { return .lima(name: lima) }
-            return nil
+            if n["vzNAT"] as? Bool == true { resolved.append(.vzNAT(mac: mac)); continue }
+            if let socket = n["socket"] as? String, !socket.isEmpty { resolved.append(.socket(path: socket, mac: mac)); continue }
+            guard let lima = n["lima"] as? String, !lima.isEmpty else { continue }
+            guard let net = limaNetworks.network(named: lima) else { resolved.append(.lima(name: lima)); continue }
+            if net.mode == "user-v2" {
+                let fd = LimaNetworks.usernetSocket(limaHome: limaHome, network: lima, kind: "fd")
+                if shared == nil {
+                    shared = SharedUsernet(name: lima, fdSocket: fd,
+                                           endpointSocket: LimaNetworks.usernetSocket(limaHome: limaHome, network: lima, kind: "ep"),
+                                           gateway: LimaNetworks.usernetGateway(of: net) ?? "192.168.104.2")
+                } else {
+                    resolved.append(.userV2(name: lima, fdSocket: fd, mac: mac))
+                }
+            } else {
+                resolved.append(.socketVMNet(name: lima, path: limaNetworks.socketVMNetSocket(for: lima), mac: mac))
+            }
         }
+        nics = resolved
+        sharedUsernet = shared
         let home = limaHome
         disks = (config["additionalDisks"] as? [[String: Any]] ?? []).compactMap { d in
             guard let name = d["name"] as? String else { return nil }
@@ -135,6 +170,7 @@ struct InstanceSpec: Sendable {
         rosetta = false
         rosettaBinFmt = false
         usernet = true
+        sharedUsernet = nil
         self.hosted = hosted
     }
 
@@ -173,9 +209,12 @@ struct InstanceSpec: Sendable {
     var pidURL: URL { dir.appendingPathComponent(hosted == nil ? "hanalima.pid" : DriverControl.hostedPIDName) }
     var usernetPIDURL: URL { dir.appendingPathComponent("hanalima-usernet.pid") }
     var usernetLogURL: URL { dir.appendingPathComponent("hanalima-usernet.log") }
-    /// usernet's sockets, named as Lima's `SockWithDirectory(dir, "default", …)` does.
-    var usernetEndpointSocket: String { dir.appendingPathComponent("default_ep.sock").path }
-    var usernetFDSocket: String { dir.appendingPathComponent("default_fd.sock").path }
+    /// usernet's sockets, named as Lima's `SockWithDirectory(dir, "default", …)` does; a shared
+    /// user-v2 usernet's when the instance uses one as NIC 0.
+    var usernetEndpointSocket: String { sharedUsernet?.endpointSocket ?? dir.appendingPathComponent("default_ep.sock").path }
+    var usernetFDSocket: String { sharedUsernet?.fdSocket ?? dir.appendingPathComponent("default_fd.sock").path }
+    /// Where NIC 0's usernet answers DNS and routes: the per-instance 192.168.5.2, or the shared one's.
+    var usernetGateway: String { sharedUsernet?.gateway ?? Usernet.gateway }
 }
 
 struct DriverError: Error, CustomStringConvertible {

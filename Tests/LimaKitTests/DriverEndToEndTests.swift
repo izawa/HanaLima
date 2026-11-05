@@ -170,7 +170,20 @@ struct DriverEndToEndTests {
                      DriverControl.socketName, DriverControl.serialSocketName] {
             #expect(!FileManager.default.fileExists(atPath: dir.appending(path: name).path), Comment(rawValue: name))
         }
-        #expect(try await processes(matching: "lima-driver-hanalima --inst-dir \(dir.path)") == 0)
+        // Lima's host agent SIGTERMs the driver as it exits; give that a moment, and if the
+        // driver is still there say what the logs know before failing.
+        var driverProcesses = try await processes(matching: "lima-driver-hanalima --inst-dir \(dir.path)")
+        for _ in 0..<10 where driverProcesses > 0 {
+            try await Task.sleep(for: .seconds(1))
+            driverProcesses = try await processes(matching: "lima-driver-hanalima --inst-dir \(dir.path)")
+        }
+        if driverProcesses > 0 {
+            for name in ["hanalima.drv.pid", "ha.stderr.log", "driver.stderr.log"] {
+                let text = (try? String(contentsOf: dir.appending(path: name), encoding: .utf8)) ?? "(missing)"
+                print("--- \(name)\n" + text.split(separator: "\n").suffix(12).joined(separator: "\n"))
+            }
+        }
+        #expect(driverProcesses == 0, "the driver exited after the host agent")
         #expect(try await processes(matching: "limactl usernet --endpoint \(dir.path)") == 0)
         #expect(!FileManager.default.fileExists(atPath: lock.path), "disk lock released")
     }

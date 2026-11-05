@@ -115,6 +115,25 @@ struct LimaDriverHanaLima {
                         break
                     }
                 }
+                // Lima's host agent SIGTERMs the driver as it exits; should that signal be
+                // lost, don't linger: once a VM has run and stopped and the host agent's pid
+                // file is gone or dead for a while, exit (Lima spawns a fresh driver per start).
+                group.addTask {
+                    let haPID = URL(fileURLWithPath: instanceDir).appendingPathComponent("ha.pid")
+                    var gone = 0
+                    while !Task.isCancelled {
+                        try await Task.sleep(for: .seconds(5))
+                        guard await core.hasStopped, await core.isIdle else { gone = 0; continue }
+                        let alive = (try? String(contentsOf: haPID, encoding: .utf8)).flatMap { Int32($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                            .map { kill($0, 0) == 0 } ?? false
+                        gone = alive ? 0 : gone + 1
+                        if gone >= 3 {
+                            log("the host agent is gone and the VM has stopped; exiting")
+                            server.beginGracefulShutdown()
+                            break
+                        }
+                    }
+                }
                 defer { group.cancelAll() }
                 try await group.next()
             }
