@@ -3,7 +3,8 @@ import Foundation
 /// Parameters for `limactl create`. Nil values fall back to the template's defaults.
 public struct CreateOptions: Sendable, Hashable {
     public enum VMType: String, Sendable, CaseIterable, Identifiable {
-        case vz, qemu
+        /// `hanalima` is HanaLima's own driver for Lima's external-driver interface (Driver/, docs/09).
+        case vz, qemu, hanalima
         public var id: String { rawValue }
     }
 

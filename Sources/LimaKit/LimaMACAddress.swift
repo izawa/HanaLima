@@ -21,6 +21,13 @@ public enum LimaMACAddress {
         return address(machineID: id, instanceDir: path)
     }
 
+    /// Lima's `limayaml.MountTag`: the virtiofs tag of a share, "lima-" + the first 8 bytes of
+    /// SHA-256 over "<location>:<mountPoint>" in hex. cidata writes it into the guest's fstab.
+    public static func mountTag(location: String, mountPoint: String) -> String {
+        let digest = SHA256.hash(data: Data((location + ":" + mountPoint).utf8))
+        return "lima-" + digest.prefix(8).map { String(format: "%02x", $0) }.joined()
+    }
+
     /// IOPlatformUUID, what Lima's `osutil.MachineID` reads from ioreg.
     public static func machineID() -> String? {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))

@@ -27,3 +27,10 @@ import Testing
         }
     }
 }
+
+@Suite struct LimaMountTagTests {
+    /// The tag cidata wrote for the home share of a real instance (user-data `mounts:`).
+    @Test func matchesLima() {
+        #expect(LimaMACAddress.mountTag(location: "/Users/izawa", mountPoint: "/Users/izawa") == "lima-e93ad3b36ba19236")
+    }
+}

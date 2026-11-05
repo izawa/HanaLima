@@ -1,5 +1,7 @@
 # lima-driver-spike
 
+Superseded by `Driver/` (the real driver, stage 1 of docs/09); kept as the stage-0 record.
+
 A Swift stub of a Lima external VM driver (`lima-driver-hanalima`), from the stage-0 work in
 docs/09. It speaks Lima 2.2.1's `driver.proto` over a Unix socket with grpc-swift 2 and does
 nothing else: every RPC is logged to stderr and answered with a plausible stub, so `limactl

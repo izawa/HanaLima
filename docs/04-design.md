@@ -10,6 +10,7 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 | `NetworkKit` | HanaLima 仮想ネットワーク: `VirtualNetwork`/`networks.json`、`LaunchAgentManager`、`HelperInstaller`、`DHCPClientIDFilter`、`DHCPLeases`、`NetworkConflict` |
 | `hanalima-netd` | ネットワークごとに 1 プロセス。Lima の `socket:` ネットワーク（socket_vmnet 互換の QEMU stream: 4 バイト長＋フレーム）を vmnet に中継する。root 不要（`com.apple.security.virtualization` が必須） |
 | `HanaLima` | SwiftUI アプリ。`AppModel`（@Observable, @MainActor）、`AppModel+Networks` |
+| `lima-driver-hanalima`（`Driver/`、別パッケージ） | Lima の外部 VM ドライバー（docs/09）。hostagent から gRPC（Unix ソケット）で呼ばれ、Virtualization.framework で VM を自分のプロセスに起動し、NIC 0 は `limactl usernet` の子プロセスに socketpair の片側を SCM_RIGHTS で渡してつなぐ。`vmType: hanalima` の VM で使われる。`build-app.sh` が virtualization の entitlement で署名して `Contents/Helpers/` に入れる（`LIMA_DRIVERS_PATH`） |
 
 実行時のファイル配置: `~/Library/Application Support/HanaLima/{networks.json, bin/hanalima-netd-<hash>, net/<名前>.sock}`、`~/Library/LaunchAgents/org.izawa.HanaLima.net.<名前>.plist`（launchd のソケットアクティベーション）、`~/Library/Logs/HanaLima/net-<名前>.log`。
 
