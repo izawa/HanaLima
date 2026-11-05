@@ -89,9 +89,43 @@ struct DriverIsolationEndToEndTests {
         }
     }
 
-    private func sh(_ script: String) async throws -> String {
+    /// A guest without systemd (Alpine): the driver's boot script puts socat on vsock port 22
+    /// during a first boot with usernet, and the VM then runs isolated over that route.
+    @Test(.timeLimit(.minutes(15)))
+    func alpineGetsVsockSSHFromTheBootScriptThenRunsIsolated() async throws {
+        try #require(FileManager.default.isExecutableFile(atPath: Self.helpers.appending(path: "lima-driver-hanalima").path),
+                     "run scripts/build-app.sh first")
+        let vm = "hanalima-e2e-isolated-alpine"
+        _ = try? await drain(client.delete(vm, force: true))
+        defer { E2ECleanup.deleteInstances([vm], environment: ["LIMA_DRIVERS_PATH": Self.helpers.path]) }
+        _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 2, memoryGiB: 2, diskGiB: 10, vmType: .hanalima)))
+        let created = try #require(try await client.list().first { $0.name == vm })
+        let dir = URL(filePath: created.dir, directoryHint: .isDirectory)
+        // 1. With usernet: socat arrives and listens on vsock 22.
+        _ = try await drain(client.start(vm))
+        #expect(try await sh(vm, "rc-service hanalima-vsock-ssh status 2>&1 | grep -c started") == "1")
+        // busybox's ss has no --vsock; the relay process is the evidence.
+        #expect(try await sh(vm, "pgrep -f 'VSOCK-LISTEN:22' | wc -l") != "0")
+        _ = try await drain(client.stop(vm))
+        // 2. Isolated: no usernet, SSH only over vsock through socat.
+        _ = try await drain(client.edit(vm, set: [".vmOpts.hanalima.usernet = false"]))
+        let started = Date.now
+        _ = try await drain(client.start(vm))
+        print("isolated alpine: boot \(Int(Date.now.timeIntervalSince(started))) s")
+        let log = (try? String(contentsOf: dir.appending(path: "driver.stderr.log"), encoding: .utf8)) ?? ""
+        #expect(log.contains("usernet is off"))
+        #expect(log.contains("ssh over vsock"))
+        #expect(try await sh(vm, "uname -s") == "Linux")
+        #expect(try await sh(vm, "ip -4 -o addr show | grep -v ' lo ' | wc -l") == "0")
+        #expect(try await sh(vm, "ping -c1 -W1 192.168.5.2 >/dev/null 2>&1 && echo reachable || echo unreachable") == "unreachable")
+        _ = try await drain(client.stop(vm))
+    }
+
+    private func sh(_ script: String) async throws -> String { try await sh(vm, script) }
+
+    private func sh(_ vm: String, _ script: String) async throws -> String {
         let out = try? await client.runner.run(["shell", vm, "sh", "-c", script])
-        if out == nil { print("failed: \(script.prefix(80))") }
+        if out == nil { print("failed: \(vm): \(script.prefix(80))") }
         return (out?.stdoutString ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

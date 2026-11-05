@@ -273,7 +273,7 @@ private struct NetworkSection: View {
                 Toggle(isOn: Binding(get: { usernet != false }, set: { usernet = $0 ? nil : false })) {
                     Text("NIC 0: Lima のユーザーモード NAT")
                     Text(usernet == false
-                         ? "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲスト。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。"
+                         ? "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲストはそのまま。Alpine や古い systemd のゲストは、usernet を付けて一度起動すると HanaLima が socat を入れて同じ経路を作ります）。"
                          : "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます（HanaLima のドライバーだけの機能）。")
                 }
             } else {

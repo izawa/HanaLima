@@ -132,7 +132,9 @@ struct DriverEndToEndTests {
             let forwards = try await Task.detached { try UsernetClient.forwards(socketPath: dir.appending(path: "default_ep.sock").path) }.value
             #expect(forwards == "[]", "usernet keeps no SSH forward once vsock is in use: \(forwards)")
         } else {
-            #expect(driverLog.contains("over usernet"), "no sshd on vsock: SSH stays on usernet")
+            // Without the generator the driver's boot script installs socat on this first boot;
+            // whether the one vsock check after usernet catches it depends on timing.
+            #expect(driverLog.contains("over usernet") || driverLog.contains("ssh over vsock"))
         }
 
         // HanaLima's side channel (DriverControl): the state, and that this headless VM has no screen.

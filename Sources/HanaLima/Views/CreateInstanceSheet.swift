@@ -123,7 +123,7 @@ struct CreateInstanceSheet: View {
                         Toggle(isOn: Binding(get: { !isolated }, set: { isolated = !$0 })) {
                             Text("NIC 0: Lima のユーザーモード NAT")
                             Text(isolated
-                                 ? "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけです。NIC 1 がなければ何にも届かず、ホストオンリーならそのサブネットだけ、NAT のネットワークを選べばそこからは出られます。Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。網のない VM では apt・dnf が使えないので、プロビジョニングは入れません。"
+                                 ? "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけです。NIC 1 がなければ何にも届かず、ホストオンリーならそのサブネットだけ、NAT のネットワークを選べばそこからは出られます。Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。systemd 256 以降のゲスト（Ubuntu 24.10 以降、Fedora 41 以降）はそのまま届きます。Alpine や古い systemd のゲストは、先に NIC 0 を付けて一度起動してください（HanaLima が socat を入れて vsock の経路を作ります）。網のない VM では apt・dnf が使えないので、プロビジョニングは入れません。"
                                  : "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます。")
                         }
                     } else {

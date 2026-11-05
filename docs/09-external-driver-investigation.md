@@ -148,3 +148,7 @@ E2E `DriverEndToEndTests` を広げ、Alpine（起動 71 秒、停止 4 秒）�
 - **4 回目の Codex のレビューで直した 4 点（SSH の経路）**: 競走は「先に終わった方」でなく「先に通った方」を採る（その後、上記の理由で並走自体をやめた）。`AdditionalSetupForSSH` の待ちは `Task` として Run に持ち、`Stop` が取り消す（取り消さないと vsock の探索が時間切れまで続く）。`unexpose` の待ちのあとに世代を見直し、橋渡しの bind に失敗したら usernet の転送を張り直す（乗り換えで SSH が消えない）。`connectVsock` の完了待ちに期限（10 秒）を付け、遅れて来た接続は閉じる。
 - 作成画面: 隔離のトグルはドライバー以外に切り替えると戻り、隔離中は NIC 1 の vzNAT を隠す（NAT を足せば出られるのは説明に書く）。
 - **停止の競合**: `Stop` の RPC が「VM が止まった」時点で返ると、hostagent が終わって SIGTERM が来て、デリゲート経由の後片付け（usernet の終了、pid・ソケットの削除）が終わる前にドライバーが exit することがあった（E2E で停止直後に `hanalima-usernet.pid`・`default_ep.sock` が残る）。`stop()` は後片付けの完了（`run == nil && !busy`）まで待ってから返す（最大 30 秒）。
+
+## 残件 6（2026-11-05）: Alpine でも vsock の SSH
+
+systemd 256 以降は `systemd-ssh-generator` が vsock のポート 22 に sshd を置くが、Alpine（OpenRC）や古い systemd（Ubuntu 24.04 の 255、Debian 12 の 252）には無い。ドライバーの `BootScripts` RPC で `boot.Linux/35-hanalima-vsock-ssh.sh` を cidata に足し、ゲストで socat（`VSOCK-LISTEN:22,fork,reuseaddr TCP:127.0.0.1:22`）を OpenRC の `hanalima-vsock-ssh` サービス、または systemd のユニットとして立てる。generator があれば何もしない。socat は apk／apt／dnf で入れるので網が要り、隔離する VM は usernet 付きで一度起動してから `usernet: false` にする。Lima の `boot.sh` は `boot.Linux/*.sh` を名前順に実行するので、35 は 30-install-packages の後、cloud-init の中で走る。初回起動では usernet の SSH が先に通ってから vsock を 1 回見るだけなので、乗り換えは 2 回目以降になりうる（E2E はどちらの経路でも可とし、隔離の E2E `alpineGetsVsockSSHFromTheBootScriptThenRunsIsolated` が Alpine の 2 回目の起動、usernet なしで vsock 経由の SSH を確かめる。起動 79 秒）。

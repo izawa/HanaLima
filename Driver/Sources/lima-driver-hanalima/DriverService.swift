@@ -82,8 +82,9 @@ struct DriverService: Driver.SimpleServiceProtocol {
         return .init()
     }
 
+    /// Scripts added to cidata's boot.Linux (see BootScripts).
     func bootScripts(request: Google_Protobuf_Empty, context: ServerContext) async throws -> BootScriptsResponse {
-        .init()
+        .with { $0.scripts = BootScripts.all.mapValues { Data($0.utf8) } }
     }
 
     func sshAddress(request: Google_Protobuf_Empty, context: ServerContext) async throws -> SSHAddressResponse {
