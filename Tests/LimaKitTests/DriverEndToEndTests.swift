@@ -119,6 +119,22 @@ struct DriverEndToEndTests {
         }
         #expect(forwarded.contains("hanalima"))
 
+        // SSH route (stage 4): a guest with systemd 256+ (Ubuntu LTS) gets sshd on vsock port 22
+        // and the driver proxies 127.0.0.1:<port> to it, leaving usernet with no forward; a guest
+        // without it (Alpine) falls back to the usernet forward.
+        let driverLog = (try? String(contentsOf: dir.appending(path: "driver.stderr.log"), encoding: .utf8)) ?? ""
+        let vsockSSH = try await sh("ss --vsock 2>/dev/null | grep -c ':22 '")
+        if try await sh("command -v systemctl >/dev/null && systemctl is-active sshd-vsock.socket") == "active" {
+            #expect(driverLog.contains("ssh over vsock"), "the driver chose vsock for SSH")
+            #expect(vsockSSH != "0", "the shell above came in over vsock")
+            // usernet may have answered first on the first boot (both routes come up after
+            // cloud-init); the driver then switches to vsock, so the forward is gone either way.
+            let forwards = try await Task.detached { try UsernetClient.forwards(socketPath: dir.appending(path: "default_ep.sock").path) }.value
+            #expect(forwards == "[]", "usernet keeps no SSH forward once vsock is in use: \(forwards)")
+        } else {
+            #expect(driverLog.contains("over usernet"), "no sshd on vsock: SSH stays on usernet")
+        }
+
         // HanaLima's side channel (DriverControl): the state, and that this headless VM has no screen.
         let status = try await Task.detached { try DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir) }.value
         #expect(status.state == "running")
@@ -163,9 +179,20 @@ struct DriverEndToEndTests {
 
     private func sh(_ script: String) async throws -> String {
         let out = try? await client.runner.run(["shell", vm, "sh", "-c", script])
-        if out == nil { print("failed: \(script.prefix(80))") }
+        if out == nil {
+            print("failed: \(script.prefix(80))")
+            // The first failure usually means SSH itself is gone: keep the driver's view of it.
+            if !Self.dumpedLogs, let inst = try? await client.list().first(where: { $0.name == vm }) {
+                Self.dumpedLogs = true
+                for name in ["driver.stderr.log", "ha.stderr.log"] {
+                    let text = (try? String(contentsOf: inst.instanceDir.appending(path: name), encoding: .utf8)) ?? ""
+                    print("--- \(name)\n" + text.split(separator: "\n").suffix(25).joined(separator: "\n"))
+                }
+            }
+        }
         return (out?.stdoutString ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
+    nonisolated(unsafe) private static var dumpedLogs = false
 
     private func processes(matching pattern: String) async throws -> Int {
         let p = Process()
@@ -177,6 +204,34 @@ struct DriverEndToEndTests {
         let out = pipe.fileHandleForReading.readDataToEndOfFile()
         p.waitUntilExit()
         return String(decoding: out, as: UTF8.self).split(separator: "\n").count
+    }
+}
+
+/// usernet's `/services/forwarder/all` (its HTTP API on the endpoint socket), as raw JSON.
+enum UsernetClient {
+    static func forwards(socketPath: String) throws -> String {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { throw DriverControl.Failure("socket") }
+        defer { close(fd) }
+        var tv = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        withUnsafeMutableBytes(of: &address.sun_path) { $0.copyBytes(from: Array(socketPath.utf8) + [0]) }
+        let connected = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+        }
+        guard connected == 0 else { throw DriverControl.Failure("connect: \(String(cString: strerror(errno)))") }
+        let request = [UInt8]("GET /services/forwarder/all HTTP/1.0\r\nHost: lima\r\n\r\n".utf8)
+        _ = request.withUnsafeBytes { send(fd, $0.baseAddress, request.count, 0) }
+        var received = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let n = buffer.withUnsafeMutableBytes { recv(fd, $0.baseAddress, $0.count, 0) }
+            if n > 0 { received.append(contentsOf: buffer[0..<n]) } else { break }
+        }
+        let text = String(decoding: received, as: UTF8.self)
+        return text.components(separatedBy: "\r\n\r\n").dropFirst().joined().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

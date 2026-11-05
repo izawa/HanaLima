@@ -198,7 +198,7 @@ private struct ConfigForm: View {
             // Acts right away (not part of the draft), and handles its own lock.
             DiskLocationSection(instance: instance)
             Group {
-                NetworkSection(networks: $config.networks, vmType: vmType)
+                NetworkSection(networks: $config.networks, usernet: $config.usernet, vmType: vmType)
                 MountSection(mounts: $config.mounts)
                 PortForwardSection(portForwards: $config.portForwards)
                 DiskSection(disks: $config.additionalDisks)
@@ -264,11 +264,21 @@ private struct HardwareSection: View {
 private struct NetworkSection: View {
     @Environment(AppModel.self) private var model
     @Binding var networks: [NetworkConfig]
+    @Binding var usernet: Bool?
     let vmType: String?
 
     var body: some View {
         Section {
-            LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
+            if vmType?.lowercased() == "hanalima" {
+                Toggle(isOn: Binding(get: { usernet != false }, set: { usernet = $0 ? nil : false })) {
+                    Text("NIC 0: Lima のユーザーモード NAT")
+                    Text(usernet == false
+                         ? "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲスト。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。"
+                         : "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます（HanaLima のドライバーだけの機能）。")
+                }
+            } else {
+                LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
+            }
             ForEach($networks) { $nic in
                 let index = networks.firstIndex { $0.id == nic.id } ?? 0
                 VStack(alignment: .leading, spacing: 6) {

@@ -23,6 +23,11 @@ struct OverviewTab: View {
         return model.address(of: instance, on: vn)
     }
 
+    /// NIC 0: Lima's user-mode network, or none in the driver's isolation profile.
+    private var usernetLabel: String {
+        instance.usesUsernet ? String(localized: "192.168.5.0/24 (標準)") : String(localized: "なし（隔離）")
+    }
+
     var body: some View {
         Form {
             Section("状態") {
@@ -79,7 +84,7 @@ struct OverviewTab: View {
             }
 
             Section("ネットワーク") {
-                LabeledContent("ユーザーモード") { Text("192.168.5.0/24 (標準)") }
+                LabeledContent("ユーザーモード") { Text(usernetLabel) }
                 ForEach(Array((instance.networks ?? []).enumerated()), id: \.offset) { index, net in
                     LabeledContent("NIC \(index + 1)") {
                         VStack(alignment: .trailing, spacing: 2) {

@@ -50,3 +50,9 @@
 
 - **QEMU の VM なら今すぐできる**: Lima は `QEMU_SYSTEM_AARCH64` で QEMU の実行ファイルを差し替えられるので、引数の `-netdev user,...` に `restrict=on` を足すラッパーを挟めば、SLIRP がゲスト発の通信をすべて落とす（`hostfwd` の SSH は残るので `limactl shell` は使える）。制御はホスト側なのでゲストの root にも解除できない。VZ には相当する設定がない。再起動のたびにラッパーの指定が要る。HanaLima が QEMU の VM に「隔離」の切り替えとして実装する余地がある（未実装・未検証。ChatGPT との検討ログより）。
 - **VZ は外部ドライバーで**: NIC 0（usernet）は vz ドライバーの中で作られるので、HanaLima のドライバーに替えれば付けない選択ができる。SSH とゲストエージェントは vsock で届く。詳細は [docs/09](09-external-driver-investigation.md) の「隔離への応用」。
+
+## 7. 追記（2026-11-05）: HanaLima のドライバーで NIC 0 を外した
+
+§6 の「VZ は外部ドライバーで」を実装した（docs/09 段階 4）。`vmType: hanalima` の VM で `vmOpts.hanalima.usernet: false` にすると、ドライバーは usernet を起動せず、NIC 0 はどこにもつながない状態で付ける（cidata が eth0 を期待するため。無いと cloud-init がネットワーク設定を捨てて毎回 2 分待つ）。SSH・ゲストエージェント・ポート転送は vsock を通る（systemd 256 以降の `systemd-ssh-generator`。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。
+
+実測（Ubuntu 26.04、E2E `DriverIsolationEndToEndTests`）: NIC なしでは `lo` だけで、経路なし、DNS なし、インターネット・192.168.5.2（Mac の 127.0.0.1 への入口）に届かない。HanaLima のホストオンリー NIC を足すと、そのサブネットのゲートウェイ（Mac）には届き、インターネットには届かない。§2 の結論のうち「Lima を改造せずに Mac から切り離すことはできない」は、Lima の外部ドライバーの仕組みを使えば（Lima 自体は無改造のまま）成り立たなくなった。残る接点は、共有フォルダ（作成時に外せる）、vsock（SSH とゲストエージェント。Lima の運用に必要）、そして HanaLima のネットワークを足した場合の、そのサブネット上の Mac（`0.0.0.0` で待つサービスには届く）。

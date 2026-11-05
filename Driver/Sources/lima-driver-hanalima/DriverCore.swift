@@ -31,6 +31,10 @@ actor DriverCore {
         var serial: SerialConsole?
         /// The VM's screen, when it has one.
         var window: DisplayWindow?
+        /// 127.0.0.1:<sshLocalPort> → the guest's vsock port 22, when its sshd listens there.
+        var sshBridge: UnixSocketBridge?
+        /// AdditionalSetupForSSH in progress; Stop cancels it.
+        var sshWait: Task<Void, Error>?
     }
 
     private var run: Run?
@@ -53,13 +57,30 @@ actor DriverCore {
         }
         if config["mountType"] == nil { config["mountType"] = "virtiofs" }
         var ssh = config["ssh"] as? [String: Any] ?? [:]
-        if ssh["overVsock"] == nil { ssh["overVsock"] = false }
+        if ssh["overVsock"] == nil { ssh["overVsock"] = (config["os"] as? String ?? "Linux") == "Linux" }
         config["ssh"] = ssh
-        if (config["dns"] as? [Any])?.isEmpty ?? true {
-            config["dns"] = [Usernet.gateway]
+        let usernet = ((config["vmOpts"] as? [String: Any])?["hanalima"] as? [String: Any])?["usernet"] as? Bool ?? true
+        if usernet {
+            if (config["dns"] as? [Any])?.isEmpty ?? true {
+                config["dns"] = [Usernet.gateway]
+                var resolver = config["hostResolver"] as? [String: Any] ?? [:]
+                resolver["enabled"] = false
+                config["hostResolver"] = resolver
+            }
+        } else {
+            // cidata's network-config still lists eth0 (usernet's MAC); netplan must treat it as
+            // optional or Ubuntu waits two minutes for it at every boot.
+            var param = config["param"] as? [String: String] ?? [:]
+            param["internal_netplanOptional"] = "true"
+            config["param"] = param
+            // Nothing in the guest can reach the host's resolver or apt: without these Lima's
+            // 30-install-packages.sh (iptables for the DNS ports, newuidmap for rootless
+            // containerd) and 40-install-containerd.sh fail at every boot and cloud-init ends
+            // in "error".
             var resolver = config["hostResolver"] as? [String: Any] ?? [:]
             resolver["enabled"] = false
             config["hostResolver"] = resolver
+            config["containerd"] = ["system": false, "user": false]
         }
         var vmOpts = config["vmOpts"] as? [String: Any] ?? [:]
         if vmOpts["vz"] == nil {
@@ -79,12 +100,14 @@ actor DriverCore {
         guard spec.os == "Linux" else { throw DriverError("hanalima: only Linux guests are supported, got \(spec.os)") }
         guard spec.arch == "aarch64" else { throw DriverError("hanalima: only aarch64 guests are supported, got \(spec.arch)") }
         guard !spec.rosetta else { throw DriverError("hanalima: Rosetta (vmOpts.vz.rosetta) is not supported yet") }
-        guard !spec.sshOverVsock else { throw DriverError("hanalima: ssh.overVsock is not supported yet") }
         guard spec.mounts.isEmpty || spec.mountType == "virtiofs" else {
             throw DriverError("hanalima: mountType must be virtiofs, got \(spec.mountType)")
         }
         for case .lima(let name) in spec.nics {
             throw DriverError("hanalima: network lima:\(name) is not supported (use a HanaLima network or vzNAT)")
+        }
+        if !spec.usernet {
+            guard spec.sshOverVsock else { throw DriverError("hanalima: without usernet (vmOpts.hanalima.usernet: false) SSH must go over vsock; set ssh.overVsock to true") }
         }
     }
 
@@ -122,13 +145,18 @@ actor DriverCore {
         var current = Run(generation: generation)
         do {
             try Data("\(ProcessInfo.processInfo.processIdentifier)".utf8).write(to: spec.pidURL)
-            // usernet's start-up waits on its sockets (up to 15 s); not on the actor's executor.
-            current.usernet = try await Task.detached { try Usernet.start(spec: spec) }.value
-            let pair = try makeDatagramSocketPair()
-            current.usernetPass = try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: spec.usernetFDSocket)
-            try pair.remote.close()
-            current.usernetHandle = pair.local
-            var handles: [FileHandle?] = [pair.local]
+            var handles: [FileHandle?] = [nil]
+            if spec.usernet {
+                // usernet's start-up waits on its sockets (up to 15 s); not on the actor's executor.
+                current.usernet = try await Task.detached { try Usernet.start(spec: spec) }.value
+                let pair = try makeDatagramSocketPair()
+                current.usernetPass = try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: spec.usernetFDSocket)
+                try pair.remote.close()
+                current.usernetHandle = pair.local
+                handles[0] = pair.local
+            } else {
+                log("usernet is off (vmOpts.hanalima.usernet: false): no NIC 0, SSH over vsock only")
+            }
             for nic in spec.nics {
                 switch nic {
                 case .socket(let path, _):
@@ -216,17 +244,108 @@ actor DriverCore {
     func waitForSSH() async throws {
         let spec = try requireSpec()
         guard spec.sshLocalPort != 0 else { return }
-        guard let gen = run?.generation else { throw DriverError("not started") }
-        let client = UsernetClient(socketPath: spec.usernetEndpointSocket)
-        let ip = try await Usernet.resolveIP(mac: spec.macAddress, client: client)
+        guard let gen = run?.generation, let vm = run?.machine else { throw DriverError("not started") }
+        // Cancelled by Stop (a probe would otherwise keep going until its timeout).
+        let task = Task { try await self.setUpSSH(spec: spec, vm: vm, generation: gen) }
+        run?.sshWait = task
+        defer { if run?.generation == gen { run?.sshWait = nil } }
+        try await task.value
+    }
+
+    /// SSH over vsock (stage 4): a guest with systemd 256+ has sshd on vsock port 22 from early
+    /// boot (systemd-ssh-generator), with no network in between; Alpine and older systemd
+    /// don't. With usernet, the usernet route comes up first and vsock is then checked once and
+    /// preferred if it answers (as Lima's vz does): probing vsock *during* boot unsettles the
+    /// guest agent's vsock connection (seen on Alpine). Without usernet (the isolation profile)
+    /// vsock is the only route and is probed until it answers.
+    private func setUpSSH(spec: InstanceSpec, vm: VZMachine, generation gen: Int) async throws {
         let local = "127.0.0.1:\(spec.sshLocalPort)"
-        try await client.expose(local: local, remote: "\(ip):22")
-        if run?.generation == gen { run?.exposedLocal = local }
-        log("usernet: \(local) -> \(ip):22")
-        // Not usernet's /extension/wait_port: on success it closes the connection without a
-        // response (Lima's Go client retries silently). The forward is enough to probe.
-        try await Usernet.waitForSSHBanner(port: spec.sshLocalPort, timeout: 600)
-        log("guest sshd answers on \(local)")
+        let client = UsernetClient(socketPath: spec.usernetEndpointSocket)
+        var viaVsock = false
+        var usernetUp = false
+        if spec.usernet {
+            let ip = try await Usernet.resolveIP(mac: spec.macAddress, client: client)
+            try await client.expose(local: local, remote: "\(ip):22")
+            markExposed(local, generation: gen)
+            log("usernet: \(local) -> \(ip):22")
+            // Not usernet's /extension/wait_port: on success it closes the connection without a
+            // response (Lima's Go client retries silently). The forward is probed.
+            try await Usernet.waitForSSHBanner(port: spec.sshLocalPort, timeout: 600)
+            log("guest sshd answers on \(local) over usernet")
+            usernetUp = true
+        } else {
+            guard spec.sshOverVsock else { throw DriverError("without usernet SSH must go over vsock (ssh.overVsock)") }
+            guard try await Self.probeVsockSSH(vm: vm, timeout: 600) else {
+                throw DriverError("no sshd on the guest's vsock port 22 after 600 s; without usernet the guest needs systemd 256 or later (Ubuntu 24.10+, Fedora 41+)")
+            }
+            viaVsock = true
+        }
+        guard run?.generation == gen else { return }
+        if usernetUp && !viaVsock && spec.sshOverVsock {
+            // usernet came first: one more look at vsock before settling.
+            viaVsock = try await Self.probeVsockSSH(vm: vm, timeout: 3)
+            guard run?.generation == gen else { return }
+        }
+        guard viaVsock else { return }  // usernet it is; the forward is already recorded
+        // Hand the port over to the bridge. The usernet forward holds it until unexposed, and
+        // the handover must not end with neither route: on failure the forward comes back.
+        if run?.exposedLocal == local {
+            do {
+                try await client.unexpose(local: local)
+            } catch {
+                log("keeping usernet for SSH: unexpose failed: \(error)")
+                return
+            }
+            guard run?.generation == gen else { return }
+            run?.exposedLocal = nil
+        }
+        do {
+            let bridge = try UnixSocketBridge(tcpPort: spec.sshLocalPort) { try vm.connectVsock(port: 22) }
+            if run?.generation == gen {
+                run?.sshBridge = bridge
+                log("ssh over vsock: \(local) -> vsock:22")
+            } else {
+                bridge.close()
+            }
+        } catch {
+            log("ssh over vsock failed to listen on \(local): \(error)")
+            guard usernetUp, run?.generation == gen else { throw error }
+            let ip = try await Usernet.resolveIP(mac: spec.macAddress, client: client)
+            try await client.expose(local: local, remote: "\(ip):22")
+            await markExposed(local, generation: gen)
+            log("usernet forward restored: \(local) -> \(ip):22")
+        }
+    }
+
+    /// The usernet forward exists from now on (so Stop and a failed handover can remove it).
+    private func markExposed(_ local: String, generation: Int) {
+        if run?.generation == generation { run?.exposedLocal = local }
+    }
+
+    /// Whether the guest's vsock port 22 answers with an SSH banner, probing until `timeout`.
+    private static func probeVsockSSH(vm: VZMachine, timeout: TimeInterval) async throws -> Bool {
+        let started = Date()
+        var attempts = 0
+        while Date().timeIntervalSince(started) < timeout {
+            try Task.checkCancellation()
+            attempts += 1
+            let answered = await Task.detached { () -> Bool in
+                guard let fd = try? vm.connectVsock(port: 22) else { return false }
+                defer { close(fd) }
+                var tv = timeval(tv_sec: 3, tv_usec: 0)
+                setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+                var buffer = [UInt8](repeating: 0, count: 64)
+                let n = recv(fd, &buffer, buffer.count, 0)
+                return n >= 4 && buffer.prefix(4).elementsEqual("SSH-".utf8)
+            }.value
+            if answered {
+                log("sshd answers on vsock port 22 (attempt \(attempts), \(Int(Date().timeIntervalSince(started))) s)")
+                return true
+            }
+            if Date().timeIntervalSince(started) + 2 >= timeout { break }
+            try await Task.sleep(for: .seconds(2))
+        }
+        return false
     }
 
     /// Asks the guest to power off; pulls the plug after `deadline`. Returns once it's stopped.
@@ -236,9 +355,14 @@ actor DriverCore {
         while busy, run == nil, Date().timeIntervalSince(waited) < 60 { try? await Task.sleep(for: .milliseconds(200)) }
         guard let current = run, let vm = current.machine else { return }
         let gen = current.generation
+        current.sshWait?.cancel()
         if let local = current.exposedLocal, let spec {
             try? await UsernetClient(socketPath: spec.usernetEndpointSocket).unexpose(local: local)
             run?.exposedLocal = nil
+        }
+        if let bridge = current.sshBridge {
+            await Task.detached { bridge.close() }.value
+            run?.sshBridge = nil
         }
         if vm.requestStop() {
             let start = Date()
@@ -260,6 +384,13 @@ actor DriverCore {
             // A forced stop doesn't reach the delegate.
             await guestStopped(generation: gen, error: nil)
         }
+        // The delegate's guestStopped tears the run down on its own task; return only once
+        // that's done. Lima ends the host agent when Stop returns and then sends SIGTERM, and
+        // an exit in the middle of the teardown leaves usernet, pid files and sockets behind.
+        let tearingDown = Date()
+        while run?.generation == gen || busy, Date().timeIntervalSince(tearingDown) < 30 {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
     }
 
     private func guestStopped(generation: Int, error: Error?) async {
@@ -278,6 +409,7 @@ actor DriverCore {
         let spec = spec
         await Task.detached {
             if let window = run.window { await MainActor.run { window.dismiss() } }
+            run.sshBridge?.close()
             run.serial?.close()
             run.guestAgentBridge?.close()
             try? run.usernetHandle?.close()

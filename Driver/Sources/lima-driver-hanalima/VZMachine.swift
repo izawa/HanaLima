@@ -99,22 +99,37 @@ final class VZMachine: @unchecked Sendable {
     /// A connection to the guest's vsock port (Lima's guest agent). Returns a dup of the
     /// connection's descriptor for the caller to own. Call from any thread but the VZ queue
     /// (it waits for the completion).
-    func connectVsock(port: UInt32) throws -> Int32 {
+    func connectVsock(port: UInt32, timeout: TimeInterval = 10) throws -> Int32 {
         let done = DispatchSemaphore(value: 0)
+        let lock = NSLock()
         nonisolated(unsafe) var result: Result<VZVirtioSocketConnection, Error>?
+        nonisolated(unsafe) var abandoned = false
         queue.async {
             guard let device = self.machine.socketDevices.first as? VZVirtioSocketDevice else {
-                result = .failure(DriverError("no vsock device"))
+                lock.lock(); result = .failure(DriverError("no vsock device")); lock.unlock()
                 done.signal()
                 return
             }
             device.connect(toPort: port) { r in
-                result = r
+                lock.lock()
+                if abandoned {
+                    // The caller gave up: nobody will take this descriptor.
+                    if case .success(let c) = r { c.close() }
+                } else {
+                    result = r
+                }
+                lock.unlock()
                 done.signal()
             }
         }
-        done.wait()
-        let connection = try result!.get()
+        // Bounded: a completion that never comes (the VM is gone) must not hold a probe forever.
+        if done.wait(timeout: .now() + timeout) == .timedOut {
+            lock.lock(); abandoned = true; let late = result; lock.unlock()
+            guard let late else { throw DriverError("vsock connect to port \(port) timed out after \(Int(timeout)) s") }
+            result = late
+        }
+        lock.lock(); let outcome = result; lock.unlock()
+        let connection = try outcome!.get()
         // The dup outlives the connection object: closing the object only drops its descriptor.
         let fd = dup(connection.fileDescriptor)
         guard fd >= 0 else { connection.close(); throw DriverError("dup of the vsock descriptor failed (errno \(errno))") }
@@ -165,10 +180,22 @@ final class VZMachine: @unchecked Sendable {
         }
         config.storageDevices = storage
 
-        // NIC 0 is usernet; the rest follow lima.yaml's `networks:`.
+        // NIC 0 is usernet (absent in the isolation profile); the rest follow lima.yaml's `networks:`.
         var nics: [VZVirtioNetworkDeviceConfiguration] = []
-        guard let usernetHandle = networkHandles.first ?? nil else { throw DriverError("no usernet handle") }
-        nics.append(nic(handle: usernetHandle, mac: spec.macAddress))
+        if let usernetHandle = networkHandles.first ?? nil {
+            nics.append(nic(handle: usernetHandle, mac: spec.macAddress))
+        } else if spec.usernet {
+            throw DriverError("no usernet handle")
+        } else {
+            // Isolation profile: NIC 0 exists with Lima's MAC but is plugged into nothing. cidata's
+            // network-config names eth0 by that MAC; without the device cloud-init drops the whole
+            // network config and systemd-networkd-wait-online then waits two minutes at every boot.
+            // An unplugged eth0 (no carrier) is configured as optional and nothing waits for it.
+            let unplugged = VZVirtioNetworkDeviceConfiguration()
+            unplugged.attachment = nil
+            if let m = VZMACAddress(string: spec.macAddress) { unplugged.macAddress = m }
+            nics.append(unplugged)
+        }
         for (i, entry) in spec.nics.enumerated() {
             switch entry {
             case .vzNAT(let mac):

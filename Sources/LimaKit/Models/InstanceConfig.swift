@@ -15,6 +15,9 @@ public struct InstanceConfig: Hashable, Sendable {
     /// `vmType`: "vz", "qemu", or "hanalima" (HanaLima's own driver). Switching between vz and
     /// hanalima is an ordinary edit: both use the same `disk`, `vz-efi` and `vz-identifier`.
     public var vmType: String?
+    /// `vmOpts.hanalima.usernet`: HanaLima's driver only. false = no Lima user-mode network on
+    /// NIC 0 (the isolation profile); nil/true = as Lima.
+    public var usernet: Bool?
     public var networks: [NetworkConfig]
     public var mounts: [MountConfig]
     public var portForwards: [PortForwardConfig]
@@ -48,6 +51,7 @@ public struct InstanceConfig: Hashable, Sendable {
         disk = effective?["disk"]?.stringValue ?? raw["disk"]?.stringValue
         videoDisplay = effective?["video"]?["display"]?.stringValue ?? raw["video"]?["display"]?.stringValue
         vmType = effective?["vmType"]?.stringValue ?? raw["vmType"]?.stringValue
+        usernet = raw["vmOpts"]?["hanalima"]?["usernet"]?.boolValue ?? effective?["vmOpts"]?["hanalima"]?["usernet"]?.boolValue
 
         let nets = list("networks")
         networks = nets.entries.map { NetworkConfig(json: $0, stripDefaults: !nets.fromRaw) }
@@ -70,6 +74,9 @@ public struct InstanceConfig: Hashable, Sendable {
             exprs.append(".video.display = \(JSONValue.string(videoDisplay).jsonText)")
         }
         if vmType != original.vmType, let vmType { exprs.append(".vmType = \(JSONValue.string(vmType).jsonText)") }
+        if usernet != original.usernet {
+            exprs.append(usernet == false ? ".vmOpts.hanalima.usernet = false" : "del(.vmOpts.hanalima.usernet)")
+        }
         func list(_ key: String, _ new: [JSONValue], _ old: [JSONValue]) {
             guard new != old else { return }
             exprs.append(".\(key) = \(JSONValue.array(new).jsonText)")

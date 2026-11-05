@@ -1263,6 +1263,38 @@
         }
       }
     },
+    "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same NIC Lima gives every VM, reaching the internet and the Mac's 127.0.0.1. Turn it off to cut the VM off from the host."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます。"
+          }
+        }
+      }
+    },
+    "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます（HanaLima のドライバーだけの機能）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same NIC Lima gives every VM, reaching the internet and the Mac's 127.0.0.1. Turn it off to cut the VM off from the host (HanaLima's driver only)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます（HanaLima のドライバーだけの機能）。"
+          }
+        }
+      }
+    },
     "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。": {
       "extractionState": "stale",
       "localizations": {
@@ -1671,10 +1703,32 @@
     },
     "NIC 0": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0"
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
             "value": "NIC 0"
+          }
+        }
+      }
+    },
+    "NIC 0: Lima のユーザーモード NAT": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0: Lima's User-Mode NAT"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0: Lima のユーザーモード NAT"
           }
         }
       }
@@ -3958,6 +4012,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "なし（ディスクのみ）"
+          }
+        }
+      }
+    },
+    "なし（隔離）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None (isolated)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "なし（隔離）"
           }
         }
       }
@@ -6460,7 +6530,40 @@
         }
       }
     },
+    "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービスにも届きます。切り離すには、上の「NIC 0」を外してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files become invisible, but the network is another matter: the VM can still reach the internet, your LAN and services on the Mac's 127.0.0.1. To cut it off, turn off “NIC 0” above."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービスにも届きます。切り離すには、上の「NIC 0」を外してください。"
+          }
+        }
+      }
+    },
+    "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様。HanaLima のドライバーなら NIC 0 を外せます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files become invisible, but the network is another matter: the VM can still reach the internet, your LAN and services on the Mac's 127.0.0.1 (development servers, databases). That is how Lima works; HanaLima's driver can leave NIC 0 out."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様。HanaLima のドライバーなら NIC 0 を外せます）。"
+          }
+        }
+      }
+    },
     "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様）。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9210,6 +9313,55 @@
           "stringUnit": {
             "state": "translated",
             "value": "変更…"
+          }
+        }
+      }
+    },
+    "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲスト。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off (isolated). The VM reaches only what the NICs added below lead to. SSH goes over vsock (guests with systemd 256 or later: Ubuntu 24.10+, Fedora 41+; not Alpine)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲスト。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。"
+          }
+        }
+      }
+    },
+    "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけで、インターネット、LAN、Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。apt・dnf は使えないので、プロビジョニングは入れません。": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left out (isolated). The VM reaches only what NIC 1 leads to: not the internet, not your LAN, not the Mac's 127.0.0.1. SSH and the guest agent go over vsock. The guest needs systemd 256 or later (Ubuntu 24.10+, Fedora 41+; not Alpine). apt and dnf can't get out, so provisioning is skipped."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけで、インターネット、LAN、Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。apt・dnf は使えないので、プロビジョニングは入れません。"
+          }
+        }
+      }
+    },
+    "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけです。NIC 1 がなければ何にも届かず、ホストオンリーならそのサブネットだけ、NAT のネットワークを選べばそこからは出られます。Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。網のない VM では apt・dnf が使えないので、プロビジョニングは入れません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left out (isolated). The VM reaches only what NIC 1 leads to: nothing without a NIC 1, that subnet alone on a host-only network, the outside if you pick a NAT network. The Mac's 127.0.0.1 is never reachable. SSH and the guest agent go over vsock. The guest needs systemd 256 or later (Ubuntu 24.10+, Fedora 41+; not Alpine). With no network, apt and dnf can't get out, so provisioning is skipped."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけです。NIC 1 がなければ何にも届かず、ホストオンリーならそのサブネットだけ、NAT のネットワークを選べばそこからは出られます。Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。網のない VM では apt・dnf が使えないので、プロビジョニングは入れません。"
           }
         }
       }

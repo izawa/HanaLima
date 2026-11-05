@@ -47,6 +47,10 @@ struct InstanceSpec: Sendable {
     var sshOverVsock: Bool
     /// `vmOpts.vz.rosetta`: not supported by this driver (Validate rejects it).
     var rosetta: Bool
+    /// `vmOpts.hanalima.usernet` (default true): Lima's user-mode network on NIC 0. Off, the VM
+    /// has only the NICs in `networks:` (or none), and SSH must go over vsock: the isolation
+    /// profile (docs/06, docs/09).
+    var usernet: Bool
     /// Lima's MAC for the first NIC (usernet), which cidata's network config matches eth0 by.
     var macAddress: String { LimaMACAddress.address(instanceDir: dir) ?? "52:55:55:00:00:00" }
 
@@ -85,6 +89,8 @@ struct InstanceSpec: Sendable {
         sshOverVsock = (config["ssh"] as? [String: Any])?["overVsock"] as? Bool ?? false
         let rosettaOpts = ((config["vmOpts"] as? [String: Any])?["vz"] as? [String: Any])?["rosetta"] as? [String: Any]
         rosetta = rosettaOpts?["enabled"] as? Bool == true || rosettaOpts?["binFmt"] as? Bool == true
+        let hanalimaOpts = (config["vmOpts"] as? [String: Any])?["hanalima"] as? [String: Any]
+        usernet = hanalimaOpts?["usernet"] as? Bool ?? true
     }
 
     /// Lima's `units.RAMInBytes`: "2GiB", "512MiB", "4G", "1024M", plain bytes.

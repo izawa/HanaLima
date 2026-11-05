@@ -28,6 +28,8 @@ struct CreateInstanceSheet: View {
     @State private var memoryGiB = min(4, HostInfo.memoryGiB)
     @State private var diskGiB = 100
     @State private var extraNIC: ExtraNIC = .none
+    /// HanaLima's driver only: no Lima user-mode network on NIC 0 (`vmOpts.hanalima.usernet: false`).
+    @State private var isolated = false
 
     /// The optional second NIC offered at creation time (more can be added in Settings).
     private enum ExtraNIC: Hashable {
@@ -117,14 +119,23 @@ struct CreateInstanceSheet: View {
                 }
 
                 Section("ネットワーク") {
-                    LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
+                    if vmType == .hanalima {
+                        Toggle(isOn: Binding(get: { !isolated }, set: { isolated = !$0 })) {
+                            Text("NIC 0: Lima のユーザーモード NAT")
+                            Text(isolated
+                                 ? "外します（隔離）。仮想マシンから届くのは NIC 1 の先だけです。NIC 1 がなければ何にも届かず、ホストオンリーならそのサブネットだけ、NAT のネットワークを選べばそこからは出られます。Mac の 127.0.0.1 には届きません。SSH とゲストエージェントは vsock を通ります。ゲストには systemd 256 以降が要ります（Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。網のない VM では apt・dnf が使えないので、プロビジョニングは入れません。"
+                                 : "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます。")
+                        }
+                    } else {
+                        LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
+                    }
                     Picker("NIC 1", selection: $extraNIC) {
                         Text("なし").tag(ExtraNIC.none)
                         ForEach(model.virtualNetworks) { n in
                             Text(n.menuDescription)
                                 .tag(ExtraNIC.virtual(n.name))
                         }
-                        if vmType == .vz {
+                        if vmType == .vz || (vmType == .hanalima && !isolated) {
                             Text("vzNAT（NAT・サブネット指定不可）").tag(ExtraNIC.vzNAT)
                         }
                     }
@@ -188,10 +199,12 @@ struct CreateInstanceSheet: View {
                          ? "Mac のファイルは仮想マシンから見えません。作業フォルダを選ぶと、そのフォルダだけを共有します（あとから「設定」タブの共有フォルダでも追加できます）。"
                          : "仮想マシンから見えるのは作業フォルダだけで、仮想マシンの中でも同じパスにあります。ホームフォルダのほかの場所は見えません。")
                         .font(.caption).foregroundStyle(.secondary)
-                    if !shareHome {
-                        // Lima's user-mode network can't be turned off; its gateway reaches the
-                        // Mac's loopback (see docs/06).
-                        Text("ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様）。")
+                    if !shareHome && !isolated {
+                        // Lima's user-mode network can't be turned off except by HanaLima's own
+                        // driver; its gateway reaches the Mac's loopback (see docs/06).
+                        Text(vmType == .hanalima
+                             ? "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービスにも届きます。切り離すには、上の「NIC 0」を外してください。"
+                             : "ファイルは見えなくなりますが、ネットワークは別です。仮想マシンからは、インターネットや LAN のほか、Mac の 127.0.0.1 で動いているサービス（開発用のサーバーやデータベースなど）にも届きます（Lima の仕様。HanaLima のドライバーなら NIC 0 を外せます）。")
                             .font(.caption).foregroundStyle(.orange)
                     }
                     }
@@ -233,10 +246,14 @@ struct CreateInstanceSheet: View {
         }
         .frame(width: 560, height: 720)
         .onChange(of: vmType) { _, new in
-            if new != .vz {
-                if extraNIC == .vzNAT { extraNIC = .none }
-                rosetta = false
-            }
+            if extraNIC == .vzNAT, new != .vz, new != .hanalima { extraNIC = .none }
+            if new != .hanalima { isolated = false }
+            if new != .vz { rosetta = false }
+        }
+        .onChange(of: isolated) { _, on in
+            // An isolated VM with vzNAT would reach the internet after all; keep that a choice
+            // made in the Settings tab, not by accident here.
+            if on, extraNIC == .vzNAT { extraNIC = .none }
         }
         .onChange(of: source) { _, new in
             // The installer runs on Virtualization.framework and writes ~/.lima/<name>/disk.
@@ -307,7 +324,8 @@ struct CreateInstanceSheet: View {
             rosetta: rosetta,
             mountNone: !shareHome,
             mountOnly: shareHome ? [] : workFolderMount,
-            setExpressions: (source == .iso ? InstallSupport.createExpressions : []) + virtualNetworkExpression)
+            setExpressions: (source == .iso ? InstallSupport.createExpressions : []) + virtualNetworkExpression
+                + (isolated ? [".vmOpts.hanalima.usernet = false"] : []))
     }
 
     /// The work folder as a `--mount-only` value: `<path>` or `<path>:w`.

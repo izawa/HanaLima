@@ -206,7 +206,7 @@ private final class BridgeState: @unchecked Sendable {
         if listener >= 0 {
             Darwin.close(listener)
             listener = -1
-            unlink(path)
+            if !path.isEmpty { unlink(path) }
         }
         let active = Array(connections.values)
         lock.unlock()
@@ -253,6 +253,37 @@ final class UnixSocketBridge: @unchecked Sendable {
             } catch {
                 Darwin.close(fd)
                 if bound { unlink(path) }
+                throw error
+            }
+        }.wait()
+        let state = state
+        Thread.detachNewThread { state.run() }
+    }
+
+    /// The same bridge on a TCP listener at 127.0.0.1:`port` (Lima's SSH local port, proxied to
+    /// the guest's vsock sshd). Fails if the port is taken.
+    init(tcpPort port: Int, connect: @escaping @Sendable () throws -> Int32) throws {
+        state = try BridgeJob {
+            let fd = socket(AF_INET, SOCK_STREAM, 0)
+            guard fd >= 0 else { throw bridgeError("socket") }
+            do {
+                try bridgeNoSIGPIPE(fd)
+                var one: Int32 = 1
+                setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, socklen_t(MemoryLayout<Int32>.size))
+                var address = sockaddr_in()
+                address.sin_family = sa_family_t(AF_INET)
+                address.sin_port = in_port_t(UInt16(port).bigEndian)
+                address.sin_addr.s_addr = inet_addr("127.0.0.1")
+                let result = withUnsafePointer(to: &address) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+                }
+                guard result == 0 else { throw bridgeError("bind 127.0.0.1:\(port)") }
+                guard listen(fd, 128) == 0 else { throw bridgeError("listen") }
+                let flags = fcntl(fd, F_GETFL)
+                guard flags >= 0, fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0 else { throw bridgeError("fcntl listener") }
+                return BridgeState(listener: fd, path: "", connect: connect)
+            } catch {
+                Darwin.close(fd)
                 throw error
             }
         }.wait()

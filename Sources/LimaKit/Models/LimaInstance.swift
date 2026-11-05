@@ -118,6 +118,8 @@ public struct LimaInstance: Codable, Sendable, Hashable, Identifiable {
         ["vz", "hanalima"].contains((vmType ?? "vz").lowercased())
     }
     public var instanceDir: URL { URL(fileURLWithPath: dir, isDirectory: true) }
+    /// False for the isolation profile of HanaLima's driver (`vmOpts.hanalima.usernet: false`): no NIC 0.
+    public var usesUsernet: Bool { !(usesHanaLimaDriver && config?["vmOpts"]?["hanalima"]?["usernet"]?.boolValue == false) }
 
     public var configURL: URL { URL(fileURLWithPath: dir).appending(path: "lima.yaml") }
     public var hostAgentStderrLogURL: URL { URL(fileURLWithPath: dir).appending(path: "ha.stderr.log") }
