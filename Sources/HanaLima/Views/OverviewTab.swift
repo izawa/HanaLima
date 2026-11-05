@@ -43,11 +43,15 @@ struct OverviewTab: View {
 
             OriginSection(instance: instance)
 
-            if instance.vmType?.lowercased() == "vz",
+            if instance.usesVirtualization,
                let display = instance.config?["video"]?["display"]?.stringValue, display != "none" {
                 Section("画面") {
                     if instance.isRunning {
-                        ScreenThumbnail(name: instance.name)
+                        ScreenThumbnail(instance: instance)
+                        if instance.usesHanaLimaDriver {
+                            Button("画面を開く") { model.openScreen(instance) }
+                                .help("仮想マシンの画面ウィンドウを前に出します（閉じていても開き直せます）。")
+                        }
                     } else {
                         Text("起動すると、ここに仮想マシンの画面が表示されます。").foregroundStyle(.secondary)
                     }
@@ -143,10 +147,12 @@ struct CopyableText: View {
     }
 }
 
-/// The VM's display, captured with `limactl screenshot` every few seconds while visible.
+/// The VM's display, captured every few seconds while visible: `limactl screenshot` for Lima's
+/// vz, the driver's control socket for HanaLima's (Lima can't capture an external driver's screen).
 struct ScreenThumbnail: View {
     @Environment(AppModel.self) private var model
-    let name: String
+    let instance: LimaInstance
+    private var name: String { instance.name }
     @State private var image: NSImage?
     @State private var error: String?
 
@@ -178,7 +184,13 @@ struct ScreenThumbnail: View {
     private func capture() async {
         guard let client = model.client else { return }
         do {
-            let data = try await client.screenshot(name)
+            let data: Data
+            if instance.usesHanaLimaDriver {
+                let dir = instance.instanceDir
+                data = try await Task.detached { try DriverControl.screenshot(instanceDir: dir) }.value
+            } else {
+                data = try await client.screenshot(name)
+            }
             image = NSImage(data: data)
             error = nil
         } catch {

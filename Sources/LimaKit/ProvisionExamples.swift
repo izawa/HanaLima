@@ -297,34 +297,46 @@ public enum ProvisionExamples {
     static let consoleLogin = ProvisionExample(id: .consoleLogin, distributions: ["Ubuntu", "Debian", "Fedora", "Alpine"], entries: [
         ProvisionConfig(mode: .system, script: #"""
         #!/bin/sh
-        # HanaLima example: log the user in on the screen console (tty1) without a password, so the
-        # rescue boot (the VM's screen) gives a shell. Anyone who can open the screen gets the
-        # user's shell (with passwordless sudo), as anyone with Lima's SSH key does.
+        # HanaLima example: log the user in without a password on the screen console (tty1: the
+        # rescue boot's window, or the VM's screen) and on the serial console (hvc0: the console
+        # tab's "serial" with HanaLima's driver). Anyone who can open the screen or the serial
+        # gets the user's shell (with passwordless sudo), as anyone with Lima's SSH key does.
         set -eu
         USER_NAME='{{.User}}'
         if command -v systemctl >/dev/null 2>&1; then
-          d=/etc/systemd/system/getty@tty1.service.d
-          f=$d/hanalima-autologin.conf
-          grep -qs -- "--autologin $USER_NAME " "$f" && exit 0
-          mkdir -p "$d"
-          cat > "$f" <<EOF
-        [Service]
-        ExecStart=
-        ExecStart=-/sbin/agetty --autologin $USER_NAME --noclear %I \$TERM
-        EOF
+          changed=0
+          for unit in getty@tty1 serial-getty@hvc0; do
+            d=/etc/systemd/system/$unit.service.d
+            f=$d/hanalima-autologin.conf
+            grep -qs -- "--autologin $USER_NAME " "$f" && continue
+            mkdir -p "$d"
+            case $unit in
+              getty@*) start="ExecStart=-/sbin/agetty --autologin $USER_NAME --noclear %I \$TERM" ;;
+              *) start="ExecStart=-/sbin/agetty --autologin $USER_NAME --keep-baud 115200,57600,38400,9600 %I \$TERM" ;;
+            esac
+            printf '[Service]\nExecStart=\n%s\n' "$start" > "$f"
+            changed=1
+          done
+          [ "$changed" = 1 ] || exit 0
           systemctl daemon-reload
-          systemctl restart getty@tty1.service || true
+          systemctl enable serial-getty@hvc0.service >/dev/null 2>&1 || true
+          systemctl restart getty@tty1.service serial-getty@hvc0.service || true
         elif [ -f /etc/inittab ] && command -v apk >/dev/null 2>&1; then
           # Alpine: busybox getty can't log a user in by itself; util-linux's agetty can.
-          line="tty1::respawn:/sbin/agetty --autologin $USER_NAME --noclear tty1 linux"
-          grep -qxF "$line" /etc/inittab && exit 0
-          apk add --no-cache agetty
-          if grep -q '^tty1::' /etc/inittab; then
-            sed -i "s|^tty1::.*|$line|" /etc/inittab
-          else
-            echo "$line" >> /etc/inittab
-          fi
-          kill -HUP 1
+          changed=0
+          for tty in tty1 hvc0; do
+            line="$tty::respawn:/sbin/agetty --autologin $USER_NAME --noclear $tty linux"
+            grep -qxF "$line" /etc/inittab && continue
+            command -v agetty >/dev/null 2>&1 || apk add --no-cache agetty
+            if grep -q "^$tty::" /etc/inittab; then
+              sed -i "s|^$tty::.*|$line|" /etc/inittab
+            else
+              echo "$line" >> /etc/inittab
+            fi
+            changed=1
+          done
+          [ "$changed" = 1 ] && kill -HUP 1
+          exit 0
         else
           echo "HanaLima example: no systemd or Alpine inittab found" >&2
           exit 1

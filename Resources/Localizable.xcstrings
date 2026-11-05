@@ -909,16 +909,16 @@
     },
     "HanaLima のドライバー（VZ、試験的）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima のドライバー（VZ、試験的）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "HanaLima’s Driver (VZ, Experimental)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバー（VZ、試験的）"
           }
         }
       }
@@ -1264,17 +1264,34 @@
       }
     },
     "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。": {
+      "extractionState": "stale",
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima runs the VM on Virtualization.framework itself instead of Lima’s VZ. Still experimental: no display, Rosetta or socket_vmnet networks."
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
             "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。"
           }
-        },
+        }
+      }
+    },
+    "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。": {
+      "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "HanaLima runs the VM on Virtualization.framework itself instead of Lima’s VZ. Still experimental: no display, Rosetta or socket_vmnet networks."
+            "value": "HanaLima itself runs the VM on Virtualization.framework instead of Lima's VZ. The screen window can be closed and reopened, and the console tab offers the serial console. Still experimental: Rosetta and socket_vmnet networks are unavailable, and the VM can't start where HanaLima isn't installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。"
           }
         }
       }
@@ -2144,6 +2161,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "VZ 専用の NAT・サブネット指定不可（通常 192.168.64.0/24）"
+          }
+        }
+      }
+    },
+    "VZ（Lima）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VZ (Lima)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VZ（Lima）"
           }
         }
       }
@@ -3832,6 +3865,22 @@
         }
       }
     },
+    "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、Rosetta と socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both run on Virtualization.framework and keep the disk and the EFI variables as they are. With HanaLima's driver the screen window can be closed and reopened and the console tab offers the serial console, while Rosetta and socket_vmnet networks are unavailable. The VM can no longer start where HanaLima isn't installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、Rosetta と socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。"
+          }
+        }
+      }
+    },
     "どの仮想マシンのものでもないデータ": {
       "localizations": {
         "en": {
@@ -4713,6 +4762,22 @@
         }
       }
     },
+    "コンソールに自動ログイン（画面・シリアル）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log In Automatically on the Consoles (Screen and Serial)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンソールに自動ログイン（画面・シリアル）"
+          }
+        }
+      }
+    },
     "コンソールを開く": {
       "localizations": {
         "en": {
@@ -4921,6 +4986,38 @@
         }
       }
     },
+    "シリアル": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serial"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリアル"
+          }
+        }
+      }
+    },
+    "シリアル: ゲストのコンソール（hvc0）。設定タブの「コンソールに自動ログイン」の例を入れた仮想マシンならログインできます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serial: the guest's console (hvc0). You can log in on a VM that has the “Log In Automatically on the Consoles” example from the Settings tab."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリアル: ゲストのコンソール（hvc0）。設定タブの「コンソールに自動ログイン」の例を入れた仮想マシンならログインできます。"
+          }
+        }
+      }
+    },
     "シリアルコンソール": {
       "localizations": {
         "en": {
@@ -4949,6 +5046,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "シリアルコンソールのログはありません。"
+          }
+        }
+      }
+    },
+    "シリアルコンソール（hvc0）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serial console (hvc0)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリアルコンソール（hvc0）"
           }
         }
       }
@@ -7576,6 +7689,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンの実行中は設定を変更できません。"
+          }
+        }
+      }
+    },
+    "仮想マシンの画面ウィンドウを前に出します（閉じていても開き直せます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brings the VM's screen window to the front (it can be reopened after being closed)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの画面ウィンドウを前に出します（閉じていても開き直せます）。"
           }
         }
       }
@@ -10282,6 +10411,7 @@
       }
     },
     "画面のコンソールに自動ログイン（救出起動用）": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10297,7 +10427,24 @@
         }
       }
     },
+    "画面のコンソール（tty1）とシリアルコンソール（hvc0）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 と serial-getty@hvc0 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面や、HanaLima のドライバーの仮想マシンのコンソールタブの「シリアル」からログインできません。画面やシリアルを開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logs the user in without a password on the screen console (tty1) and the serial console (hvc0): drop-ins for getty@tty1 and serial-getty@hvc0 on systemd, agetty and a rewritten inittab on Alpine. Lima locks the user's password, so without this you can't log in from the rescue boot's screen or from the “Serial” console of a VM on HanaLima's driver. Anyone who can open the screen or the serial gets this user's shell (with sudo), the same as anyone with Lima's SSH key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面のコンソール（tty1）とシリアルコンソール（hvc0）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 と serial-getty@hvc0 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面や、HanaLima のドライバーの仮想マシンのコンソールタブの「シリアル」からログインできません。画面やシリアルを開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。"
+          }
+        }
+      }
+    },
     "画面のコンソール（tty1）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面からログインできません。画面を開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10341,6 +10488,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "画面を更新できません（画面ウィンドウが閉じられた可能性があります）。"
+          }
+        }
+      }
+    },
+    "画面を開く": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Screen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面を開く"
+          }
+        }
+      }
+    },
+    "画面を開けませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Open the Screen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面を開けませんでした"
           }
         }
       }

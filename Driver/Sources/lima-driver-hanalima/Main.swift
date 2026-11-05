@@ -1,33 +1,48 @@
+import AppKit
 import Darwin
 import Dispatch
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import LimaKit
 import NIOCore
 import NIOPosix
 
 /// `lima-driver-hanalima --inst-dir <dir>`: serve Lima's Driver gRPC on `<dir>/hanalima.drv.sock`
-/// until SIGTERM. `--inspect-status`: echo the instance JSON Lima pipes in (the status is left
-/// to Lima's own pid-file checks, as the vz driver does). `--smoke <dir>`: boot the instance
-/// in `<dir>` without Lima, wait for its address on usernet, power it off (development aid).
+/// until SIGTERM, and HanaLima's own requests on `<dir>/hanalima-ctl.sock`. `--inspect-status`:
+/// echo the instance JSON Lima pipes in (the status is left to Lima's own pid-file checks, as
+/// the vz driver does). `--smoke <dir>`: boot the instance in `<dir>` without Lima, wait for its
+/// address on usernet, power it off (development aid).
+///
+/// The main thread runs AppKit (the VM's window lives in this process, see DisplayWindow);
+/// the servers and the VM run on other threads and end the process with `exit`.
 @main
 struct LimaDriverHanaLima {
-    static func main() async {
-        do {
-            let args = Array(CommandLine.arguments.dropFirst())
-            if args == ["--inspect-status"] {
-                try inspectStatus()
-            } else if args.count == 2, args[0] == "--inst-dir" {
-                try await serve(instanceDir: args[1])
-            } else if args.count == 2, args[0] == "--smoke" {
-                try await smoke(instanceDir: args[1])
-            } else {
-                throw DriverError("usage: lima-driver-hanalima --inst-dir <dir> | --inspect-status | --smoke <dir>")
-            }
-        } catch {
-            log("error: \(error)")
-            exit(1)
+    static func main() {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if args == ["--inspect-status"] {
+            do { try inspectStatus() } catch { log("error: \(error)"); exit(1) }
+            return
         }
+        // Headless until a window is shown (DisplayWindow switches the policy).
+        let app = NSApplication.shared
+        app.setActivationPolicy(.prohibited)
+        Task.detached {
+            do {
+                if args.count == 2, args[0] == "--inst-dir" {
+                    try await serve(instanceDir: args[1])
+                } else if args.count == 2, args[0] == "--smoke" {
+                    try await smoke(instanceDir: args[1])
+                } else {
+                    throw DriverError("usage: lima-driver-hanalima --inst-dir <dir> | --inspect-status | --smoke <dir>")
+                }
+                exit(0)
+            } catch {
+                log("error: \(error)")
+                exit(1)
+            }
+        }
+        app.run()
     }
 
     /// Go encodes the instance as a []byte in JSON (base64 in a string); answer the same way.
@@ -59,6 +74,10 @@ struct LimaDriverHanaLima {
             transport: .http2NIOPosix(address: .unixDomainSocket(path: path), transportSecurity: .plaintext, config: config),
             services: [service]
         )
+        let control = try ControlServer(path: URL(fileURLWithPath: instanceDir).appendingPathComponent(DriverControl.socketName).path) {
+            await core.control($0)
+        }
+        defer { control.close() }
 
         let (signals, continuation) = AsyncStream<Void>.makeStream()
         signal(SIGINT, SIG_IGN)

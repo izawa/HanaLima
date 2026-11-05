@@ -110,6 +110,15 @@ public struct LimaInstance: Codable, Sendable, Hashable, Identifiable {
 
     public var isRunning: Bool { status == .running }
 
+    /// Lima's vz driver or HanaLima's own (`hanalima`, docs/09): both run on Virtualization.framework,
+    /// share `disk`/`vz-efi`/`vz-identifier` and the MAC derivation, so VZ-only features apply to both.
+    public var usesVirtualization: Bool { Self.usesVirtualization(vmType: vmType) }
+    public var usesHanaLimaDriver: Bool { vmType?.lowercased() == "hanalima" }
+    public static func usesVirtualization(vmType: String?) -> Bool {
+        ["vz", "hanalima"].contains((vmType ?? "vz").lowercased())
+    }
+    public var instanceDir: URL { URL(fileURLWithPath: dir, isDirectory: true) }
+
     public var configURL: URL { URL(fileURLWithPath: dir).appending(path: "lima.yaml") }
     public var hostAgentStderrLogURL: URL { URL(fileURLWithPath: dir).appending(path: "ha.stderr.log") }
 }

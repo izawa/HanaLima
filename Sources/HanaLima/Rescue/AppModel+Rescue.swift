@@ -6,7 +6,7 @@ extension AppModel {
     /// whose disk is its own and present (the rescue writes it).
     func rescueBlocker(_ name: String) -> String? {
         guard let inst = instance(named: name) else { return String(localized: "まだ作成中です。") }
-        if inst.vmType != "vz" { return String(localized: "救出起動は VZ の仮想マシンだけで使えます。") }
+        if !inst.usesVirtualization { return String(localized: "救出起動は VZ の仮想マシンだけで使えます。") }
         if inst.config?["os"]?.stringValue == "Darwin" { return String(localized: "macOS のゲストは救出起動できません。") }
         if inst.isRunning { return String(localized: "停止してから救出起動してください。") }
         if isBusy(name) { return String(localized: "操作中です。") }

@@ -3,8 +3,9 @@ import LimaKit
 import SwiftTerm
 import SwiftUI
 
-/// A `limactl shell` session in an embedded terminal. Sessions are cached per instance
-/// so switching tabs or instances doesn't kill the shell.
+/// A `limactl shell` session in an embedded terminal, or the guest's serial console (`nc -U`
+/// on the driver's `serialv.sock`). Sessions are cached per instance so switching tabs or
+/// instances doesn't kill the shell.
 @MainActor
 @Observable
 final class TerminalSession: NSObject, LocalProcessTerminalViewDelegate {
@@ -23,6 +24,8 @@ final class TerminalSession: NSObject, LocalProcessTerminalViewDelegate {
 
     @ObservationIgnored private var client: LimaClient?
     @ObservationIgnored private var instance = ""
+    /// Set for a serial session: the console socket (raw terminal, no local echo).
+    @ObservationIgnored private var serialSocket: String?
     @ObservationIgnored private var startedAt = Date.distantPast
     @ObservationIgnored private var attempts = 0
     @ObservationIgnored private var retryTask: Task<Void, Never>?
@@ -37,18 +40,23 @@ final class TerminalSession: NSObject, LocalProcessTerminalViewDelegate {
     }
 
     /// Connects now. Resets the automatic-retry budget (this is also the "再接続" action).
-    func start(client: LimaClient, instance: String) {
+    func start(client: LimaClient, instance: String, serialSocket: String? = nil) {
         retryTask?.cancel()
         retryAttempt = nil
         attempts = 0
+        self.serialSocket = serialSocket
         launch(client: client, instance: instance)
     }
+
+    /// The terminal's pty in raw mode (keys go straight to the guest), then nc on the socket.
+    private static let serialScript = "stty raw -echo 2>/dev/null; exec /usr/bin/nc -U \"$1\""
 
     private func launch(client: LimaClient, instance: String) {
         guard !isRunning else { return }
         self.client = client
         self.instance = instance
-        let (executable, args) = client.shellCommand(instance)
+        let (executable, args) = serialSocket.map { ("/bin/sh", ["-c", Self.serialScript, "hanalima-serial", $0]) }
+            ?? client.shellCommand(instance)
         var env = client.environment
         env["TERM"] = "xterm-256color"
         env["LANG"] = env["LANG"] ?? "ja_JP.UTF-8"
@@ -122,14 +130,27 @@ final class TerminalSessions {
 }
 
 struct ConsoleTab: View {
+    enum Kind: String, CaseIterable, Identifiable {
+        case shell, serial
+        var id: String { rawValue }
+    }
+
     @Environment(AppModel.self) private var model
     let instance: LimaInstance
+    @State private var kind: Kind = .shell
+
+    /// The guest's console socket: HanaLima's driver (and Lima's QEMU) serve one; Lima's vz doesn't.
+    private var serialSocket: String? {
+        let path = instance.instanceDir.appending(path: DriverControl.serialSocketName).path
+        return FileManager.default.fileExists(atPath: path) ? path : nil
+    }
 
     var body: some View {
         if instance.isRunning, let client = model.client {
-            let session = TerminalSessions.shared.session(for: instance.name)
+            let serial = kind == .serial ? serialSocket : nil
+            let session = TerminalSessions.shared.session(for: serial == nil ? instance.name : instance.name + "/serial")
             let ready = model.isReady(instance.name)
-            if !ready && !session.isRunning && session.exitCode == nil {
+            if serial == nil && !ready && !session.isRunning && session.exitCode == nil {
                 // Lima lists the VM as Running as soon as it boots, but SSH comes up later.
                 ContentUnavailableView {
                     Label("起動処理中です", systemImage: "hourglass")
@@ -144,9 +165,17 @@ struct ConsoleTab: View {
             } else {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
-                        Image(systemName: "terminal")
-                        Text(status(of: session)).lineLimit(1)
+                        Image(systemName: serial == nil ? "terminal" : "cable.connector.horizontal")
+                        Text(status(of: session, serial: serial != nil)).lineLimit(1)
                         Spacer()
+                        if serialSocket != nil {
+                            Picker("", selection: $kind) {
+                                Text("シェル").tag(Kind.shell)
+                                Text("シリアル").tag(Kind.serial)
+                            }
+                            .pickerStyle(.segmented).labelsHidden().fixedSize()
+                            .help("シリアル: ゲストのコンソール（hvc0）。設定タブの「コンソールに自動ログイン」の例を入れた仮想マシンならログインできます。")
+                        }
                         if session.isRunning {
                             Button("切断") { session.terminate() }
                         } else if session.retryAttempt != nil {
@@ -164,7 +193,7 @@ struct ConsoleTab: View {
                         .padding(4)
                         .background(Color(nsColor: .textBackgroundColor))
                 }
-                .onAppear {
+                .task(id: kind) {
                     if !session.isRunning && session.exitCode == nil && session.retryAttempt == nil {
                         connect(session, client)
                     }
@@ -182,6 +211,7 @@ struct ConsoleTab: View {
             .onAppear {
                 // A stale session from before the VM stopped should start fresh next time.
                 TerminalSessions.shared.discard(instance.name)
+                TerminalSessions.shared.discard(instance.name + "/serial")
             }
         }
     }
@@ -189,11 +219,12 @@ struct ConsoleTab: View {
     private func connect(_ session: TerminalSession, _ client: LimaClient) {
         let name = instance.name
         session.shouldRetry = { [weak model] in model?.instance(named: name)?.isRunning == true }
-        session.start(client: client, instance: name)
+        session.start(client: client, instance: name, serialSocket: kind == .serial ? serialSocket : nil)
     }
 
-    private func status(of session: TerminalSession) -> String {
+    private func status(of session: TerminalSession, serial: Bool) -> String {
         if session.isRunning {
+            if serial { return String(localized: "シリアルコンソール（hvc0）") }
             return session.title.isEmpty ? "limactl shell \(instance.name)" : session.title
         }
         if let attempt = session.retryAttempt {

@@ -41,6 +41,12 @@ struct InstanceSpec: Sendable {
     var mounts: [Mount]
     var nics: [NIC]
     var disks: [Disk]
+    /// `video.display` other than "none": graphics, keyboard and pointer, shown in a window.
+    var display: Bool
+    var mountType: String
+    var sshOverVsock: Bool
+    /// `vmOpts.vz.rosetta`: not supported by this driver (Validate rejects it).
+    var rosetta: Bool
     /// Lima's MAC for the first NIC (usernet), which cidata's network config matches eth0 by.
     var macAddress: String { LimaMACAddress.address(instanceDir: dir) ?? "52:55:55:00:00:00" }
 
@@ -74,6 +80,11 @@ struct InstanceSpec: Sendable {
             guard let name = d["name"] as? String else { return nil }
             return Disk(name: name, dir: home.appendingPathComponent("_disks/\(name)", isDirectory: true))
         }
+        display = ((config["video"] as? [String: Any])?["display"] as? String ?? "none") != "none"
+        mountType = config["mountType"] as? String ?? "virtiofs"
+        sshOverVsock = (config["ssh"] as? [String: Any])?["overVsock"] as? Bool ?? false
+        let rosettaOpts = ((config["vmOpts"] as? [String: Any])?["vz"] as? [String: Any])?["rosetta"] as? [String: Any]
+        rosetta = rosettaOpts?["enabled"] as? Bool == true || rosettaOpts?["binFmt"] as? Bool == true
     }
 
     /// Lima's `units.RAMInBytes`: "2GiB", "512MiB", "4G", "1024M", plain bytes.
@@ -99,6 +110,10 @@ struct InstanceSpec: Sendable {
     var efiURL: URL { dir.appendingPathComponent("vz-efi") }
     var identifierURL: URL { dir.appendingPathComponent("vz-identifier") }
     var serialLogURL: URL { dir.appendingPathComponent("serialv.log") }
+    /// The console both ways (`SerialConsole`); Lima's QEMU driver uses the same name.
+    var serialSocket: String { dir.appendingPathComponent(DriverControl.serialSocketName).path }
+    /// HanaLima's requests to the driver (`ControlServer`, `DriverControl` in LimaKit).
+    var controlSocket: String { dir.appendingPathComponent(DriverControl.socketName).path }
     /// Lima's `filenames.GuestAgentSock`: where the host agent dials the guest agent.
     var guestAgentSocket: String { dir.appendingPathComponent("ga.sock").path }
     /// The vsock port Lima's guest agent listens on (what the vz driver uses).

@@ -12,6 +12,9 @@ public struct InstanceConfig: Hashable, Sendable {
     public var disk: String?
     /// `video.display`: "none" (headless, Lima's default for VZ), "default" or "vz" (a VM window).
     public var videoDisplay: String?
+    /// `vmType`: "vz", "qemu", or "hanalima" (HanaLima's own driver). Switching between vz and
+    /// hanalima is an ordinary edit: both use the same `disk`, `vz-efi` and `vz-identifier`.
+    public var vmType: String?
     public var networks: [NetworkConfig]
     public var mounts: [MountConfig]
     public var portForwards: [PortForwardConfig]
@@ -44,6 +47,7 @@ public struct InstanceConfig: Hashable, Sendable {
         memory = effective?["memory"]?.stringValue ?? raw["memory"]?.stringValue
         disk = effective?["disk"]?.stringValue ?? raw["disk"]?.stringValue
         videoDisplay = effective?["video"]?["display"]?.stringValue ?? raw["video"]?["display"]?.stringValue
+        vmType = effective?["vmType"]?.stringValue ?? raw["vmType"]?.stringValue
 
         let nets = list("networks")
         networks = nets.entries.map { NetworkConfig(json: $0, stripDefaults: !nets.fromRaw) }
@@ -65,6 +69,7 @@ public struct InstanceConfig: Hashable, Sendable {
         if videoDisplay != original.videoDisplay, let videoDisplay {
             exprs.append(".video.display = \(JSONValue.string(videoDisplay).jsonText)")
         }
+        if vmType != original.vmType, let vmType { exprs.append(".vmType = \(JSONValue.string(vmType).jsonText)") }
         func list(_ key: String, _ new: [JSONValue], _ old: [JSONValue]) {
             guard new != old else { return }
             exprs.append(".\(key) = \(JSONValue.array(new).jsonText)")

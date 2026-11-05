@@ -239,10 +239,19 @@ private struct HardwareSection: View {
                      ? "起動すると仮想マシンの画面ウィンドウが開きます。概要タブに画面のサムネイルを表示します。"
                      : "起動すると仮想マシンの画面ウィンドウが開きます（QEMU ではサムネイルは表示できません）。")
             }
+            if isVZ, AppModel.hasDriver || config.vmType?.lowercased() == "hanalima" {
+                Picker("仮想化方式", selection: Binding(get: { config.vmType?.lowercased() ?? "vz" },
+                                                   set: { config.vmType = $0 })) {
+                    Text("VZ（Lima）").tag("vz")
+                    Text("HanaLima のドライバー（VZ、試験的）").tag("hanalima")
+                }
+                Text("どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、Rosetta と socket_vmnet のネットワークは使えません。HanaLima が無い環境では起動できなくなります。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 
-    private var isVZ: Bool { (vmType ?? "vz").lowercased() == "vz" }
+    private var isVZ: Bool { LimaInstance.usesVirtualization(vmType: vmType) }
 
     private var minDisk: Int { ByteSize.gibValue(original.disk) ?? 10 }
 
@@ -313,7 +322,7 @@ private struct NetworkSection: View {
     private func kindOptions(including current: NetworkConfig.Kind?) -> [NetworkConfig.Kind] {
         var options: [NetworkConfig.Kind] = []
         options += model.virtualNetworks.map { .socket($0.socketPath) }
-        if vmType == "vz" { options.append(.vzNAT) }
+        if LimaInstance.usesVirtualization(vmType: vmType) { options.append(.vzNAT) }
         options += model.networks.networks
             .filter { !$0.needsSocketVMNet || model.networks.socketVMNetInstalled }
             .map { .lima($0.name) }
@@ -347,7 +356,7 @@ private struct NetworkSection: View {
 
     private func warning(for kind: NetworkConfig.Kind) -> String? {
         switch kind {
-        case .vzNAT where vmType != "vz":
+        case .vzNAT where !LimaInstance.usesVirtualization(vmType: vmType):
             return String(localized: "vzNAT は VZ でのみ使えます。")
         case .lima(let name):
             guard let net = model.networks.network(named: name) else {

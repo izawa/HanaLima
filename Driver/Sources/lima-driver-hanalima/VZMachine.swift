@@ -4,26 +4,53 @@ import Virtualization
 /// A Lima instance's VM on Virtualization.framework, driven from its own serial queue (there is
 /// no main run loop in the driver). Mirrors what Lima's vz driver attaches: EFI with the
 /// instance's variable store, the machine identifier, the disk and cidata, virtiofs shares, a
-/// serial console logged to serialv.log, entropy and a balloon, and the usernet NIC as a file
-/// handle with Lima's MAC address. No display, no vsock (the guest agent is forwarded over SSH).
+/// serial console (both ways, see SerialConsole), entropy and a balloon, the vsock device for
+/// the guest agent, the usernet NIC as a file handle with Lima's MAC address, and, when
+/// `video.display` isn't "none", a screen with keyboard and pointer (shown by DisplayWindow).
 final class VZMachine: @unchecked Sendable {
     private let queue = DispatchQueue(label: "org.izawa.HanaLima.driver.vz")
     private let machine: VZVirtualMachine
     private let delegate: Delegate
+    /// For a `VZVirtualMachineView` on the main thread; nil without a display. The view takes
+    /// a machine of another queue (Lima's vz does the same); the box just carries it there.
+    let displayMachine: Box?
+
+    struct Box: @unchecked Sendable { let machine: VZVirtualMachine }
+
+    static let displayWidth = 1920
+    static let displayHeight = 1200
 
     /// `onStop` is called once, when the guest stops on its own or crashes (not after `stop()`).
     /// `networkHandles`: the usernet NIC first, then one per `spec.nics` (vzNAT entries get nil).
-    init(spec: InstanceSpec, networkHandles: [FileHandle?], onStop: @escaping @Sendable (Error?) -> Void) throws {
-        let config = try Self.configuration(spec: spec, networkHandles: networkHandles)
+    /// `serial`: the guest's end of the console socket pair.
+    init(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, onStop: @escaping @Sendable (Error?) -> Void) throws {
+        let config = try Self.configuration(spec: spec, networkHandles: networkHandles, serial: serial)
         let vm = VZVirtualMachine(configuration: config, queue: queue)
         let delegate = Delegate(onStop: onStop)
         // VZVirtualMachine's properties are confined to its queue.
         queue.sync { vm.delegate = delegate }
+        displayMachine = spec.display ? Box(machine: vm) : nil
         machine = vm
         self.delegate = delegate
     }
 
     var state: VZVirtualMachine.State { queue.sync { machine.state } }
+
+    var stateName: String {
+        switch state {
+        case .stopped: "stopped"
+        case .running: "running"
+        case .paused: "paused"
+        case .error: "error"
+        case .starting: "starting"
+        case .pausing: "pausing"
+        case .resuming: "resuming"
+        case .stopping: "stopping"
+        case .saving: "saving"
+        case .restoring: "restoring"
+        @unknown default: "unknown"
+        }
+    }
 
     func start() async throws {
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
@@ -104,7 +131,7 @@ final class VZMachine: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    static func configuration(spec: InstanceSpec, networkHandles: [FileHandle?]) throws -> VZVirtualMachineConfiguration {
+    static func configuration(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle) throws -> VZVirtualMachineConfiguration {
         let fm = FileManager.default
         let config = VZVirtualMachineConfiguration()
         config.cpuCount = max(VZVirtualMachineConfiguration.minimumAllowedCPUCount,
@@ -169,13 +196,18 @@ final class VZMachine: @unchecked Sendable {
             return device
         }
 
-        // Lima recreates serialv.log on every boot; the app's log tab follows it.
-        fm.createFile(atPath: spec.serialLogURL.path, contents: nil)
-        if let handle = try? FileHandle(forWritingTo: spec.serialLogURL) {
-            try? handle.truncate(atOffset: 0)
-            let serial = VZVirtioConsoleDeviceSerialPortConfiguration()
-            serial.attachment = VZFileHandleSerialPortAttachment(fileHandleForReading: nil, fileHandleForWriting: handle)
-            config.serialPorts = [serial]
+        // The console both ways: SerialConsole logs it to serialv.log and serves serialv.sock.
+        let console = VZVirtioConsoleDeviceSerialPortConfiguration()
+        console.attachment = VZFileHandleSerialPortAttachment(fileHandleForReading: serial, fileHandleForWriting: serial)
+        config.serialPorts = [console]
+
+        if spec.display {
+            // Lima's vz size. The window scales it (DisplayWindow).
+            let graphics = VZVirtioGraphicsDeviceConfiguration()
+            graphics.scanouts = [VZVirtioGraphicsScanoutConfiguration(widthInPixels: displayWidth, heightInPixels: displayHeight)]
+            config.graphicsDevices = [graphics]
+            config.keyboards = [VZUSBKeyboardConfiguration()]
+            config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
         }
 
         config.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]

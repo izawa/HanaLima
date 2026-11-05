@@ -297,7 +297,7 @@ extension ProvisionExample {
         case .swap: String(localized: "スワップファイル")
         case .devLanguages: String(localized: "開発言語（Go、Node.js、Python、Rust）")
         case .fullUpgrade: String(localized: "パッケージをすべて更新（一度だけ）")
-        case .consoleLogin: String(localized: "画面のコンソールに自動ログイン（救出起動用）")
+        case .consoleLogin: String(localized: "コンソールに自動ログイン（画面・シリアル）")
         }
     }
 
@@ -322,7 +322,7 @@ extension ProvisionExample {
         case .devLanguages:
             String(localized: "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。")
         case .consoleLogin:
-            String(localized: "画面のコンソール（tty1）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面からログインできません。画面を開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。")
+            String(localized: "画面のコンソール（tty1）とシリアルコンソール（hvc0）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 と serial-getty@hvc0 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面や、HanaLima のドライバーの仮想マシンのコンソールタブの「シリアル」からログインできません。画面やシリアルを開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。")
         }
     }
 }

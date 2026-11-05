@@ -27,6 +27,10 @@ actor DriverCore {
         var guestAgentBridge: UnixSocketBridge?
         /// Ends when the guest stops; Start's stream waits on it.
         var stopped: AsyncStream<Error?>.Continuation?
+        /// The guest's console: serialv.log and serialv.sock.
+        var serial: SerialConsole?
+        /// The VM's screen, when it has one.
+        var window: DisplayWindow?
     }
 
     private var run: Run?
@@ -67,10 +71,21 @@ actor DriverCore {
         return try JSONSerialization.data(withJSONObject: inst)
     }
 
+    /// What this driver can't run. `limactl edit` calls this too, so switching an existing VM's
+    /// `vmType` to hanalima is refused here (with the reason in lima.REJECTED.yaml) rather than
+    /// at the next start.
     func validate() throws {
         let spec = try requireSpec()
         guard spec.os == "Linux" else { throw DriverError("hanalima: only Linux guests are supported, got \(spec.os)") }
         guard spec.arch == "aarch64" else { throw DriverError("hanalima: only aarch64 guests are supported, got \(spec.arch)") }
+        guard !spec.rosetta else { throw DriverError("hanalima: Rosetta (vmOpts.vz.rosetta) is not supported yet") }
+        guard !spec.sshOverVsock else { throw DriverError("hanalima: ssh.overVsock is not supported yet") }
+        guard spec.mounts.isEmpty || spec.mountType == "virtiofs" else {
+            throw DriverError("hanalima: mountType must be virtiofs, got \(spec.mountType)")
+        }
+        for case .lima(let name) in spec.nics {
+            throw DriverError("hanalima: network lima:\(name) is not supported (use a HanaLima network or vzNAT)")
+        }
     }
 
     /// First-time provisioning: the machine identifier. A no-op on an existing instance.
@@ -131,13 +146,25 @@ actor DriverCore {
             let (stream, continuation) = AsyncStream<Error?>.makeStream()
             current.stopped = continuation
             let gen = current.generation
-            let vm = try VZMachine(spec: spec, networkHandles: handles) { error in
+            let serial = try SerialConsole(logURL: spec.serialLogURL, socketPath: spec.serialSocket)
+            current.serial = serial
+            let vm = try VZMachine(spec: spec, networkHandles: handles, serial: serial.guestHandle) { error in
                 Task { await self.guestStopped(generation: gen, error: error) }
             }
             current.machine = vm
             run = current
             try await vm.start()
             log("VM running")
+            if let box = vm.displayMachine {
+                // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
+                let title = "HanaLima: \(spec.name)"
+                let window = await MainActor.run {
+                    let w = DisplayWindow(title: title, machine: box, width: VZMachine.displayWidth, height: VZMachine.displayHeight)
+                    w.show()
+                    return w
+                }
+                if run?.generation == gen { run?.window = window } else { await MainActor.run { window.dismiss() } }
+            }
             return stream
         } catch {
             run = nil
@@ -250,6 +277,8 @@ actor DriverCore {
     private func tearDown(_ run: Run) async {
         let spec = spec
         await Task.detached {
+            if let window = run.window { await MainActor.run { window.dismiss() } }
+            run.serial?.close()
             run.guestAgentBridge?.close()
             try? run.usernetHandle?.close()
             try? run.usernetPass?.close()
@@ -261,6 +290,35 @@ actor DriverCore {
                 try? FileManager.default.removeItem(at: spec.usernetPIDURL)
             }
         }.value
+    }
+
+    // MARK: - HanaLima's control socket
+
+    /// `DriverControl` requests (what Lima's interface has no call for): the VM's state, its
+    /// window, a screenshot. Answered while a VM runs; before that only `status` means anything.
+    func control(_ request: DriverControl.Request) async -> DriverControl.Response {
+        switch request.op {
+        case .status:
+            let window = run?.window
+            let shown = await MainActor.run { window?.isShown ?? false }
+            return DriverControl.Response(ok: true, state: run?.machine?.stateName ?? "none",
+                                          display: spec?.display ?? false, screenShown: shown)
+        case .openScreen:
+            guard let window = run?.window else {
+                return .failure(spec?.display == true ? "the VM is not running" : "the VM has no display (video.display is none)")
+            }
+            let shown = await MainActor.run { window.show() }
+            guard shown else { return .failure("the VM has stopped") }
+            return DriverControl.Response(ok: true, screenShown: true)
+        case .screenshot:
+            guard let window = run?.window else { return .failure("the VM has no display or is not running") }
+            do {
+                let png = try await MainActor.run { try window.screenshotPNG() }
+                return DriverControl.Response(ok: true, screenShown: true, png: png)
+            } catch {
+                return .failure("\(error)")
+            }
+        }
     }
 
     private func requireSpec() throws -> InstanceSpec {

@@ -93,7 +93,7 @@ struct CreateInstanceSheet: View {
                     }
                     .disabled(source == .iso)
                     if vmType == .hanalima {
-                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。")
+                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、Rosetta と socket_vmnet のネットワークは使えず、HanaLima が無い環境では起動できません。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
