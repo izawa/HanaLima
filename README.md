@@ -31,6 +31,10 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Start at login**: per-VM switch using `limactl autostart`.
 - **Snapshots**: save the state of a stopped VM and return to it at any time. VZ VMs, which Lima 2.2 can't snapshot, use HanaLima's own snapshots: APFS clones of the disk, instant and taking space only as the disk changes. QEMU VMs use Lima's. A snapshot can also become a new VM.
 - **Create from an installer ISO**: Lima only boots cloud images, but HanaLima can start from a Linux installer ISO (arm64): it creates the VM with a blank disk, runs the installer on Virtualization.framework in its own window right into that disk, and after a one-line fix-up in the installed OS hands the VM to Lima, which configures it like any other (user, SSH key, guest agent, shared folders, provisioning). Tested with Ubuntu Server 26.04; the install must end with cloud-init installed (the fix-up takes care of it on Ubuntu, Debian, Fedora and Alpine). VZ only.
+- **Rescue boot**: when Lima (SSH) can no longer reach a VM, say after a bad sshd change, HanaLima boots it itself with a screen and keyboard. Log in on the screen console, repair it, and hand it back with “Start with Lima”. VZ Linux guests only. Lima locks the user’s password, so do this **before SSH breaks**, as insurance:
+  1. In the Settings tab, under Provisioning, “Add from Examples…” → “Auto-Login on the Screen Console (for Rescue Boot)”, then save.
+  2. Start the VM once as usual (provisioning runs at Lima’s boot, which is when the auto-login lands in the guest).
+  3. From then on, with the VM stopped, press the first-aid kit (Rescue Boot) in the toolbar and a logged-in shell appears on the screen.
 - **Copies**: copy a stopped VM in a moment (`limactl clone`, APFS clones). The copy gets a new name, host name, MAC addresses and SSH keys; a disk on an external drive is cloned on that drive. Each VM shows where it came from, its copies and a note.
 - **Screen thumbnails** (VZ VMs with a display): a live view of the VM's screen on the overview.
 - **Logs**: the host agent log and serial consoles, followed live, with search.

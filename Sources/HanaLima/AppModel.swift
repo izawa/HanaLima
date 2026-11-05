@@ -10,7 +10,7 @@ struct Operation: Sendable {
         case snapshotCreate, snapshotApply, snapshotDelete
         case moveDisk, moveDiskBack, separateDisk
         case clone
-        case install
+        case install, rescue
         case runScript
 
         var label: String {
@@ -29,6 +29,7 @@ struct Operation: Sendable {
             case .separateDisk: String(localized: "ディスクの独立")
             case .clone: String(localized: "複製")
             case .install: String(localized: "インストール")
+            case .rescue: String(localized: "救出起動")
             case .runScript: String(localized: "スクリプトの実行")
             }
         }
@@ -51,6 +52,7 @@ struct Operation: Sendable {
             case .separateDisk: String(localized: "ディスクを独立させています")
             case .clone: String(localized: "複製中")
             case .install: String(localized: "インストール中")
+            case .rescue: String(localized: "救出起動中")
             case .runScript: String(localized: "スクリプトを実行中")
             }
         }
@@ -140,10 +142,14 @@ final class AppModel {
     var createRequested = false
     /// The VM to copy, from a menu or the toolbar; the window shows the copy sheet for it.
     var copyRequest: CopyRequest?
-    /// The VM whose installer should open (see InstallerVM).
+    /// The VM whose installer should open (see HostedVM).
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
     var installSession: InstallSession?
+    /// The VM to boot with HanaLima's own screen (see RescueSession).
+    var rescueRequest: RescueRequest?
+    /// The rescue boot shown in the rescue window, if any.
+    var rescueSession: RescueSession?
     /// A script running in a guest right now, shown in a sheet (see ScriptRun).
     var scriptRun: ScriptRun?
     /// `ansible-playbook` on this Mac, once probed (see AppModel+Ansible).
@@ -151,6 +157,7 @@ final class AppModel {
     /// Sessions whose VM is being stopped after the window closed: a VZVirtualMachine must stay
     /// referenced until it has stopped (it holds the disk open).
     @ObservationIgnored var closingInstallSessions: [InstallSession] = []
+    @ObservationIgnored var closingRescueSessions: [RescueSession] = []
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -220,6 +227,13 @@ final class AppModel {
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
         if let name = DebugSnapshot.env["HANALIMA_VZPROBE"] { Task { await self.vzProbe(name) } }
         if let name = DebugSnapshot.env["HANALIMA_E2E_AUTOINSTALL"] { Task { await self.e2eAutoinstall(name) } }
+        if let name = DebugSnapshot.env["HANALIMA_E2E_RESCUE"] { Task { await self.e2eRescue(name) } }
+        if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_RESCUE"] {
+            Task {
+                while self.instance(named: name) == nil { try? await Task.sleep(for: .milliseconds(200)) }
+                self.rescueRequest = RescueRequest(name: name)
+            }
+        }
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_INSTALL"] {
             Task {
                 while self.instance(named: name) == nil || self.metadata[name] == nil { try? await Task.sleep(for: .milliseconds(200)) }

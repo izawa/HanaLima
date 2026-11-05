@@ -297,6 +297,7 @@ extension ProvisionExample {
         case .swap: String(localized: "スワップファイル")
         case .devLanguages: String(localized: "開発言語（Go、Node.js、Python、Rust）")
         case .fullUpgrade: String(localized: "パッケージをすべて更新（一度だけ）")
+        case .consoleLogin: String(localized: "画面のコンソールに自動ログイン（救出起動用）")
         }
     }
 
@@ -320,6 +321,8 @@ extension ProvisionExample {
             String(localized: "次の起動で一度だけ、入っているパッケージをすべて更新します（apt は full-upgrade と autoremove、dnf は upgrade、apk は upgrade）。「一度だけ実行する」の例で、済むと印を残して以後は何もしません。もう一度更新したいときは、項目の編集画面で「もう一度実行」を押します。")
         case .devLanguages:
             String(localized: "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。")
+        case .consoleLogin:
+            String(localized: "画面のコンソール（tty1）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面からログインできません。画面を開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。")
         }
     }
 }

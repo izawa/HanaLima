@@ -79,6 +79,11 @@ struct ContentView: View {
             model.installRequest = nil
             if model.beginInstall(request.name) != nil { openWindow(id: "installer") }
         }
+        .onChange(of: model.rescueRequest) { _, request in
+            guard let request else { return }
+            model.rescueRequest = nil
+            if model.beginRescue(request.name) != nil { openWindow(id: "rescue") }
+        }
         // A request made before limactl was found waits until it is.
         .onChange(of: model.createRequested && model.client != nil, initial: true) { _, ready in
             guard ready else { return }

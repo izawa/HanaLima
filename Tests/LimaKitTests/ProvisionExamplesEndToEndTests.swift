@@ -95,6 +95,10 @@ struct ProvisionExamplesEndToEndTests {
                 #expect(try await sh("ls /var/lib/hanalima/once/*.done | wc -l | tr -d ' '") == "1")
                 // Nothing left to upgrade on apt guests (grep -c prints 0 and exits 1, hence || true).
                 #expect(try await sh("sudo sh -c 'if command -v apt-get >/dev/null; then apt-get -s full-upgrade | grep -c \"^Inst \" || true; else echo 0; fi'") == "0")
+            case .consoleLogin:
+                // agetty logged the user in on tty1 (login hands the tty to the user), so the drop-in
+                // (systemd) or the inittab line (Alpine, reloaded by init) is in effect.
+                #expect(try await sh("stat -c %U /dev/tty1") == (try await sh("id -un")))
             }
         }
     }

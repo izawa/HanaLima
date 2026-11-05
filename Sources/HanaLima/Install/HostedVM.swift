@@ -1,16 +1,17 @@
 import AppKit
 import Virtualization
 
-/// A VM HanaLima runs itself with Virtualization.framework, to install an OS from an installer
-/// ISO into a Lima instance's own disk (see docs/07). Lima can't boot installers, but it keeps
-/// its files in `~/.lima/<name>/` and reuses `disk`, `vz-efi` and `vz-identifier` as they are,
-/// so an OS installed here boots under `limactl start` afterwards.
+/// A Lima instance's VM run by HanaLima itself with Virtualization.framework, on the instance's
+/// own files: to install an OS from an installer ISO (docs/07), or to boot the installed OS with
+/// a screen when Lima can't reach it (the rescue boot, see RescueSession). Lima keeps its files
+/// in `~/.lima/<name>/` and reuses `disk`, `vz-efi` and `vz-identifier` as they are, so what
+/// happens here is what `limactl start` boots afterwards.
 ///
-/// Runs in the app's process (the view needs that), so quitting the app stops the install.
+/// Runs in the app's process (the view needs that), so quitting the app stops the VM.
 /// The app must be signed with `com.apple.security.virtualization`.
 @MainActor
 @Observable
-final class InstallerVM {
+final class HostedVM {
     enum State: Equatable {
         case starting, running, stopped
         case failed(String)
@@ -27,6 +28,13 @@ final class InstallerVM {
         var bootImage: URL?
         /// A NoCloud seed ISO, attached as a virtio block device.
         var seed: URL?
+        /// Lima's `cidata.iso`, attached as Lima does (a read-only virtio block device), so
+        /// cloud-init sees the same instance and does nothing new.
+        var cidata: URL?
+        /// The NIC's MAC address (Lima's for the instance, so the guest's eth0 config matches).
+        var macAddress: String?
+        /// The file in the instance directory that receives the guest's serial console.
+        var serialLog = "hanalima-installer-serial.log"
         /// No display, keyboard or pointer (the serial log is the only output).
         var headless = false
     }
@@ -83,7 +91,7 @@ final class InstallerVM {
     /// The VM is created on the main queue, so VZ calls back on it.
     @MainActor
     private final class Delegate: NSObject, VZVirtualMachineDelegate {
-        weak var owner: InstallerVM?
+        weak var owner: HostedVM?
         nonisolated func guestDidStop(_ vm: VZVirtualMachine) {
             MainActor.assumeIsolated { owner?.state = .stopped }
         }
@@ -129,9 +137,9 @@ final class InstallerVM {
 
         config.storageDevices = [VZVirtioBlockDeviceConfiguration(
             attachment: try VZDiskImageStorageDeviceAttachment(url: disk, readOnly: false))]
-        if let seed = options.seed {
+        for iso in [options.cidata, options.seed].compactMap({ $0 }) {
             config.storageDevices.append(VZVirtioBlockDeviceConfiguration(
-                attachment: try VZDiskImageStorageDeviceAttachment(url: seed, readOnly: true)))
+                attachment: try VZDiskImageStorageDeviceAttachment(url: iso, readOnly: true)))
         }
         // ISOs as USB mass storage: EFI boots the installer from there, and the guest sees them
         // as removable media (the helper ISO is mounted by its label).
@@ -146,6 +154,7 @@ final class InstallerVM {
 
         let net = VZVirtioNetworkDeviceConfiguration()
         net.attachment = VZNATNetworkDeviceAttachment()
+        if let mac = options.macAddress.flatMap(VZMACAddress.init(string:)) { net.macAddress = mac }
         config.networkDevices = [net]
         config.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]
         config.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
@@ -159,7 +168,7 @@ final class InstallerVM {
         }
 
         // The guest's serial console, kept next to the instance for diagnosis.
-        let log = instanceDir.appending(path: "hanalima-installer-serial.log")
+        let log = instanceDir.appending(path: options.serialLog)
         fm.createFile(atPath: log.path, contents: nil)
         if let handle = try? FileHandle(forWritingTo: log) {
             let serial = VZVirtioConsoleDeviceSerialPortConfiguration()

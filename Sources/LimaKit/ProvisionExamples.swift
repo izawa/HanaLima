@@ -8,7 +8,7 @@ import Foundation
 /// lima.yaml.
 public struct ProvisionExample: Identifiable, Sendable {
     public enum ID: String, CaseIterable, Sendable {
-        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade
+        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin
     }
 
     public let id: ID
@@ -18,7 +18,7 @@ public struct ProvisionExample: Identifiable, Sendable {
 }
 
 public enum ProvisionExamples {
-    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade]
+    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin]
 
     public static func example(_ id: ProvisionExample.ID) -> ProvisionExample {
         all.first { $0.id == id }!
@@ -288,6 +288,46 @@ public enum ProvisionExamples {
         fi
         if [ ! -x "$HOME/.cargo/bin/cargo" ]; then
           fetch https://sh.rustup.rs | sh -s -- -y --profile minimal
+        fi
+        """#),
+    ])
+
+    /// For HanaLima's rescue boot (the VM's screen, see docs/04): Lima locks the user's password
+    /// (`lock_passwd: true`), so without this nobody can log in at the screen's console.
+    static let consoleLogin = ProvisionExample(id: .consoleLogin, distributions: ["Ubuntu", "Debian", "Fedora", "Alpine"], entries: [
+        ProvisionConfig(mode: .system, script: #"""
+        #!/bin/sh
+        # HanaLima example: log the user in on the screen console (tty1) without a password, so the
+        # rescue boot (the VM's screen) gives a shell. Anyone who can open the screen gets the
+        # user's shell (with passwordless sudo), as anyone with Lima's SSH key does.
+        set -eu
+        USER_NAME='{{.User}}'
+        if command -v systemctl >/dev/null 2>&1; then
+          d=/etc/systemd/system/getty@tty1.service.d
+          f=$d/hanalima-autologin.conf
+          grep -qs -- "--autologin $USER_NAME " "$f" && exit 0
+          mkdir -p "$d"
+          cat > "$f" <<EOF
+        [Service]
+        ExecStart=
+        ExecStart=-/sbin/agetty --autologin $USER_NAME --noclear %I \$TERM
+        EOF
+          systemctl daemon-reload
+          systemctl restart getty@tty1.service || true
+        elif [ -f /etc/inittab ] && command -v apk >/dev/null 2>&1; then
+          # Alpine: busybox getty can't log a user in by itself; util-linux's agetty can.
+          line="tty1::respawn:/sbin/agetty --autologin $USER_NAME --noclear tty1 linux"
+          grep -qxF "$line" /etc/inittab && exit 0
+          apk add --no-cache agetty
+          if grep -q '^tty1::' /etc/inittab; then
+            sed -i "s|^tty1::.*|$line|" /etc/inittab
+          else
+            echo "$line" >> /etc/inittab
+          fi
+          kill -HUP 1
+        else
+          echo "HanaLima example: no systemd or Alpine inittab found" >&2
+          exit 1
         fi
         """#),
     ])

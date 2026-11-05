@@ -131,6 +131,8 @@ struct InstanceActionsMenu: View {
         }
         Button("複製…") { model.copyRequest = CopyRequest(source: name) }
             .disabled(model.copyBlocker(name) != nil)
+        Button("救出起動…") { model.rescueRequest = RescueRequest(name: name) }
+            .disabled(model.rescueBlocker(name) != nil)
         Divider()
         if let instance {
             Button("Finder で表示") {

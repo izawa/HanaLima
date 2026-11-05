@@ -17,6 +17,8 @@ import LimaKit
 /// that provisioning example in the selected, ready instance and show the output sheet),
 /// `HANALIMA_SNAPSHOT_SCROLL=bottom` (scroll every window to the end before capturing, for long forms).
 /// `HANALIMA_SNAPSHOT_ANSIBLE_RUN=1` (run the selected, ready instance's recorded playbook; Settings tab).
+/// `HANALIMA_SNAPSHOT_RESCUE=<instance>` (open the rescue window for it; without `HANALIMA_SNAPSHOT` the app
+/// stays open, which is how to hold a VM in a rescue boot from the shell).
 @MainActor
 enum DebugSnapshot {
     static var env: [String: String] { ProcessInfo.processInfo.environment }

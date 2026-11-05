@@ -164,6 +164,16 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - 復旧: ドロップインを消して `systemctl daemon-reload && systemctl restart ssh.socket`。LAN 側だけに絞るなら `ListenStream=192.168.5.15:22` と LAN 側の IP を並べる（`BindToDevice` と違い IP 固定なので DHCP で変わるおそれあり）。中に入るには、別 NIC の IP で `ssh -F ~/.lima/<名前>/ssh.config -o Hostname=<IP> -o Port=22 lima-<名前>`。
 - HanaLima への示唆: 準備完了の判定も停止も Lima の SSH 経路に依存しているので、接続できないときの案内（「SSH が届かない。eth0 の sshd を確認」）を出す余地がある。未着手。
 
+## 31. 救出起動（2026-11-05）
+- 発端: §30 の VM に入る手段が欲しい（当初は「シリアルコンソールに getty を立てるプロビジョニングの例」の依頼）。調べると Lima 2.2.1 の VZ ドライバーはシリアルポートを `vz.NewFileSerialPortAttachment(serialv.log, false)` で書き込み専用のログとして付けており、ホストからゲストへ送る経路がない（master も同じ）。QEMU には `serial.sock` があるが、手元の VM はすべて VZ。ゲスト側だけでは解決しないので、機能の名前を「シリアル」から離し、インストーラーの仕組み（`HostedVM`、旧 `InstallerVM`）を流用して「救出起動」にした（ユーザー判断）。
+- 構成: 停止中の VM の `disk`・`vz-efi`・`vz-identifier`・`cidata.iso` を Lima と同じように付け、画面・キーボード・NIC 1 つ（VZ の NAT）で起動。NIC の MAC は Lima の `limayaml.MACAddress`（`52:55:55` ＋ SHA-256(IOPlatformUUID ＋ インスタンスのフォルダ) の先頭 3 バイト）を再現（`LimaMACAddress`。実機の cidata の値と一致を単体テストで固定）。Lima の cidata の network-config は eth0 を `match: macaddress` で引き当てるので、MAC が違うと eth0 が上がらない。
+- ログイン: Lima の user-data は `lock_passwd: true` なので、画面のコンソールにはパスワードでは入れない。プロビジョニングの例「画面のコンソールに自動ログイン」を足した（systemd: `getty@tty1.service.d/hanalima-autologin.conf` で `agetty --autologin <user> --noclear`、Alpine: `apk add agetty` と inittab の tty1 行の置き換え＋`kill -HUP 1`）。確認は `stat -c %U /dev/tty1` がユーザー（login が tty をユーザーに渡す）。`ps` で agetty を探すのは誤り（autologin 後は login → シェルに exec されて agetty は残らない）。
+- Alpine の virt カーネル: `CONFIG_VT=y`、`FRAMEBUFFER_CONSOLE=y`、`virtio-gpu.ko` あり。hvc0 には何も出さない（`console=ttyS0,ttyAMA0` のみ）ので、ヘッドレスの E2E は「シリアルに `login:`」（Ubuntu）か「`/var/db/dhcpd_leases` に Lima の MAC のリース」（VZ の NAT の bootpd。hex は 0 詰めなし、DUID 形式の末尾に MAC）で起動を判定する。
+- 名前解決: netplan が `nameservers: 192.168.5.2` を固定するので、VZ の NAT（192.168.64.1）では引けないことがある（画面の注意書きに記載）。
+- E2E `RescueEndToEndTests`: Alpine と Ubuntu LTS で、自動ログイン → 救出起動（ヘッドレス）→ Lima で再起動して SSH・MAC を確認。
+- 排他: 救出起動中に `limactl start` を打つと、Lima の VZ は `VZErrorDomain Code=2 "The boot loader is invalid"`（`vz-efi` の変数ストアを別のプロセスが掴んでいる）で即座に終了し、`list` は Stopped のまま。HanaLima の「操作中」の印は案内のためで、二重起動は VZ 側で防がれる。
+- 実機: Alpine の救出起動の画面に `izawa (automatic login)` とプロンプトが出ることをユーザーが確認（2026-11-05）。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。

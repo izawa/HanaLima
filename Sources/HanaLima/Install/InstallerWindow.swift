@@ -97,7 +97,7 @@ private struct InstallerSessionView: View {
 }
 
 /// `VZVirtualMachineView` for SwiftUI. The machine must have been created on the main queue.
-private struct VirtualMachineScreen: NSViewRepresentable {
+struct VirtualMachineScreen: NSViewRepresentable {
     let machine: VZVirtualMachine
 
     func makeNSView(context: Context) -> VZVirtualMachineView {

@@ -3,7 +3,7 @@ import LimaKit
 import NetworkKit
 
 /// One VM's installer run, shown in the installer window: boots the installer ISO (or, after
-/// the install, the disk) with `InstallerVM`, and ends by handing the VM back to Lima.
+/// the install, the disk) with `HostedVM`, and ends by handing the VM back to Lima.
 @MainActor
 @Observable
 final class InstallSession {
@@ -20,7 +20,7 @@ final class InstallSession {
     let cpus: Int
     let memoryBytes: UInt64
     private(set) var phase: Phase = .installer
-    private(set) var vm: InstallerVM?
+    private(set) var vm: HostedVM?
     private(set) var error: String?
 
 
@@ -32,7 +32,7 @@ final class InstallSession {
         self.memoryBytes = memoryBytes
     }
 
-    var state: InstallerVM.State? { vm?.state }
+    var state: HostedVM.State? { vm?.state }
     var isRunning: Bool { state == .starting || state == .running }
 
     /// Boots: with the ISO, or from the disk. A running VM is stopped first.
@@ -42,7 +42,7 @@ final class InstallSession {
         error = nil
         do {
             let helper = try Self.helperISO()
-            let vm = try InstallerVM(instanceDir: instanceDir,
+            let vm = try HostedVM(instanceDir: instanceDir,
                                      options: .init(iso: phase == .installer ? iso : nil, helper: helper),
                                      cpus: cpus, memoryBytes: memoryBytes)
             self.vm = vm

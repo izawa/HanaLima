@@ -35,6 +35,13 @@ struct HanaLimaApp: App {
         }
         .windowResizability(.contentSize)
 
+        // The rescue boot's screen (the VM run by HanaLima, see RescueSession).
+        Window("救出起動", id: "rescue") {
+            RescueWindowView()
+                .environment(model)
+        }
+        .windowResizability(.contentSize)
+
         MenuBarExtra(isInserted: $showMenuBarExtra) {
             MenuBarContent()
                 .environment(model)

@@ -118,6 +118,11 @@ struct InstanceDetailView: View {
         }
         .help(model.copyBlocker(name) ?? String(localized: "この仮想マシンを複製"))
         .disabled(model.copyBlocker(name) != nil)
+        Button { model.rescueRequest = RescueRequest(name: name) } label: {
+            Label("救出起動", systemImage: "cross.case")
+        }
+        .help(model.rescueBlocker(name) ?? String(localized: "SSH で届かない仮想マシンを、HanaLima が画面付きで起動して直す"))
+        .disabled(model.rescueBlocker(name) != nil)
         Button(role: .destructive) { confirmDelete = true } label: {
             Label("削除", systemImage: "trash")
         }

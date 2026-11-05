@@ -875,6 +875,22 @@
         }
       }
     },
+    "HanaLima が画面付きで起動しています（Lima は関与しません）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima is running this VM with a screen (Lima is not involved)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima が画面付きで起動しています（Lima は関与しません）"
+          }
+        }
+      }
+    },
     "HanaLima について": {
       "localizations": {
         "en": {
@@ -1211,6 +1227,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima が依存パッケージを導入する前に実行されます。リポジトリの追加などに使います。"
+          }
+        }
+      }
+    },
+    "Lima で起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start with Lima"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima で起動"
           }
         }
       }
@@ -1720,6 +1752,22 @@
         }
       }
     },
+    "OS のインストールが終わると使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available once the OS is installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS のインストールが終わると使えます。"
+          }
+        }
+      }
+    },
     "OS のインストールが終わると複製できます。": {
       "localizations": {
         "en": {
@@ -1832,6 +1880,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "SSH"
+          }
+        }
+      }
+    },
+    "SSH で届かない仮想マシンを、HanaLima が画面付きで起動して直す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boot a VM that SSH can’t reach with a screen, to repair it"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH で届かない仮想マシンを、HanaLima が画面付きで起動して直す"
           }
         }
       }
@@ -2482,6 +2546,22 @@
         }
       }
     },
+    "macOS のゲストは救出起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS guests can’t be rescue-booted."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS のゲストは救出起動できません。"
+          }
+        }
+      }
+    },
     "networks.yaml に「%@」が定義されていません。": {
       "localizations": {
         "en": {
@@ -2775,6 +2855,22 @@
         }
       }
     },
+    "「%@」とディスクを共有しているため起動できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It shares its disk with “%@”, so it can’t be booted."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」とディスクを共有しているため起動できません。"
+          }
+        }
+      }
+    },
     "「%@」のスナップショット「%@」から新しい仮想マシンを作成": {
       "localizations": {
         "en": {
@@ -3047,6 +3143,38 @@
         }
       }
     },
+    "「%@」を救出起動できません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t Rescue-Boot “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を救出起動できません"
+          }
+        }
+      }
+    },
+    "「%@」を救出起動中です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” is in a rescue boot."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を救出起動中です。"
+          }
+        }
+      }
+    },
     "「%@」を複製": {
       "localizations": {
         "en": {
@@ -3171,6 +3299,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "あとから「この Mac に戻す」で、いつでも内蔵ディスクに戻せます。"
+          }
+        }
+      }
+    },
+    "ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（VZ の NAT。インターネットには届きますが、名前解決は Lima のネットワークに固定されているため通らないことがあります）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。ウインドウを閉じると電源が切れます（強制停止）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The guest has its disk, cidata and one NIC with the same MAC address as under Lima (VZ’s NAT: the internet is reachable, but name resolution may fail because it is pinned to Lima’s network). No additional disks, shared folders, HanaLima networks or port forwarding. When done, stop it with `sudo poweroff` in the guest or “Power Off (Request)”. Closing the window pulls the plug (force stop)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（VZ の NAT。インターネットには届きますが、名前解決は Lima のネットワークに固定されているため通らないことがあります）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。ウインドウを閉じると電源が切れます（強制停止）。"
           }
         }
       }
@@ -3769,6 +3913,22 @@
         }
       }
     },
+    "まだ作成中です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It is still being created."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ作成中です。"
+          }
+        }
+      }
+    },
     "もう一度実行": {
       "localizations": {
         "en": {
@@ -3781,6 +3941,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "もう一度実行"
+          }
+        }
+      }
+    },
+    "もう一度救出起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue Boot Again"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度救出起動"
           }
         }
       }
@@ -4261,6 +4437,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲストに終了を要求します。応答しないときは「強制停止」を使ってください。"
+          }
+        }
+      }
+    },
+    "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「画面のコンソールに自動ログイン」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in on the guest’s screen console (tty1) and repair it. Lima locks the user’s password, so you can log in only on a VM where “Auto-Login on the Screen Console” was added from “Add from Examples…” under Provisioning in the Settings tab and the VM was then started with Lima once. The clipboard doesn’t reach this screen; type by hand."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「画面のコンソールに自動ログイン」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。"
           }
         }
       }
@@ -5446,6 +5638,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスクの保存先 %@ が見つかりません。外付けドライブを接続してください。"
+          }
+        }
+      }
+    },
+    "ディスクの保存先が見つかりません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk’s location can’t be found."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの保存先が見つかりません。"
           }
         }
       }
@@ -7981,6 +8189,22 @@
         }
       }
     },
+    "停止してから救出起動してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop the VM before a rescue boot."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止してから救出起動してください。"
+          }
+        }
+      }
+    },
     "停止すると複製できます。": {
       "localizations": {
         "en": {
@@ -9385,6 +9609,118 @@
         }
       }
     },
+    "操作中です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An operation is in progress."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作中です。"
+          }
+        }
+      }
+    },
+    "救出起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue Boot"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動"
+          }
+        }
+      }
+    },
+    "救出起動 · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue Boot · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動 · %@"
+          }
+        }
+      }
+    },
+    "救出起動…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue Boot…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動…"
+          }
+        }
+      }
+    },
+    "救出起動は VZ の仮想マシンだけで使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue boot works only with VZ virtual machines."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動は VZ の仮想マシンだけで使えます。"
+          }
+        }
+      }
+    },
+    "救出起動中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescue booting"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動中"
+          }
+        }
+      }
+    },
+    "救出起動中の仮想マシンはありません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Virtual Machine in a Rescue Boot"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動中の仮想マシンはありません"
+          }
+        }
+      }
+    },
     "新しいサイズ": {
       "localizations": {
         "en": {
@@ -9913,6 +10249,38 @@
         }
       }
     },
+    "画面のコンソールに自動ログイン（救出起動用）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-Login on the Screen Console (for Rescue Boot)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面のコンソールに自動ログイン（救出起動用）"
+          }
+        }
+      }
+    },
+    "画面のコンソール（tty1）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面からログインできません。画面を開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logs the user in on the screen console (tty1) without a password (a getty@tty1 drop-in on systemd; on Alpine, installs agetty and rewrites inittab). Lima locks the user’s password, so without this the “Rescue Boot” screen can’t be logged in to. Anyone who can open the screen gets this user’s shell (with sudo), the same reach as SSH with Lima’s key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面のコンソール（tty1）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面からログインできません。画面を開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。"
+          }
+        }
+      }
+    },
     "画面を取得できません。仮想マシンの画面ウィンドウが開いていることを確認してください。": {
       "localizations": {
         "en": {
@@ -9973,6 +10341,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "異常"
+          }
+        }
+      }
+    },
+    "直し終わったら「Lima で起動」で、いつもの仮想マシンとして起動します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the repair is done, “Start with Lima” starts it as the usual virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直し終わったら「Lima で起動」で、いつもの仮想マシンとして起動します。"
           }
         }
       }
