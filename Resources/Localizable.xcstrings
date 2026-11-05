@@ -12302,6 +12302,38 @@
         }
       }
     },
+    "隔離中は、ホスト側の名前解決（hostResolver）と containerd（nerdctl）をドライバーが無効にします。lima.yaml の設定はそのままです。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔離中は、ホスト側の名前解決（hostResolver）と containerd（nerdctl）をドライバーが無効にします。lima.yaml の設定はそのままです。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While isolated, the driver turns off host-side name resolution (hostResolver) and containerd (nerdctl). The settings in lima.yaml stay as they are."
+          }
+        }
+      }
+    },
+    "隔離中は、起動のたびに HanaLima のドライバーが Lima のホスト側の名前解決（hostResolver）と containerd（nerdctl）を無効にし、eth0 を待たずに起動させます。この lima.yaml の設定は変えません（NIC 0 を戻すとそのまま効きます）。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔離中は、起動のたびに HanaLima のドライバーが Lima のホスト側の名前解決（hostResolver）と containerd（nerdctl）を無効にし、eth0 を待たずに起動させます。この lima.yaml の設定は変えません（NIC 0 を戻すとそのまま効きます）。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While isolated, at every start HanaLima's driver turns off Lima's host-side name resolution (hostResolver) and containerd (nerdctl), and lets the boot go on without waiting for eth0. Those settings in lima.yaml are left as they are (they apply again once NIC 0 is back)."
+          }
+        }
+      }
+    },
     "電源を切る（要求）": {
       "localizations": {
         "en": {

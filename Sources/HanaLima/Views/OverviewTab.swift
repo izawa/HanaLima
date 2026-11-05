@@ -85,6 +85,10 @@ struct OverviewTab: View {
 
             Section("ネットワーク") {
                 LabeledContent("ユーザーモード") { Text(usernetLabel) }
+                if !instance.usesUsernet {
+                    Text("隔離中は、ホスト側の名前解決（hostResolver）と containerd（nerdctl）をドライバーが無効にします。lima.yaml の設定はそのままです。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 ForEach(Array((instance.networks ?? []).enumerated()), id: \.offset) { index, net in
                     LabeledContent("NIC \(index + 1)") {
                         VStack(alignment: .trailing, spacing: 2) {

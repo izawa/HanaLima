@@ -276,6 +276,10 @@ private struct NetworkSection: View {
                          ? "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲストはそのまま。Alpine や古い systemd のゲストは、usernet を付けて一度起動すると HanaLima が socat を入れて同じ経路を作ります）。"
                          : "Lima と同じ、インターネットと Mac の 127.0.0.1 に届く NIC です。外すと、仮想マシンをホストから切り離せます（HanaLima のドライバーだけの機能）。")
                 }
+                if usernet == false {
+                    Label("隔離中は、起動のたびに HanaLima のドライバーが Lima のホスト側の名前解決（hostResolver）と containerd（nerdctl）を無効にし、eth0 を待たずに起動させます。この lima.yaml の設定は変えません（NIC 0 を戻すとそのまま効きます）。", systemImage: "info.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             } else {
                 LabeledContent("NIC 0") { Text("ユーザーモード NAT（常に有効）") }
             }
