@@ -1,6 +1,5 @@
 import LimaKit
 import SwiftUI
-import Virtualization
 
 /// The rescue window: the VM's screen, what the guest has and lacks here, and the way back to Lima.
 struct RescueWindowView: View {
@@ -26,13 +25,13 @@ private struct RescueSessionView: View {
     var body: some View {
         VStack(spacing: 0) {
             Group {
-                if let vm = session.vm, session.isRunning {
-                    VirtualMachineScreen(machine: vm.machine)
+                if session.isRunning {
+                    HostedScreenPlaceholder(state: session.state, title: String(localized: "仮想マシンの画面は別のウインドウです")) { session.openScreen() }
                 } else {
                     stoppedView
                 }
             }
-            .frame(minWidth: 1024, minHeight: 640)
+            .frame(minWidth: 640, minHeight: 360)
             Divider()
             footer
         }
@@ -70,7 +69,7 @@ private struct RescueSessionView: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("HanaLima が画面付きで起動しています（Lima は関与しません）", systemImage: "cross.case")
+                Label("HanaLima のドライバーが画面付きで起動しています（Lima は関与しません）", systemImage: "cross.case")
                     .font(.callout)
                 Spacer()
                 if session.isRunning {
@@ -79,9 +78,9 @@ private struct RescueSessionView: View {
                     Button("強制停止") { session.stop(force: true) }
                 }
             }
-            Text("ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「画面のコンソールに自動ログイン」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。")
+            Text("ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「コンソールに自動ログイン（画面・シリアル）」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。")
                 .font(.caption).foregroundStyle(.secondary)
-            Text("ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（VZ の NAT。インターネットには届きますが、名前解決は Lima のネットワークに固定されているため通らないことがあります）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。ウインドウを閉じると電源が切れます（強制停止）。")
+            Text("ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（Lima のユーザーモードネットワーク。インターネットと名前解決は Lima で起動したときと同じ）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。仮想マシンの画面のウインドウを閉じると電源が切れます。HanaLima を終了しても仮想マシンは動き続け、次に開いたときにここに戻ります。")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(12)

@@ -174,6 +174,10 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 - 排他: 救出起動中に `limactl start` を打つと、Lima の VZ は `VZErrorDomain Code=2 "The boot loader is invalid"`（`vz-efi` の変数ストアを別のプロセスが掴んでいる）で即座に終了し、`list` は Stopped のまま。HanaLima の「操作中」の印は案内のためで、二重起動は VZ 側で防がれる。
 - 実機: Alpine の救出起動の画面に `izawa (automatic login)` とプロンプトが出ることをユーザーが確認（2026-11-05）。
 
+## 32. 救出起動と ISO インストールをドライバーへ（2026-11-05）
+
+§31 の救出起動と docs/07 のインストーラーは、アプリ本体の `HostedVM` が VZ を抱えていた（アプリを終了すると VM も落ちる）。ドライバーに hosted モード（`--hosted`）を足して置き換えた。詳細は docs/07 §8 と docs/04 の救出起動の項。確認: Alpine の使い捨て VM で hosted 起動 → 制御ソケットで停止 → Lima で再起動（`RescueEndToEndTests`）、Ubuntu 26.04 の無人インストール（`ISOInstallEndToEndTests`）。`HANALIMA_E2E_RESCUE`・`HANALIMA_E2E_AUTOINSTALL`・`HANALIMA_VZPROBE` のアプリ側の仕掛けは削除。
+
 ## 現在の状態（`e105f0c` 時点）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。

@@ -5,6 +5,8 @@ extension AppModel {
     /// Why `name` can't be rescue-booted now, or nil. The VM must be a stopped Linux VZ instance
     /// whose disk is its own and present (the rescue writes it).
     func rescueBlocker(_ name: String) -> String? {
+        // A session that exists (running or not) can always be shown again.
+        if rescueSession?.name == name { return nil }
         guard let inst = instance(named: name) else { return String(localized: "まだ作成中です。") }
         if !inst.usesVirtualization { return String(localized: "救出起動は VZ の仮想マシンだけで使えます。") }
         if inst.config?["os"]?.stringValue == "Darwin" { return String(localized: "macOS のゲストは救出起動できません。") }
@@ -30,7 +32,23 @@ extension AppModel {
         let session = RescueSession(name: name, instanceDir: URL(filePath: inst.dir, directoryHint: .isDirectory),
                                     cpus: inst.cpus ?? 2, memoryBytes: UInt64(inst.memory ?? 4 << 30))
         rescueSession = session
+        watchHosted(session.vm, name: name) { [weak self] in self?.rescueSessionChanged() }
         return session
+    }
+
+    /// Keeps the VM's busy mark in step with the hosted boot even while no window shows it
+    /// (the panel can be closed and the app relaunched while the VM runs).
+    func watchHosted(_ vm: HostedProcess?, name: String, changed: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            var last: HostedProcess.State? = nil
+            while true {
+                let current = (rescueSession?.name == name ? rescueSession?.vm : installSession?.vm)?.state
+                if current != last { last = current; changed() }
+                if current == nil || current == .stopped { break }
+                if case .failed = current ?? .stopped { break }
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
     }
 
     /// While the rescue VM runs, the VM counts as busy (no start, copy, delete, disk moves).
@@ -43,65 +61,12 @@ extension AppModel {
         }
     }
 
+    /// The rescue window was closed. The VM, if running, goes on (it lives in the driver's
+    /// process); the session is dropped only once it has stopped.
     func closeRescueSession() {
-        guard let session = rescueSession else { return }
+        guard let session = rescueSession, !session.isRunning else { return }
         rescueSession = nil
         if operations[session.name]?.kind == .rescue { operations[session.name] = nil }
-        guard session.isRunning else { return }
-        session.stop(force: true)
-        closingRescueSessions.append(session)
-        Task {
-            while session.isRunning { try? await Task.sleep(for: .milliseconds(200)) }
-            closingRescueSessions.removeAll { $0 === session }
-        }
     }
 
-    #if DEBUG
-    /// `HANALIMA_E2E_RESCUE=<instance>`: boots the instance headless the way the rescue window
-    /// does, waits until the guest is up (a login prompt on the serial console, which Alpine
-    /// doesn't print, or a DHCP lease for Lima's MAC from VZ's NAT in `/var/db/dhcpd_leases`), or
-    /// `HANALIMA_E2E_RESCUE_SECONDS` (default 180), asks the guest to power off (pulls the plug
-    /// after 30 s) and exits 0; 1 on failure (see RescueEndToEndTests).
-    func e2eRescue(_ name: String) async {
-        let env = ProcessInfo.processInfo.environment
-        while instance(named: name) == nil { try? await Task.sleep(for: .milliseconds(200)) }
-        guard let inst = instance(named: name) else { exit(2) }
-        if let blocker = rescueBlocker(name) { print("rescue: \(blocker)"); exit(1) }
-        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        let log = dir.appending(path: RescueSession.serialLog)
-        let limit = Double(env["HANALIMA_E2E_RESCUE_SECONDS"] ?? "") ?? 180
-        do {
-            let vm = try HostedVM(instanceDir: dir, options: RescueSession.options(instanceDir: dir, headless: true),
-                                  cpus: inst.cpus ?? 2, memoryBytes: UInt64(inst.memory ?? 4 << 30))
-            vm.start()
-            let started = Date.now
-            // bootpd writes hex bytes without padding ("0:1"), and the DUID form ends with the MAC.
-            let leases = URL(filePath: "/var/db/dhcpd_leases")
-            let mac = LimaMACAddress.address(instanceDir: dir)?.split(separator: ":")
-                .map { String(Int($0, radix: 16) ?? 0, radix: 16) }.joined(separator: ":") ?? "-"
-            var up = ""
-            while vm.state == .starting || vm.state == .running {
-                try? await Task.sleep(for: .seconds(2))
-                if let text = try? String(contentsOf: log, encoding: .utf8), text.contains("login:") { up = "login prompt"; break }
-                if let modified = try? leases.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
-                   modified > started, let text = try? String(contentsOf: leases, encoding: .utf8), text.contains(mac) {
-                    up = "DHCP lease for \(mac)"; break
-                }
-                if Date.now.timeIntervalSince(started) > limit { break }
-            }
-            print("rescue: \(up.isEmpty ? "not up after \(Int(limit)) s" : up), state \(vm.state)")
-            let sawLogin = !up.isEmpty
-            vm.stop()
-            let stopping = Date.now
-            while vm.state == .running {
-                try? await Task.sleep(for: .seconds(1))
-                if Date.now.timeIntervalSince(stopping) > 30 { vm.stop(force: true) }
-            }
-            exit(sawLogin && vm.state == .stopped ? 0 : 1)
-        } catch {
-            print("rescue: configuration failed: \(error)")
-            exit(1)
-        }
-    }
-    #endif
 }

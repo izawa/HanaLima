@@ -14,6 +14,11 @@ import NIOPosix
 /// the vz driver does). `--smoke <dir>`: boot the instance in `<dir>` without Lima, wait for its
 /// address on usernet, power it off (development aid).
 ///
+/// `--hosted <dir> --cpus N --memory BYTES [--iso P] [--boot-image P] [--helper P] [--seed P]
+/// [--no-cidata] [--headless] [--serial-log NAME]`: a boot outside Lima on the instance's own
+/// files (the rescue boot, the installer; docs/07), with a window unless headless and the
+/// control socket for HanaLima; exits when the guest stops.
+///
 /// The main thread runs AppKit (the VM's window lives in this process, see DisplayWindow);
 /// the servers and the VM run on other threads and end the process with `exit`.
 @main
@@ -31,6 +36,8 @@ struct LimaDriverHanaLima {
             do {
                 if args.count == 2, args[0] == "--inst-dir" {
                     try await serve(instanceDir: args[1])
+                } else if args.first == "--hosted" {
+                    try await hosted(Array(args.dropFirst()))
                 } else if args.count == 2, args[0] == "--smoke" {
                     try await smoke(instanceDir: args[1])
                 } else {
@@ -117,6 +124,71 @@ struct LimaDriverHanaLima {
             try? await core.stop()
             throw error
         }
+    }
+
+    static func hosted(_ args: [String]) async throws {
+        guard let dirArg = args.first else { throw DriverError("--hosted needs the instance directory") }
+        let dir = URL(fileURLWithPath: dirArg, isDirectory: true)
+        var cpus = 2
+        var memory: UInt64 = 4 << 30
+        var display = true
+        var options = InstanceSpec.Hosted()
+        var it = args.dropFirst().makeIterator()
+        func value(_ flag: String) throws -> String {
+            guard let v = it.next() else { throw DriverError("\(flag) needs a value") }
+            return v
+        }
+        while let arg = it.next() {
+            switch arg {
+            case "--cpus": cpus = Int(try value(arg)) ?? cpus
+            case "--memory": memory = UInt64(try value(arg)) ?? memory
+            case "--iso": options.iso = URL(fileURLWithPath: try value(arg))
+            case "--boot-image": options.bootImage = URL(fileURLWithPath: try value(arg))
+            case "--helper": options.helper = URL(fileURLWithPath: try value(arg))
+            case "--seed": options.seed = URL(fileURLWithPath: try value(arg))
+            case "--no-cidata": options.cidata = false
+            case "--headless": display = false
+            case "--serial-log": options.serialLog = try value(arg)
+            default: throw DriverError("unknown option \(arg)")
+            }
+        }
+        // One hosted boot per instance: an exclusive lock held for the process's lifetime, taken
+        // before anything (sockets, usernet, pid file) is created or replaced.
+        let lockPath = dir.appendingPathComponent("hanalima-hosted.lock").path
+        let lockFD = open(lockPath, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
+        guard lockFD >= 0 else { throw DriverError("cannot open \(lockPath): \(String(cString: strerror(errno)))") }
+        guard flock(lockFD, LOCK_EX | LOCK_NB) == 0 else {
+            throw DriverError("a hosted boot of \(dir.lastPathComponent) is already running" + (DriverControl.hostedPID(instanceDir: dir).map { " (pid \($0))" } ?? ""))
+        }
+        defer { flock(lockFD, LOCK_UN); close(lockFD) }
+        let core = DriverCore(instanceDir: dir)
+        await core.adopt(InstanceSpec(hostedDir: dir, cpus: cpus, memoryBytes: memory, display: display, hosted: options))
+        let control = try ControlServer(path: dir.appendingPathComponent(DriverControl.socketName).path) { await core.control($0) }
+        defer { control.close() }
+        let (signals, continuation) = AsyncStream<Void>.makeStream()
+        signal(SIGINT, SIG_IGN)
+        signal(SIGTERM, SIG_IGN)
+        let sources = [SIGINT, SIGTERM].map { number in
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
+            source.setEventHandler { continuation.yield(()) }
+            source.resume()
+            return source
+        }
+        defer { for source in sources { source.cancel() } }
+        log("hosted boot of \(dir.lastPathComponent): \(cpus) cpus, \(memory >> 20) MiB, display \(display), iso \(options.iso?.lastPathComponent ?? "-")")
+        let stopped = try await core.start()
+        let signalTask = Task {
+            for await _ in signals {
+                log("terminated by signal; powering off")
+                try? await core.stop(deadline: 20)
+                break
+            }
+        }
+        defer { signalTask.cancel() }
+        for await error in stopped {
+            if let error { throw error }
+        }
+        log("hosted boot ended")
     }
 
     static func smoke(instanceDir: String) async throws {

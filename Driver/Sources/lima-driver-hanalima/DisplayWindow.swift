@@ -15,6 +15,8 @@ final class DisplayWindow: NSObject, NSWindowDelegate {
     private let view = VZVirtualMachineView()
     /// Set by `dismiss()`: the VM is gone, nothing shows or captures any more.
     private(set) var isDismissed = false
+    /// If set, closing the window calls this instead of hiding it (a hosted boot powers off).
+    var onClose: (@MainActor () -> Void)?
 
     init(title: String, machine: VZMachine.Box, width: Int, height: Int) {
         let size = NSSize(width: CGFloat(width) / 2, height: CGFloat(height) / 2)
@@ -62,7 +64,7 @@ final class DisplayWindow: NSObject, NSWindowDelegate {
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        hide()
+        if let onClose { onClose() } else { hide() }
         return false
     }
 

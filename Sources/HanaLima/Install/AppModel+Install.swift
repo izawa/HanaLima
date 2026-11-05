@@ -2,52 +2,22 @@ import Foundation
 import LimaKit
 
 extension AppModel {
-    #if DEBUG
-    /// `HANALIMA_VZPROBE=<instance>`: boots the instance's disk with HostedVM (no ISO) for a
-    /// few seconds and exits. Proves the signed app can run Virtualization.framework in-process.
-    /// A blank disk makes EFI give up at once, so the guest stops by itself.
-    func vzProbe(_ name: String) async {
-        while instance(named: name) == nil { try? await Task.sleep(for: .milliseconds(200)) }
-        guard let inst = instance(named: name) else { return }
-        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        do {
-            let vm = try HostedVM(instanceDir: dir, options: .init(headless: true), cpus: 1, memoryBytes: 1 << 30)
-            vm.start()
-            for _ in 0..<50 {
-                try? await Task.sleep(for: .milliseconds(200))
-                if vm.state != .starting && vm.state != .running { break }
+    /// A hosted boot (installer or rescue) left running by a previous run of the app: the
+    /// driver's process is still there, so show it as a session again rather than start another.
+    func reattachHostedBoots() {
+        for inst in instances where installSession?.name != inst.name && rescueSession?.name != inst.name {
+            let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
+            guard let hosted = HostedProcess.attach(instanceDir: dir) else { continue }
+            let cpus = inst.cpus ?? 2, memory = UInt64(inst.memory ?? 4 << 30)
+            if let pending = pendingInstall(inst.name), installSession == nil {
+                installSession = InstallSession(name: inst.name, instanceDir: dir, iso: pending.isoURL, cpus: cpus, memoryBytes: memory, attached: hosted)
+                operations[inst.name] = Operation(kind: .install)
+                watchHosted(hosted, name: inst.name) { [weak self] in self?.installSessionChanged() }
+            } else if rescueSession == nil {
+                rescueSession = RescueSession(name: inst.name, instanceDir: dir, cpus: cpus, memoryBytes: memory, attached: hosted)
+                operations[inst.name] = Operation(kind: .rescue)
+                watchHosted(hosted, name: inst.name) { [weak self] in self?.rescueSessionChanged() }
             }
-            print("vzprobe: \(vm.state)")
-            if vm.state == .running { vm.stop(force: true) }
-        } catch {
-            print("vzprobe: configuration failed: \(error)")
-        }
-        exit(0)
-    }
-
-    /// `HANALIMA_E2E_AUTOINSTALL=<instance>` with `HANALIMA_E2E_AUTOINSTALL_ISO`, `_BOOT` (the FAT
-    /// boot image) and `_SEED`: runs the unattended install headless and exits 0 once the guest
-    /// has powered off, 1 on failure (see ISOInstallEndToEndTests).
-    func e2eAutoinstall(_ name: String) async {
-        let env = ProcessInfo.processInfo.environment
-        while instance(named: name) == nil { try? await Task.sleep(for: .milliseconds(200)) }
-        guard let inst = instance(named: name),
-              let iso = env["HANALIMA_E2E_AUTOINSTALL_ISO"], let boot = env["HANALIMA_E2E_AUTOINSTALL_BOOT"],
-              let seed = env["HANALIMA_E2E_AUTOINSTALL_SEED"] else { print("autoinstall: missing environment"); exit(2) }
-        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        do {
-            let vm = try HostedVM(instanceDir: dir,
-                                     options: .init(iso: URL(filePath: iso), bootImage: URL(filePath: boot),
-                                                    seed: URL(filePath: seed), headless: true),
-                                     cpus: inst.cpus ?? 2, memoryBytes: UInt64(inst.memory ?? 4 << 30))
-            vm.start()
-            while vm.state == .starting || vm.state == .running { try? await Task.sleep(for: .seconds(2)) }
-            print("autoinstall: \(vm.state)")
-            exit(vm.state == .stopped ? 0 : 1)
-        } catch {
-            print("autoinstall: configuration failed: \(error)")
-            exit(1)
         }
     }
-    #endif
 }

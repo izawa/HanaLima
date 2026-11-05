@@ -50,7 +50,7 @@ Ubuntu Server 26.04 で、`limactl start` の 1 回目は約 7 秒で READY。�
 - **採用した方式: EFI 経由で、カーネルの引数だけ足す。** ISO から `EFI/boot/`（shim、GRUB、MokManager）と `.disk/info`（GRUB の組み込み設定が探す目印）を取り出し、128 MiB の FAT イメージ（MBR、`diskutil eraseDisk`）に、HanaLima の `grub.cfg`（`search --file /casper/vmlinuz` で ISO を見つけ、`autoinstall --- console=tty0 console=hvc0` を付けて起動）と一緒に入れる。この FAT を ISO より前の USB として付けると、EFI はまずこれを起動し、HanaLima の `grub.cfg` が読まれる（`autoinstall` がカーネルに渡ったことで確認。GRUB の組み込み設定が `.disk/info` を探して root を決めるというのは推測で、組み込み設定の中身は未確認）。カーネルと initrd は ISO のものをそのまま使うので、展開も zstd も要らない（`InstallerAutoinstall`）。
 - **無人設定（NoCloud の seed、ラベル `cidata`）** は virtio のブロックデバイスとして付ける（`/dev/vdb`。インストール先は `/dev/vda` に固定）。late-commands で `limaify.sh` と同じ cloud-init の手順を `curtin in-target` で実行し、`shutdown: poweroff` で止める。**YAML の落とし穴**: late-commands の行に `: ` を含めると（`printf 'datasource_list: [ ... ]'`）マッピングとして解釈され、cloud-init が設定を読めずに**黙って対話式になる**。各コマンドは二重引用符の文字列にする（`InstallerAutoinstall.userData`）。
 - シリアルコンソール（`console=hvc0` を最後に置く）に subiquity の進み具合が出るので、`hanalima-installer-serial.log` で追える。試作ツールにはシリアルへの入力（FIFO）も足し、失敗時に「Press enter to start a shell」から中のログを読めた。
-- **E2E `ISOInstallEndToEndTests`**（`HANALIMA_E2E=1 HANALIMA_E2E_ISO=<ISO> swift test --filter ISOInstallEndToEnd`）: ダミーのイメージで `limactl create` → 署名した `build/HanaLima.app` を `HANALIMA_E2E_AUTOINSTALL` で起動して無人インストール（`InstallerVM` を画面なしで使う。`swift test` のプロセスは署名されていないので VZ を使えない）→ `limactl start` → ユーザー・cloud-init（`/dev/vdb` の NoCloud）・ゲストエージェントを確認 → 削除。インストール 353 秒、全体 372 秒で通過。
+- **E2E `ISOInstallEndToEndTests`**（`HANALIMA_E2E=1 HANALIMA_E2E_ISO=<ISO> swift test --filter ISOInstallEndToEnd`）: ダミーのイメージで `limactl create` → 署名したドライバーの hosted モード（`lima-driver-hanalima --hosted … --headless`、2026-11-05 からはアプリ本体の VZ ではなくこれ）で無人インストール（`swift test` のプロセスは署名されていないので VZ を使えない）→ `limactl start` → ユーザー・cloud-init（`/dev/vdb` の NoCloud）・ゲストエージェントを確認 → 削除。インストール 353 秒、全体 372 秒で通過。
 - インストーラーは `/etc/cloud/cloud.cfg.d/00-subiquity-disable-cloudinit-networking.cfg`（`network: {config: disabled}`）を残す。それでも Lima の追加 NIC（vzNAT の `lima0`）にはアドレスが来た（Lima の起動スクリプトが設定する）ので、そのままにしている。
 - 無人インストールは今のところ E2E 専用で、アプリの機能にはしていない（FAT イメージの作成に `hdiutil`・`diskutil`・`bsdtar` を使うので、機能にすることは可能）。
 
@@ -63,3 +63,14 @@ Ubuntu Server 26.04 で、`limactl start` の 1 回目は約 7 秒で READY。�
 - Ubuntu の案内付き LVM はディスクの一部しか使わず、Lima でディスクを広げたときの growpart も効かないので、「LVM を外す」ことを案内する。
 - 確かめたのは Ubuntu Server だけ。Debian・Fedora・Alpine（cloud-init の有無が違う）は未確認。
 - QEMU の VM（qcow2）は対象外。VZ 専用の機能になる。
+
+## 8. 追記（2026-11-05）: インストーラーはドライバーの hosted モードへ
+
+アプリ本体が VZ を抱える `HostedVM` をやめ、`lima-driver-hanalima --hosted` に置き換えた（docs/09 の残件 10）。理由と変化:
+
+- **アプリを終了しても VM が落ちない。** VM はドライバーのプロセスにあり、アプリは制御ソケット（`hanalima-ctl.sock`）で状態を見て `stop`／`forceStop`／`openScreen` を送るだけ。次に開いたとき `hanalima-hosted.pid` から再接続する。
+- **画面はドライバーのウインドウ**（Lima 配下の hanalima の VM と同じ）。インストールのウインドウは「別のウインドウで動いています／画面を開く」と仕上げのコマンドを出す制御パネルになった。hosted ではウインドウを閉じると電源が切れる。
+- **NIC は usernet**（VZ の NAT から変更）。インストーラーの apt も、仕上げ後の救出起動の名前解決も、Lima と同じ経路で通る。
+- **ISO は USB の記憶装置、seed は virtio ブロック、cidata は付けない**（`--no-cidata`）のは従来どおりで、`InstanceSpec.Hosted` に移した。
+- `limactl list` は hosted 中も Stopped のまま（`hanalima.pid` を書かないため）。Lima からの起動は VZ が `vz-efi` を掴んでいるので失敗する（従来どおり）。
+- **Codex のレビュー（6 回目）で直した点**: hosted 起動は `hanalima-hosted.lock` の排他ロック（プロセスの寿命のあいだ保持）で 1 インスタンス 1 つにする（pid の確認だけでは 2 つ同時に通り、互いの usernet とソケットを壊しうる）。`forceStop` は `vm.stop()` が成功したときだけ後片付けする。再接続で信用する pid は、`ps` のコマンド行が `lima-driver-hanalima --hosted <そのフォルダ>` のものに限る（クラッシュ後に番号が別のプロセスに回っていても SIGTERM を送らない）。制御パネル（救出・インストールのウインドウ）を閉じても VM は止めず（アプリを終了しても動き続けるのと揃える）、セッションは止まってから片付ける。VM の「操作中」の印はウインドウではなくモデルが 1 秒おきに見て外す。再接続したセッションは、操作中でも「救出起動」「インストーラーを開く」で開き直せる。

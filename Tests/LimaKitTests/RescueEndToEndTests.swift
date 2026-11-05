@@ -2,10 +2,10 @@ import Foundation
 import Testing
 @testable import LimaKit
 
-/// The rescue boot (docs/04): a VM with the console auto-login example is booted by the signed
-/// app itself (`HANALIMA_E2E_RESCUE`, headless) until the guest is up (a login prompt on the
-/// serial console, or a DHCP lease for Lima's MAC), then handed back to Lima, which must boot it
-/// and reach it over SSH as before.
+/// The rescue boot (docs/04): a VM with the console auto-login example is booted outside Lima
+/// by the driver's hosted mode (`lima-driver-hanalima --hosted`, headless here) until the guest
+/// is up (a login prompt on the serial console, or usernet's DHCP lease for Lima's MAC), then
+/// handed back to Lima, which must boot it and reach it over SSH as before.
 ///
 /// Needs `scripts/build-app.sh` first. `HANALIMA_E2E_TEMPLATE` picks the guest (default alpine).
 /// Run with `HANALIMA_E2E=1 swift test --filter RescueEndToEnd` (a few minutes).
@@ -14,12 +14,10 @@ struct RescueEndToEndTests {
     let vm = "hanalima-e2e-rescue"
     let client = LimaClient(limactlURL: LimaClient.locate()!)
     static let template = ProcessInfo.processInfo.environment["HANALIMA_E2E_TEMPLATE"] ?? "alpine"
-    static let app = URL(filePath: FileManager.default.currentDirectoryPath)
-        .appending(path: "build/HanaLima.app/Contents/MacOS/HanaLima")
 
     @Test(.timeLimit(.minutes(15)))
     func rescueBootsAndLimaBootsAgain() async throws {
-        try #require(FileManager.default.isExecutableFile(atPath: Self.app.path), "run scripts/build-app.sh first")
+        try #require(FileManager.default.isExecutableFile(atPath: HostedBoot.driver.path), "run scripts/build-app.sh first")
         _ = try? await drain(client.delete(vm, force: true))
         defer { E2ECleanup.deleteInstances([vm]) }
         let entries = ProvisionExamples.consoleLogin.entries.map(\.json)
@@ -34,19 +32,30 @@ struct RescueEndToEndTests {
         let inst = try #require(try await client.list().first { $0.name == vm })
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
 
-        // The rescue: HanaLima's own VZ on the instance's files, until "login:" on the serial console.
+        // The rescue: the driver boots the instance's files outside Lima, until "login:" on the
+        // serial console (Ubuntu) or sshd answering through usernet (Alpine prints no prompt there).
         let started = Date.now
-        let rescue = Process()
-        rescue.executableURL = Self.app
-        rescue.environment = ProcessInfo.processInfo.environment.merging(["HANALIMA_E2E_RESCUE": vm]) { $1 }
-        rescue.standardOutput = FileHandle.nullDevice
-        try rescue.run()
-        while rescue.isRunning { try await Task.sleep(for: .seconds(2)) }
-        print("rescue: \(Int(Date.now.timeIntervalSince(started))) s, exit \(rescue.terminationStatus)")
-        #expect(rescue.terminationStatus == 0)
-        // Ubuntu prints its login prompt on the virtio console; Alpine prints nothing there, and
-        // the app then went by the DHCP lease (see e2eRescue).
-        let serial = (try? String(contentsOf: dir.appending(path: "hanalima-rescue-serial.log"), encoding: .utf8)) ?? ""
+        let serialLog = "hanalima-rescue-serial.log"
+        let rescue = try HostedBoot(dir: dir, cpus: 2, memoryGiB: 2, options: ["--serial-log", serialLog])
+        #expect(await rescue.waitUntilRunning(), "the hosted boot came up: \(rescue.logText.suffix(300))")
+        var up = ""
+        let deadline = Date.now.addingTimeInterval(180)
+        while Date.now < deadline, rescue.isRunning {
+            try await Task.sleep(for: .seconds(2))
+            if let text = try? String(contentsOf: dir.appending(path: serialLog), encoding: .utf8), text.contains("login:") { up = "login prompt"; break }
+            if rescue.usernetPortOpen(22) { up = "sshd reachable through usernet"; break }
+        }
+        print("rescue: \(up.isEmpty ? "not up after 180 s" : up) after \(Int(Date.now.timeIntervalSince(started))) s")
+        #expect(!up.isEmpty)
+        rescue.stop()
+        let exit = await rescue.waitForExit(timeout: 40)
+        print("rescue: driver exit \(exit), \(Int(Date.now.timeIntervalSince(started))) s in all")
+        #expect(exit == 0)
+        for name in [DriverControl.hostedPIDName, DriverControl.socketName, "hanalima-usernet.pid", "default_ep.sock"] {
+            #expect(!FileManager.default.fileExists(atPath: dir.appending(path: name).path), Comment(rawValue: name))
+        }
+        // Ubuntu prints its login prompt on the virtio console; Alpine prints nothing there.
+        let serial = (try? String(contentsOf: dir.appending(path: serialLog), encoding: .utf8)) ?? ""
         if !Self.template.hasPrefix("alpine") { #expect(serial.contains("login:")) }
 
         // Back under Lima: boots and answers over SSH, with the same user and the NIC it had.

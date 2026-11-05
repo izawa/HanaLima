@@ -51,6 +51,24 @@ struct InstanceSpec: Sendable {
     /// has only the NICs in `networks:` (or none), and SSH must go over vsock: the isolation
     /// profile (docs/06, docs/09).
     var usernet: Bool
+    /// Set for a boot outside Lima (`--hosted`: the rescue boot, the installer; docs/07).
+    var hosted: Hosted?
+
+    /// What a hosted boot attaches besides the instance's own files.
+    struct Hosted: Sendable {
+        /// The installer ISO, as USB mass storage (EFI boots it).
+        var iso: URL?
+        /// A FAT image with EFI loaders and a grub.cfg, attached before the ISO (unattended installs).
+        var bootImage: URL?
+        /// The fix-up ISO (label HANALIMA), as USB mass storage.
+        var helper: URL?
+        /// A NoCloud seed ISO, as a read-only virtio block device.
+        var seed: URL?
+        /// Attach Lima's `cidata.iso` if present (the rescue boot: cloud-init sees the same instance).
+        var cidata = true
+        /// The serial log's name in the instance directory.
+        var serialLog = "serialv.log"
+    }
     /// Lima's MAC for the first NIC (usernet), which cidata's network config matches eth0 by.
     var macAddress: String { LimaMACAddress.address(instanceDir: dir) ?? "52:55:55:00:00:00" }
 
@@ -93,6 +111,29 @@ struct InstanceSpec: Sendable {
         usernet = hanalimaOpts?["usernet"] as? Bool ?? true
     }
 
+    /// A spec for a hosted boot: the instance's own disk, EFI store and identifier, usernet on
+    /// NIC 0 with Lima's MAC, a display unless headless, and nothing of Lima's: no mounts, no
+    /// extra NICs, no additional disks.
+    init(hostedDir dir: URL, cpus: Int, memoryBytes: UInt64, display: Bool, hosted: Hosted) {
+        name = dir.lastPathComponent
+        self.dir = dir
+        limaHome = dir.deletingLastPathComponent()
+        os = "Linux"
+        arch = "aarch64"
+        self.cpus = cpus
+        self.memoryBytes = memoryBytes
+        sshLocalPort = 0
+        mounts = []
+        nics = []
+        disks = []
+        self.display = display
+        mountType = "virtiofs"
+        sshOverVsock = false
+        rosetta = false
+        usernet = true
+        self.hosted = hosted
+    }
+
     /// Lima's `units.RAMInBytes`: "2GiB", "512MiB", "4G", "1024M", plain bytes.
     static func bytes(_ s: String) throws -> UInt64 {
         let scanner = Scanner(string: s.trimmingCharacters(in: .whitespaces))
@@ -115,7 +156,7 @@ struct InstanceSpec: Sendable {
     var cidataURL: URL { dir.appendingPathComponent("cidata.iso") }
     var efiURL: URL { dir.appendingPathComponent("vz-efi") }
     var identifierURL: URL { dir.appendingPathComponent("vz-identifier") }
-    var serialLogURL: URL { dir.appendingPathComponent("serialv.log") }
+    var serialLogURL: URL { dir.appendingPathComponent(hosted?.serialLog ?? "serialv.log") }
     /// The console both ways (`SerialConsole`); Lima's QEMU driver uses the same name.
     var serialSocket: String { dir.appendingPathComponent(DriverControl.serialSocketName).path }
     /// HanaLima's requests to the driver (`ControlServer`, `DriverControl` in LimaKit).
@@ -125,7 +166,7 @@ struct InstanceSpec: Sendable {
     /// The vsock port Lima's guest agent listens on (what the vz driver uses).
     static let guestAgentVsockPort: UInt32 = 2222
     /// Lima's `filenames.PIDFile(vmType)`: `limactl stop --force` kills what this names.
-    var pidURL: URL { dir.appendingPathComponent("hanalima.pid") }
+    var pidURL: URL { dir.appendingPathComponent(hosted == nil ? "hanalima.pid" : DriverControl.hostedPIDName) }
     var usernetPIDURL: URL { dir.appendingPathComponent("hanalima-usernet.pid") }
     var usernetLogURL: URL { dir.appendingPathComponent("hanalima-usernet.log") }
     /// usernet's sockets, named as Lima's `SockWithDirectory(dir, "default", …)` does.

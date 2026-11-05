@@ -3,8 +3,8 @@ import Testing
 @testable import LimaKit
 
 /// Creates a VM from an installer ISO the way the app does (docs/07), installs Ubuntu Server
-/// unattended, and boots the result under Lima. Virtualization.framework needs the signed app,
-/// so the install itself runs in `build/HanaLima.app` through `HANALIMA_E2E_AUTOINSTALL`.
+/// unattended, and boots the result under Lima. The install itself runs in the signed driver's
+/// hosted mode (`lima-driver-hanalima --hosted`, headless), the way the installer window does.
 ///
 /// Needs `scripts/build-app.sh` first and the ISO: `HANALIMA_E2E_ISO=~/Downloads/ubuntu-26.04-live-server-arm64.iso`.
 /// Run with `HANALIMA_E2E=1 HANALIMA_E2E_ISO=… swift test --filter ISOInstallEndToEnd` (about 10 minutes).
@@ -13,13 +13,11 @@ import Testing
 struct ISOInstallEndToEndTests {
     let vm = "hanalima-e2e-iso"
     let client = LimaClient(limactlURL: LimaClient.locate()!)
-    static let app = URL(filePath: FileManager.default.currentDirectoryPath)
-        .appending(path: "build/HanaLima.app/Contents/MacOS/HanaLima")
 
     @Test(.timeLimit(.minutes(25)))
     func installsFromISOAndBootsUnderLima() async throws {
         let iso = URL(filePath: NSString(string: ProcessInfo.processInfo.environment["HANALIMA_E2E_ISO"]!).expandingTildeInPath)
-        try #require(FileManager.default.isExecutableFile(atPath: Self.app.path), "run scripts/build-app.sh first")
+        try #require(FileManager.default.isExecutableFile(atPath: HostedBoot.driver.path), "run scripts/build-app.sh first")
         let work = FileManager.default.temporaryDirectory.appending(path: "hanalima-e2e-iso-\(UUID().uuidString.prefix(8))", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
@@ -53,18 +51,14 @@ struct ISOInstallEndToEndTests {
             hostname: "autoinst", userName: "test", passwordHash: hash))
 
         let started = Date.now
-        let install = Process()
-        install.executableURL = Self.app
-        install.environment = ProcessInfo.processInfo.environment.merging([
-            "HANALIMA_E2E_AUTOINSTALL": vm, "HANALIMA_E2E_AUTOINSTALL_ISO": iso.path,
-            "HANALIMA_E2E_AUTOINSTALL_BOOT": boot.path, "HANALIMA_E2E_AUTOINSTALL_SEED": seed.path,
-        ]) { $1 }
-        install.standardOutput = FileHandle.nullDevice
-        try install.run()
-        while install.isRunning { try await Task.sleep(for: .seconds(5)) }
-        print("install: \(Int(Date.now.timeIntervalSince(started))) s, exit \(install.terminationStatus)")
-        #expect(install.terminationStatus == 0)
-        let serial = (try? String(contentsOf: dir.appending(path: "hanalima-installer-serial.log"), encoding: .utf8)) ?? ""
+        let serialLog = "hanalima-installer-serial.log"
+        let install = try HostedBoot(dir: dir, cpus: 2, memoryGiB: 4, options: [
+            "--iso", iso.path, "--boot-image", boot.path, "--seed", seed.path, "--no-cidata", "--serial-log", serialLog])
+        // The unattended install powers the guest off at the end; the driver then exits.
+        let exit = await install.waitForExit(timeout: 20 * 60)
+        print("install: \(Int(Date.now.timeIntervalSince(started))) s, driver exit \(exit)")
+        #expect(exit == 0, Comment(rawValue: install.logText.suffix(400).description))
+        let serial = (try? String(contentsOf: dir.appending(path: serialLog), encoding: .utf8)) ?? ""
         #expect(serial.contains("HANALIMA-LATE-DONE"))
 
         // Back to Lima: cloud-init takes cidata.iso, so the user, agent and shares are there.

@@ -194,7 +194,7 @@ private struct InstanceNoticeBanner: View {
             banner(icon: "opticaldisc", color: .orange,
                    text: String(localized: "まだ OS が入っていません。インストーラーの ISO（\(pending.isoURL.lastPathComponent)）から OS を入れると、仮想マシンとして使えるようになります。")) {
                 Button("インストーラーを開く") { model.installRequest = InstallRequest(name: instance.name) }
-                    .disabled(model.isBusy(instance.name))
+                    .disabled(model.isBusy(instance.name) && model.installSession?.name != instance.name)
             }
         } else if let owner = model.sharedDiskOwners[instance.name] {
             banner(icon: "externaldrive.badge.exclamationmark", color: .red,

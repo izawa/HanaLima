@@ -95,6 +95,9 @@ actor DriverCore {
     /// What this driver can't run. `limactl edit` calls this too, so switching an existing VM's
     /// `vmType` to hanalima is refused here (with the reason in lima.REJECTED.yaml) rather than
     /// at the next start.
+    /// A hosted boot's spec (no Configure from Lima).
+    func adopt(_ spec: InstanceSpec) { self.spec = spec }
+
     func validate() throws {
         let spec = try requireSpec()
         guard spec.os == "Linux" else { throw DriverError("hanalima: only Linux guests are supported, got \(spec.os)") }
@@ -186,8 +189,12 @@ actor DriverCore {
             if let box = vm.displayMachine {
                 // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
                 let title = "HanaLima: \(spec.name)"
+                // Under Lima closing the window only hides it; a hosted boot (rescue, installer)
+                // has nothing else keeping the VM, so there closing means power off.
+                let closeStops = spec.hosted != nil
                 let window = await MainActor.run {
                     let w = DisplayWindow(title: title, machine: box, width: VZMachine.displayWidth, height: VZMachine.displayHeight)
+                    if closeStops { w.onClose = { Task { try? await self.stop(deadline: 20) } } }
                     w.show()
                     return w
                 }
@@ -442,6 +449,22 @@ actor DriverCore {
             let shown = await MainActor.run { window.show() }
             guard shown else { return .failure("the VM has stopped") }
             return DriverControl.Response(ok: true, screenShown: true)
+        case .stop:
+            guard run != nil else { return .failure("the VM is not running") }
+            Task { try? await self.stop(deadline: 60) }
+            return DriverControl.Response(ok: true, state: run?.machine?.stateName)
+        case .forceStop:
+            guard let vm = run?.machine else { return .failure("the VM is not running") }
+            let gen = run?.generation
+            Task {
+                do {
+                    try await vm.stop()
+                    if let gen { await self.guestStopped(generation: gen, error: nil) }
+                } catch {
+                    log("forced stop failed: \(error)")  // the run stays; the VM may still be stopping
+                }
+            }
+            return DriverControl.Response(ok: true, state: vm.stateName)
         case .screenshot:
             guard let window = run?.window else { return .failure("the VM has no display or is not running") }
             do {

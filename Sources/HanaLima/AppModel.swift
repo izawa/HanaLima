@@ -142,7 +142,7 @@ final class AppModel {
     var createRequested = false
     /// The VM to copy, from a menu or the toolbar; the window shows the copy sheet for it.
     var copyRequest: CopyRequest?
-    /// The VM whose installer should open (see HostedVM).
+    /// The VM whose installer should open (see HostedProcess).
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
     var installSession: InstallSession?
@@ -156,8 +156,6 @@ final class AppModel {
     var ansibleState = AnsibleState()
     /// Sessions whose VM is being stopped after the window closed: a VZVirtualMachine must stay
     /// referenced until it has stopped (it holds the disk open).
-    @ObservationIgnored var closingInstallSessions: [InstallSession] = []
-    @ObservationIgnored var closingRescueSessions: [RescueSession] = []
     var alert: AlertMessage?
     /// A start/restart waiting for the user to confirm a socket_vmnet + virtual network mix.
     var pendingConflictStart: ConflictPrompt?
@@ -239,9 +237,6 @@ final class AppModel {
         #if DEBUG
         // After the networks are loaded, so the conflict check sees them.
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_START"] { start(name) }
-        if let name = DebugSnapshot.env["HANALIMA_VZPROBE"] { Task { await self.vzProbe(name) } }
-        if let name = DebugSnapshot.env["HANALIMA_E2E_AUTOINSTALL"] { Task { await self.e2eAutoinstall(name) } }
-        if let name = DebugSnapshot.env["HANALIMA_E2E_RESCUE"] { Task { await self.e2eRescue(name) } }
         if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_RESCUE"] {
             Task {
                 while self.instance(named: name) == nil { try? await Task.sleep(for: .milliseconds(200)) }
@@ -329,6 +324,7 @@ final class AppModel {
             }
             updateDiskPlacements()
             updateMetadata(list)
+            reattachHostedBoots()
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {

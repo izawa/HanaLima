@@ -20,6 +20,39 @@ public enum DriverControl {
         case openScreen
         /// A PNG of the VM's window; fails while the window is hidden.
         case screenshot
+        /// Asks the guest to power off (ACPI); the driver pulls the plug after a while.
+        case stop
+        /// Pulls the plug now.
+        case forceStop
+    }
+
+    /// The pid file of a hosted boot (`lima-driver-hanalima --hosted`: the rescue boot and the
+    /// installer), distinct from `hanalima.pid` so Lima doesn't take the VM for one of its own.
+    public static let hostedPIDName = "hanalima-hosted.pid"
+
+    /// The pid of a hosted boot of `instanceDir` that is still alive, if any. The number is
+    /// trusted only if that process is the driver booting this very directory (a pid file left
+    /// by a crash may by now belong to anything).
+    public static func hostedPID(instanceDir: URL) -> Int32? {
+        guard let text = try? String(contentsOf: instanceDir.appending(path: hostedPIDName), encoding: .utf8),
+              let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0 else { return nil }
+        let command = commandLine(of: pid)
+        guard command.contains("lima-driver-hanalima"), command.contains("--hosted"),
+              command.contains(instanceDir.path.hasSuffix("/") ? String(instanceDir.path.dropLast()) : instanceDir.path) else { return nil }
+        return pid
+    }
+
+    static func commandLine(of pid: Int32) -> String {
+        let ps = Process()
+        ps.executableURL = URL(fileURLWithPath: "/bin/ps")
+        ps.arguments = ["-o", "command=", "-p", "\(pid)"]
+        let pipe = Pipe()
+        ps.standardOutput = pipe
+        ps.standardError = FileHandle.nullDevice
+        guard (try? ps.run()) != nil else { return "" }
+        let out = pipe.fileHandleForReading.readDataToEndOfFile()
+        ps.waitUntilExit()
+        return String(decoding: out, as: UTF8.self)
     }
 
     public struct Request: Codable, Sendable {

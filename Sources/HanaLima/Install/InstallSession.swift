@@ -3,7 +3,8 @@ import LimaKit
 import NetworkKit
 
 /// One VM's installer run, shown in the installer window: boots the installer ISO (or, after
-/// the install, the disk) with `HostedVM`, and ends by handing the VM back to Lima.
+/// the install, the disk) with HanaLima's driver (`HostedProcess`), and ends by handing the VM
+/// back to Lima.
 @MainActor
 @Observable
 final class InstallSession {
@@ -20,19 +21,19 @@ final class InstallSession {
     let cpus: Int
     let memoryBytes: UInt64
     private(set) var phase: Phase = .installer
-    private(set) var vm: HostedVM?
+    private(set) var vm: HostedProcess?
     private(set) var error: String?
 
-
-    init(name: String, instanceDir: URL, iso: URL, cpus: Int, memoryBytes: UInt64) {
+    init(name: String, instanceDir: URL, iso: URL, cpus: Int, memoryBytes: UInt64, attached: HostedProcess? = nil) {
         self.name = name
         self.instanceDir = instanceDir
         self.iso = iso
         self.cpus = cpus
         self.memoryBytes = memoryBytes
+        vm = attached
     }
 
-    var state: HostedVM.State? { vm?.state }
+    var state: HostedProcess.State? { vm?.state }
     var isRunning: Bool { state == .starting || state == .running }
 
     /// Boots: with the ISO, or from the disk. A running VM is stopped first.
@@ -42,17 +43,17 @@ final class InstallSession {
         error = nil
         do {
             let helper = try Self.helperISO()
-            let vm = try HostedVM(instanceDir: instanceDir,
-                                     options: .init(iso: phase == .installer ? iso : nil, helper: helper),
-                                     cpus: cpus, memoryBytes: memoryBytes)
-            self.vm = vm
-            vm.start()
+            // No cidata: the installed OS must come up as a fresh instance for Lima's first start.
+            vm = try HostedProcess.start(instanceDir: instanceDir,
+                                         options: .init(iso: phase == .installer ? iso : nil, helper: helper, cidata: false),
+                                         cpus: cpus, memoryBytes: memoryBytes)
         } catch {
             self.error = error.localizedDescription
         }
     }
 
     func stop(force: Bool = false) { vm?.stop(force: force) }
+    func openScreen() { vm?.openScreen() }
 
     /// The helper ISO (fix-up script, Lima's key, user name), rebuilt for each session: the key
     /// may change. Kept under Application Support.
@@ -74,6 +75,7 @@ extension AppModel {
                                      iso: pending.isoURL, cpus: inst.cpus ?? 2,
                                      memoryBytes: UInt64(inst.memory ?? 4 << 30))
         installSession = session
+        watchHosted(session.vm, name: name) { [weak self] in self?.installSessionChanged() }
         return session
     }
 
@@ -106,16 +108,11 @@ extension AppModel {
         }
     }
 
+    /// The installer window was closed. The VM, if running, goes on (it lives in the driver's
+    /// process); the session is dropped only once it has stopped.
     func closeInstallSession() {
-        guard let session = installSession else { return }
+        guard let session = installSession, !session.isRunning else { return }
         installSession = nil
         if operations[session.name]?.kind == .install { operations[session.name] = nil }
-        guard session.isRunning else { return }
-        session.stop(force: true)
-        closingInstallSessions.append(session)
-        Task {
-            while session.isRunning { try? await Task.sleep(for: .milliseconds(200)) }
-            closingInstallSessions.removeAll { $0 === session }
-        }
     }
 }

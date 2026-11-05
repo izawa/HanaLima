@@ -174,11 +174,28 @@ final class VZMachine: @unchecked Sendable {
                 attachment: try VZDiskImageStorageDeviceAttachment(url: disk.image, readOnly: false,
                                                                    cachingMode: .automatic, synchronizationMode: .fsync)))
         }
-        if fm.fileExists(atPath: spec.cidataURL.path) {
+        if spec.hosted?.cidata ?? true, fm.fileExists(atPath: spec.cidataURL.path) {
             storage.append(VZVirtioBlockDeviceConfiguration(
                 attachment: try VZDiskImageStorageDeviceAttachment(url: spec.cidataURL, readOnly: true)))
         }
+        if let seed = spec.hosted?.seed {
+            storage.append(VZVirtioBlockDeviceConfiguration(
+                attachment: try VZDiskImageStorageDeviceAttachment(url: seed, readOnly: true)))
+        }
         config.storageDevices = storage
+
+        // A hosted boot's ISOs as USB mass storage: EFI boots the installer from there, and the
+        // guest sees them as removable media (the fix-up ISO is mounted by its label).
+        if let hosted = spec.hosted {
+            let media = try [hosted.bootImage, hosted.iso, hosted.helper].compactMap { $0 }.map {
+                VZUSBMassStorageDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: $0, readOnly: true))
+            }
+            if !media.isEmpty {
+                let usb = VZXHCIControllerConfiguration()
+                usb.usbDevices = media
+                config.usbControllers = [usb]
+            }
+        }
 
         // NIC 0 is usernet (absent in the isolation profile); the rest follow lima.yaml's `networks:`.
         var nics: [VZVirtioNetworkDeviceConfiguration] = []

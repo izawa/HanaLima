@@ -908,6 +908,7 @@
       }
     },
     "HanaLima が画面付きで起動しています（Lima は関与しません）": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -935,6 +936,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "HanaLima について"
+          }
+        }
+      }
+    },
+    "HanaLima のドライバーが画面付きで起動しています（Lima は関与しません）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima's driver is running it with a screen (Lima is not involved)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバーが画面付きで起動しています（Lima は関与しません）"
           }
         }
       }
@@ -3470,7 +3487,24 @@
         }
       }
     },
+    "ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（Lima のユーザーモードネットワーク。インターネットと名前解決は Lima で起動したときと同じ）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。仮想マシンの画面のウインドウを閉じると電源が切れます。HanaLima を終了しても仮想マシンは動き続け、次に開いたときにここに戻ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you have here: the disk, cidata, and one NIC with Lima's MAC address (Lima's user-mode network, so the internet and name resolution work as under Lima). No additional disks, shared folders, HanaLima networks or port forwards. When done, stop it with `sudo poweroff` in the guest or “Power Off (Request)”. Closing the VM's screen window powers it off. The VM keeps running if you quit HanaLima, and comes back here when you open it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（Lima のユーザーモードネットワーク。インターネットと名前解決は Lima で起動したときと同じ）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。仮想マシンの画面のウインドウを閉じると電源が切れます。HanaLima を終了しても仮想マシンは動き続け、次に開いたときにここに戻ります。"
+          }
+        }
+      }
+    },
     "ここで使えるのは、ディスク、cidata、Lima と同じ MAC アドレスの NIC 1 つ（VZ の NAT。インターネットには届きますが、名前解決は Lima のネットワークに固定されているため通らないことがあります）です。追加ディスク、共有フォルダ、HanaLima のネットワーク、ポート転送は付きません。終わったら、ゲストの中で `sudo poweroff` か「電源を切る（要求）」で止めてください。ウインドウを閉じると電源が切れます（強制停止）。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3674,6 +3708,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
+          }
+        }
+      }
+    },
+    "このビルドには HanaLima のドライバーが入っていません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This build doesn't include HanaLima's driver."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このビルドには HanaLima のドライバーが入っていません。"
           }
         }
       }
@@ -4336,6 +4386,22 @@
         }
       }
     },
+    "インストーラーは別のウインドウで動いています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The installer runs in its own window"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストーラーは別のウインドウで動いています"
+          }
+        }
+      }
+    },
     "インストーラーを開く": {
       "localizations": {
         "en": {
@@ -4656,7 +4722,24 @@
         }
       }
     },
+    "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「コンソールに自動ログイン（画面・シリアル）」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in on the guest's screen console (tty1) and repair it. Lima locks the user's password, so only a VM that had the “Log In Automatically on the Consoles (Screen and Serial)” example added under Provisioning in the Settings tab and was started once under Lima can log in. The clipboard doesn't reach this screen, so type by hand."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「コンソールに自動ログイン（画面・シリアル）」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。"
+          }
+        }
+      }
+    },
     "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「画面のコンソールに自動ログイン」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6386,6 +6469,22 @@
         }
       }
     },
+    "ドライバーが終了しました（終了コード %d）。%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The driver exited (code %d). %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "ドライバーが終了しました（終了コード %1$d）。%2$@"
+          }
+        }
+      }
+    },
     "ドライブが接続されていなかったため、%@ は削除していません。ドライブを接続して、手作業で削除してください。": {
       "localizations": {
         "en": {
@@ -7540,6 +7639,7 @@
       }
     },
     "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。ウインドウを閉じるとインストールは中断します（やり直せます）。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7551,6 +7651,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。ウインドウを閉じるとインストールは中断します（やり直せます）。"
+          }
+        }
+      }
+    },
+    "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。仮想マシンの画面のウインドウを閉じると電源が切れます（やり直せます）。HanaLima を終了しても仮想マシンは動き続け、次に開いたときにここに戻ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The fix-up script sets up cloud-init and sshd. From the next start, Lima configures the user, keys, guest agent, shared folders and provisioning. Closing the VM's screen window powers it off (you can start over). The VM keeps running if you quit HanaLima, and comes back here when you open it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仕上げのスクリプトは cloud-init と sshd を用意します。次の起動から、Lima がユーザー・鍵・ゲストエージェント・共有フォルダ・プロビジョニングを設定します。仮想マシンの画面のウインドウを閉じると電源が切れます（やり直せます）。HanaLima を終了しても仮想マシンは動き続け、次に開いたときにここに戻ります。"
           }
         }
       }
@@ -7888,6 +8004,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンの実行中は設定を変更できません。"
+          }
+        }
+      }
+    },
+    "仮想マシンの画面は別のウインドウです": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The VM's screen is a separate window"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンの画面は別のウインドウです"
           }
         }
       }
@@ -10658,6 +10790,22 @@
         }
       }
     },
+    "画面のウインドウが見当たらないときは、ここから開き直せます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you can't find the screen window, reopen it from here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面のウインドウが見当たらないときは、ここから開き直せます。"
+          }
+        }
+      }
+    },
     "画面のコンソールに自動ログイン（救出起動用）": {
       "extractionState": "stale",
       "localizations": {
@@ -11488,6 +11636,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "起動"
+          }
+        }
+      }
+    },
+    "起動しています…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starting…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動しています…"
           }
         }
       }
