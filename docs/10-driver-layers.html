@@ -153,6 +153,7 @@
 <tr><td>イメージ · cloud-init · ポート転送 · list/watch · clone · edit</td><td class="y">Lima</td><td class="y">Lima（変更なし）</td><td>Lima の安定した外側だけに依存する方針はそのまま</td></tr>
 <tr><td>既存 VM との互換</td><td>—</td><td class="h">disk/vz-efi/vz-identifier が共通</td><td><code>limactl edit --set '.vmType = "hanalima"'</code> だけで移行、戻すのも同じ</td></tr>
 <tr><td>HanaLima が無い Mac</td><td class="y">動く</td><td class="n">hanalima の VM は起動しない（vz に戻せば動く）</td><td>試験的の理由。既定は vz のまま</td></tr>
+<tr><td>VM 同士だけのネットワーク（段階 5）</td><td class="n">無い（vmnet はどの種類でも Mac が参加する）</td><td class="h">netd のゲスト専用モード（vmnet なしの L2 スイッチ＋自前の DHCP/ARP。ドライバーとは別の層）</td><td>隔離プロファイルの VM 同士をつなぐ。Lima の vz の VM でも使える</td></tr>
 </tbody>
 </table>
 
@@ -164,9 +165,10 @@
 <li><strong>vz ⇄ hanalima の往復を常に保つ。</strong> ディスクの形式（raw）、EFI の変数ストア、マシン識別子を vz と同じにしておくことが、「試験的」でいられる安全弁。ドライバーだけが使うファイルは <code>hanalima*</code> の名前にする。</li>
 <li><strong>ゲスト側に何かを入れる必要があるものは、プロビジョニングの例で。</strong> hvc0 の getty（シリアルからのログイン）がその形。vsock の sshd は systemd 256 以降なら何も要らない（Alpine は usernet のまま）。</li>
 <li><strong>停止は後片付けの完了まで返さない。</strong> Lima は <code>Stop</code> が返ると hostagent を終え、ドライバーに SIGTERM を送る。デリゲート経由の後片付け（usernet の終了、pid・ソケットの削除）の途中で exit すると残骸が出るので、<code>stop()</code> は <code>run == nil &amp;&amp; !busy</code> まで待つ。</li>
-<li><strong>残っているもの</strong>: <code>lima:</code> のネットワーク、Rosetta、スナップショットの RPC、macOS ゲスト、一時停止。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで済み。</li>
+<li><strong>隔離は 2 つの層の組み合わせ。</strong> VM をホストから切るのはドライバーの隔離プロファイル（usernet なし、SSH は vsock）、切った VM 同士をつなぐのは netd のゲスト専用ネットワーク（vmnet なしの L2 スイッチ。DHCP は経路も DNS も配らない）。後者は Lima の vz の VM にも付くが、vz には usernet が残るので隔離にはならない（docs/06 §8）。</li>
+<li><strong>残っているもの</strong>: <code>lima:</code> のネットワーク、Rosetta、スナップショットの RPC、macOS ゲスト、一時停止。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで、ゲスト専用ネットワークは <code>GuestOnlyEndToEndTests</code> と docs/02 まで済み。</li>
 </ul>
-<p class="note">関連: docs/09（外部ドライバーの調査と段階 0〜4 の結果）、docs/06（隔離の調査）、docs/04（設計メモ）。</p>
+<p class="note">関連: docs/09（外部ドライバーの調査と段階 0〜4 の結果）、docs/02（ゲスト専用ネットワーク、段階 5）、docs/06（隔離の調査）、docs/04（設計メモ）。</p>
 </main>
 </body>
 </html>
