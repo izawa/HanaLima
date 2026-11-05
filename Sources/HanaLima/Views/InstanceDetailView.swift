@@ -220,8 +220,11 @@ private struct InstanceNoticeBanner: View {
                 }
             }
         } else if instance.isRunning, !changed.isEmpty {
+            let stale = changed.filter { model.staleHelpers.contains($0) }
             banner(icon: "arrow.triangle.2.circlepath", color: .orange,
-                   text: String(localized: "ネットワーク \(quoted(changed)) の設定を変更しました。再起動すると新しい設定で通信します。")) {
+                   text: stale.count == changed.count
+                   ? String(localized: "ネットワーク \(quoted(stale)) のヘルパーが古い版のまま動いています（仮想マシンが接続している間は入れ替えられません）。再起動すると新しい版に切り替わり、保存した設定を読めるようになります。")
+                   : String(localized: "ネットワーク \(quoted(changed)) の設定を変更しました。再起動すると新しい設定で通信します。")) {
                 Button("再起動") { model.restart(instance.name) }
             }
         }

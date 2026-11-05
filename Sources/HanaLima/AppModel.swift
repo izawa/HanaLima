@@ -164,6 +164,9 @@ final class AppModel {
     /// Running instances whose HanaLima network was changed or deleted since they started:
     /// instance name → network names. They keep the old setup until restarted.
     var restartNeeded: [String: Set<String>] = [:]
+    /// Networks whose LaunchAgent still runs an older helper build (launchd keeps it until it
+    /// exits); the file just saved may be unreadable to it, so its VMs are marked for a restart.
+    var staleHelpers: Set<String> = []
     /// Disk moves in progress, so they can be cancelled.
     @ObservationIgnored var diskMoveTasks: [String: Task<Void, Never>] = [:]
     /// Where each instance's disk is. Kept as state (not read from the file system while

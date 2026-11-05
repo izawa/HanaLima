@@ -51,18 +51,20 @@ extension AppModel {
             if !networkStates.isEmpty { networkStates = [:] }
             return
         }
-        let (states, statuses) = await Task.detached {
+        let (states, statuses, stale) = await Task.detached {
             let agents = LaunchAgentManager()
             // Agents still on an older helper move to the current one once their helper exits.
             if !agents.upgradeIdleAgents(networks).isEmpty { HelperInstaller.removeUnusedCopies(agents: agents) }
             var states: [String: LaunchAgentManager.State] = [:]
             var statuses: [String: NetworkDaemonStatus] = [:]
+            let stale = Self.staleHelperNetworks(in: networks)
             for name in names {
                 states[name] = agents.state(of: name)
                 if case .running = states[name], let st = NetworkDaemonStatus.load(for: name) { statuses[name] = st }
             }
-            return (states, statuses)
+            return (states, statuses, stale)
         }.value
+        if stale != staleHelpers { staleHelpers = stale }
         if states != networkStates { networkStates = states }
         if statuses != networkStatuses { networkStatuses = statuses }
     }
@@ -125,12 +127,34 @@ extension AppModel {
         }
         // The helper restarts with the new settings; running VMs keep a dead link until restarted.
         if let previous, previous != network { markRestartNeeded(using: previous) }
+        await markRestartNeededForStaleHelpers()
         await refreshNetworkStates()
         return nil
     }
 
+    /// Agents still on an older helper (see `LaunchAgentManager.upgradeIdleAgents`) keep running
+    /// until their VMs stop; an older build may not read what was just saved (a kind it doesn't
+    /// know), so their VMs get the restart mark now rather than failing at the next spawn.
+    private func markRestartNeededForStaleHelpers() async {
+        let networks = virtualNetworks
+        let stale = await Task.detached { Self.staleHelperNetworks(in: networks) }.value
+        staleHelpers = stale
+        for network in networks where stale.contains(network.name) { markRestartNeeded(using: network) }
+    }
+
+    nonisolated static func staleHelperNetworks(in networks: [VirtualNetwork]) -> Set<String> {
+        let agents = LaunchAgentManager()
+        let current = NetworkPaths.installedHelper.path
+        return Set(networks.filter { network in
+            guard agents.isInstalled(network.name), agents.registeredProgram(of: network.name) != current,
+                  case .running = agents.state(of: network.name) else { return false }
+            return true
+        }.map(\.name))
+    }
+
     func deleteVirtualNetwork(_ name: String) async {
         if let network = virtualNetworks.first(where: { $0.name == name }) { markRestartNeeded(using: network) }
+        await markRestartNeededForStaleHelpers()
         let remaining = virtualNetworks.filter { $0.name != name }
         do {
             try NetworkStore.save(remaining)
