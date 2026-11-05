@@ -95,8 +95,10 @@ import Testing
         #expect(Int(offer[38]) << 8 | Int(offer[39]) == offer.count - 34)
         #expect(DHCPClientIDFilter.ipv4HeaderChecksum(offer[14..<34]) == UInt16(offer[24]) << 8 | UInt16(offer[25]))
         let options = Self.options(offer)
-        #expect(Set(options.keys) == Set([1, 51, 53, 54, 58, 59]))
-        #expect(options[3] == nil && options[6] == nil)
+        #expect(Set(options.keys) == Set([1, 6, 15, 51, 53, 54, 58, 59]))
+        #expect(options[3] == nil, "no router")
+        #expect(options[6] == [192, 168, 233, 1], "the server is the DNS")
+        #expect(options[15] == Array("hanalima".utf8))
         #expect(options[54] == [192, 168, 233, 1])
         #expect(options[1] == [255, 255, 255, 248])
         #expect(options[51] == [0, 0, 0, 80])
@@ -177,8 +179,52 @@ import Testing
         #expect(Self.options(inform)[53] == [5])
         #expect(Self.yiaddr(inform) == [0, 0, 0, 0])
         #expect(Array(inform[30..<34]) == [192, 168, 233, 5])
-        #expect(Self.options(inform)[3] == nil && Self.options(inform)[6] == nil)
+        #expect(Self.options(inform)[3] == nil && Self.options(inform)[6] == [192, 168, 233, 1])
         #expect(server.leases.count == 1)
+    }
+
+    /// A DNS query from `mac`/`source` to the server (or `to` another address), one question.
+    private static func dnsQuery(_ name: String, type: UInt16 = 1, mac: [UInt8] = first, source: [UInt8] = [192, 168, 233, 2],
+                                 to destination: [UInt8] = [192, 168, 233, 1], port: UInt16 = 53, id: [UInt8] = [0xab, 0xcd]) -> [UInt8] {
+        var message = id + [1, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+        for label in name.split(separator: ".") { message += [UInt8(label.utf8.count)] + Array(label.utf8) }
+        message += [0, UInt8(type >> 8), UInt8(type & 255), 0, 1]
+        let udpLength = message.count + 8
+        let total = udpLength + 20
+        let ip: [UInt8] = [0x45, 0, UInt8(total >> 8), UInt8(total & 255), 0, 0, 0, 0, 64, 17, 0, 0] + source + destination
+        return serverMAC + mac + [8, 0] + ip + [0xc3, 0x50, UInt8(port >> 8), UInt8(port & 255), UInt8(udpLength >> 8), UInt8(udpLength & 255), 0, 0] + message
+    }
+
+    @Test func dnsAnswersLeasedNamesOnly() throws {
+        let server = server()
+        _ = try #require(handle(server, Self.request(1, hostname: "lima-foo")))
+        _ = try #require(handle(server, Self.request(3, requested: [192, 168, 233, 2])))
+        let reply = try #require(handle(server, Self.dnsQuery("lima-foo")))
+        // Ethernet and IP back to the asker, from the server; UDP 53 → 50000.
+        #expect(Array(reply[0..<6]) == Self.first && Array(reply[6..<12]) == Self.serverMAC)
+        #expect(Array(reply[26..<30]) == [192, 168, 233, 1] && Array(reply[30..<34]) == [192, 168, 233, 2])
+        #expect(Array(reply[34..<38]) == [0, 53, 0xc3, 0x50])
+        #expect(DHCPClientIDFilter.ipv4HeaderChecksum(reply[14..<34]) == UInt16(reply[24]) << 8 | UInt16(reply[25]))
+        let message = Array(reply[42...])
+        #expect(Array(message[0..<2]) == [0xab, 0xcd])
+        #expect(message[2] == 0x85 && message[3] == 0, "QR, AA, RD; NOERROR")
+        #expect(Array(message[4..<12]) == [0, 1, 0, 1, 0, 0, 0, 0])
+        let question: [UInt8] = [8] + Array("lima-foo".utf8) + [0, 0, 1, 0, 1]
+        #expect(Array(message[12..<(12 + question.count)]) == question)
+        #expect(Array(message[(12 + question.count)...]) == [0xc0, 12, 0, 1, 0, 1, 0, 0, 0, 30, 0, 4, 192, 168, 233, 2])
+        // Case, a trailing dot and the search domain are accepted; AAAA has no answer; unknown names are REFUSED.
+        #expect(try #require(handle(server, Self.dnsQuery("LIMA-FOO.hanalima.")))[42 + 3] == 0)
+        let aaaa = try #require(handle(server, Self.dnsQuery("lima-foo", type: 28)))
+        #expect(aaaa[42 + 3] == 0 && aaaa[42 + 7] == 0, "NOERROR, no answers")
+        let refused = try #require(handle(server, Self.dnsQuery("example.com")))
+        #expect(refused[42 + 2] == 0x81 && refused[42 + 3] == 5, "REFUSED keeps a resolver moving to its next server")
+        #expect(refused[42 + 7] == 0)
+        #expect(handle(server, Self.dnsQuery("lima-foo", to: [192, 168, 233, 3])) == nil, "not for the server: switched")
+        #expect(handle(server, Self.dnsQuery("lima-foo", port: 5353)) == nil)
+        #expect(handle(server, Array(Self.dnsQuery("lima-foo").prefix(50))) == nil, "truncated")
+        // A released name is gone.
+        _ = handle(server, Self.request(7, ciaddr: [192, 168, 233, 2]))
+        #expect(try #require(handle(server, Self.dnsQuery("lima-foo")))[42 + 3] == 5)
     }
 
     private static func arp(target: [UInt8] = [192, 168, 233, 1]) -> [UInt8] {

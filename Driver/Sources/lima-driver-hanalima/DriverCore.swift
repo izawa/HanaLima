@@ -1,5 +1,6 @@
 import Foundation
 import LimaKit
+import NetworkKit
 
 /// The driver's state for one instance, behind Lima's RPCs (see DriverService): the config
 /// Lima sent, the usernet process, the VM, and the SSH forward on usernet.
@@ -87,6 +88,14 @@ actor DriverCore {
             resolver["enabled"] = false
             config["hostResolver"] = resolver
             config["containerd"] = ["system": false, "user": false]
+            // The resolver: with no usernet Lima would fall back to the Mac's own resolvers,
+            // which the guest can't reach (and cloud-init writes them to Alpine's resolv.conf
+            // at every boot, over dhcpcd's). A guest-only network's DHCP server is also its
+            // DNS (`lima-<name>` only), so name the first one; nothing else is reachable anyway.
+            if (config["dns"] as? [Any])?.isEmpty ?? true,
+               let gateway = Self.guestOnlyDNS(for: config["networks"] as? [[String: Any]] ?? []) {
+                config["dns"] = [gateway]
+            }
         }
         var vmOpts = config["vmOpts"] as? [String: Any] ?? [:]
         if vmOpts["vz"] == nil {
@@ -496,6 +505,17 @@ actor DriverCore {
                 return .failure("\(error)")
             }
         }
+    }
+
+    /// The DNS server (netd) of the first guest-only HanaLima network among `networks`.
+    private static func guestOnlyDNS(for networks: [[String: Any]]) -> String? {
+        guard let known = try? NetworkStore.load() else { return nil }
+        for nic in networks {
+            guard let socket = nic["socket"] as? String,
+                  let network = known.first(where: { $0.socketPath == socket }), network.isGuestOnly else { continue }
+            return network.gateway
+        }
+        return nil
     }
 
     /// For the watchdog: no VM and nothing in progress.

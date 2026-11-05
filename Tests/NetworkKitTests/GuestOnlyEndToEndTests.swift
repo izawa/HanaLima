@@ -5,8 +5,9 @@ import Testing
 
 /// A guest-only network (stage 5): hanalima-netd switches frames between the VMs itself, with no
 /// vmnet and no host interface. Two Alpine VMs on Lima's vz (no driver needed) get distinct
-/// addresses from netd's DHCP (one reserved), reach each other, have no default route and no
-/// DNS from that NIC, can't reach the server address with ICMP (only ARP answers), and the Mac
+/// addresses from netd's DHCP (one reserved), reach each other, have no default route from that
+/// NIC, resolve each other's `lima-<name>` through netd's DNS while the internet still resolves
+/// through usernet's, can't reach the server address with ICMP (only ARP answers), and the Mac
 /// has no interface on the subnet. Needs `scripts/build-app.sh` first.
 @Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["HANALIMA_E2E"] == "1"))
 struct GuestOnlyEndToEndTests {
@@ -61,9 +62,16 @@ struct GuestOnlyEndToEndTests {
         #expect(a == "192.168.233.50")
         #expect(b != a)
         #expect(IPv4(b).map { network.subnet!.contains($0) } == true)
-        // No route and no DNS from this NIC (the default route here is usernet's, on eth0).
+        // No route from this NIC (the default route here is usernet's, on eth0). netd's DNS
+        // resolves the other VM, bare and under the search domain, and refuses anything else.
+        // Lima's Alpine keeps cloud-init's resolv.conf (usernet's resolver only) while usernet
+        // is on, so the server is asked directly here; an isolated VM uses it as its resolver
+        // (DriverIsolationEndToEndTests). The internet still resolves through usernet's.
         #expect(try await sh(vms[0], "ip route show dev lima0 | grep -c default; true") == "0")
-        #expect(try await sh(vms[0], "grep -c 192.168.233 /etc/resolv.conf; true") == "0")
+        #expect(try await sh(vms[0], "nslookup lima-\(vms[1]) \(network.gateway) 2>/dev/null | grep -c 'Address: \(b)$'") == "1")
+        #expect(try await sh(vms[0], "nslookup lima-\(vms[1]).hanalima \(network.gateway) 2>/dev/null | grep -c 'Address: \(b)$'") == "1")
+        #expect(try await sh(vms[0], "nslookup example.com \(network.gateway) >/dev/null 2>&1 && echo resolves || echo refused") == "refused")
+        #expect(try await sh(vms[0], "nslookup dl-cdn.alpinelinux.org >/dev/null 2>&1 && echo ok") == "ok", "the internet still resolves")
         // They reach each other; the server address answers ARP but nothing else.
         #expect(try await sh(vms[0], "ping -c 2 -W 2 \(b) >/dev/null && echo ok") == "ok")
         #expect(try await sh(vms[1], "ping -c 2 -W 2 \(a) >/dev/null && echo ok") == "ok")

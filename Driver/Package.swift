@@ -21,6 +21,7 @@ let package = Package(
             name: "lima-driver-hanalima",
             dependencies: [
                 .product(name: "LimaKit", package: "HanaLima"),
+                .product(name: "NetworkKit", package: "HanaLima"),
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
                 .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),

@@ -272,7 +272,7 @@ final class GuestSwitch: @unchecked Sendable {
 
 let guestSwitch: GuestSwitch? = config.isGuestOnly ? GuestSwitch(config: config) : nil
 if let guestSwitch {
-    log("network \(config.name): guest-only switch, DHCP \(config.gateway)/\(config.prefixLength), no router, no DNS, server MAC \(guestSwitch.serverMAC.map { String(format: "%02x", $0) }.joined(separator: ":"))")
+    log("network \(config.name): guest-only switch, DHCP \(config.gateway)/\(config.prefixLength), no router, DNS for the leased names only, server MAC \(guestSwitch.serverMAC.map { String(format: "%02x", $0) }.joined(separator: ":"))")
 }
 
 // MARK: - Client registry (status file + idle exit)

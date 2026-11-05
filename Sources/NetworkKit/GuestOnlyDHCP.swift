@@ -1,6 +1,13 @@
 import Foundation
 
-/// DHCP and ARP for a guest-only switch; the host needs no interface on the subnet.
+/// DHCP, ARP and a small DNS for a guest-only switch; the host needs no interface on the subnet.
+///
+/// DHCP hands out no router. It names the server as the DNS server (option 6) with the search
+/// domain `hanalima` (option 15), and the DNS answers only the names the leases know: the
+/// hostnames the VMs sent (Lima's `lima-<name>`), bare or under `.hanalima`. Anything else is
+/// REFUSED, which resolvers take as "ask the next server" (NXDOMAIN would be final), so a VM
+/// that also has Lima's usernet keeps resolving the internet there. The search domain lets
+/// systemd-resolved, which won't send single-label names to DNS, find `lima-<name>` too.
 public final class GuestOnlyDHCP: @unchecked Sendable {
     private struct Lease {
         var ip: IPv4
@@ -14,6 +21,8 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
     private let reservations: [String: IPv4]
     private let reservedIPs: Set<IPv4>
     private let leaseSeconds: UInt32
+    public static let searchDomain = "hanalima"
+    static let dnsTTL: UInt32 = 30
     private let now: @Sendable () -> Date
     // Allocation and snapshots share a lock so concurrent relay threads cannot double-allocate.
     private let lock = NSLock()
@@ -50,12 +59,16 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
               bytes[20] & 0x3f == 0, bytes[21] == 0 else { return nil }
         let headerLength = Int(bytes[14] & 15) * 4
         let total = Int(Self.word(bytes, 16))
-        guard headerLength >= 20, total >= headerLength + 8 + 240,
+        guard headerLength >= 20, total >= headerLength + 8,
               total <= bytes.count - 14 else { return nil }
         let udp = 14 + headerLength
         let length = Int(Self.word(bytes, udp + 4))
-        guard Self.word(bytes, udp) == 68, Self.word(bytes, udp + 2) == 67,
-              length >= 248, length <= total - headerLength else { return nil }
+        guard length >= 8, length <= total - headerLength else { return nil }
+        if Self.word(bytes, udp + 2) == 53 {
+            guard Self.address(bytes, 30) == serverIP.value else { return nil }
+            return dnsReply(bytes, udp: udp, length: length)
+        }
+        guard Self.word(bytes, udp) == 68, Self.word(bytes, udp + 2) == 67, length >= 248 else { return nil }
         let bootp = Array(bytes[(udp + 8)..<(udp + length)])
         guard bootp[0] == 1, bootp[1] == 1, bootp[2] == 6,
               Array(bootp[236..<240]) == [99, 130, 83, 99] else { return nil }
@@ -178,6 +191,11 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
                                              (58, leaseSeconds / 2), (59, UInt32(UInt64(leaseSeconds) * 7 / 8))] {
             bootp += [code, 4] + Self.octets(value)
         }
+        if type != 6 {
+            bootp += [6, 4] + Self.octets(serverIP.value)
+            let domain = Array(Self.searchDomain.utf8)
+            bootp += [15, UInt8(domain.count)] + domain
+        }
         bootp += [255]
         bootp += [UInt8](repeating: 0, count: max(0, 300 - bootp.count))
         let udpLength = UInt16(bootp.count + 8)
@@ -188,6 +206,62 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
         ip[10] = UInt8(checksum >> 8); ip[11] = UInt8(checksum & 255)
         return (broadcast ? [UInt8](repeating: 255, count: 6) : mac) + serverMAC + [8, 0] + ip
             + [0, 67, 0, 68, UInt8(udpLength >> 8), UInt8(udpLength & 255), 0, 0] + bootp
+    }
+
+    // MARK: - DNS
+
+    /// The address a hostname the leases know resolves to, bare or under the search domain.
+    private func lookup(_ name: String) -> IPv4? {
+        var host = name.lowercased()
+        while host.hasSuffix(".") { host.removeLast() }
+        if host.hasSuffix("." + Self.searchDomain) { host.removeLast(Self.searchDomain.count + 1) }
+        guard !host.isEmpty else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        expire(at: now())
+        return active.values.first { $0.name.lowercased() == host }?.ip
+    }
+
+    /// One question, A or AAAA, answered from the leases; anything else REFUSED. The frame
+    /// is addressed to the server's IP and UDP port 53 (checked by the caller).
+    private func dnsReply(_ bytes: [UInt8], udp: Int, length: Int) -> [UInt8]? {
+        let message = Array(bytes[(udp + 8)..<(udp + length)])
+        guard message.count >= 12, message[2] & 0x80 == 0, Self.word(message, 4) == 1 else { return nil }
+        // The question: labels, then type and class.
+        var labels: [String] = []
+        var i = 12
+        while true {
+            guard i < message.count else { return nil }
+            let n = Int(message[i])
+            if n == 0 { i += 1; break }
+            guard n < 64, i + 1 + n <= message.count else { return nil }
+            labels.append(String(decoding: message[(i + 1)..<(i + 1 + n)], as: UTF8.self))
+            i += 1 + n
+        }
+        guard i + 4 <= message.count, Self.word(message, i + 2) == 1 else { return nil }
+        let qtype = Self.word(message, i)
+        let question = Array(message[12..<(i + 4)])
+        let name = labels.joined(separator: ".")
+        var reply = Array(message[0..<2])
+        let rd = message[2] & 1
+        var answer: [UInt8] = []
+        if let ip = lookup(name) {
+            reply += [0x84 | rd, 0]   // QR, AA; rcode NOERROR
+            if qtype == 1 {
+                answer = [0xc0, 12, 0, 1, 0, 1] + Self.octets(Self.dnsTTL) + [0, 4] + Self.octets(ip.value)
+            }
+        } else {
+            reply += [0x80 | rd, 5]   // QR; rcode REFUSED
+        }
+        reply += [0, 1, 0, answer.isEmpty ? 0 : 1, 0, 0, 0, 0] + question + answer
+        let udpLength = UInt16(reply.count + 8)
+        let total = udpLength + 20
+        var ip: [UInt8] = [0x45, 0, UInt8(total >> 8), UInt8(total & 255), 0, 0, 0, 0, 64, 17, 0, 0]
+        ip += Self.octets(serverIP.value) + Array(bytes[26..<30])
+        let checksum = DHCPClientIDFilter.ipv4HeaderChecksum(ip[...])
+        ip[10] = UInt8(checksum >> 8); ip[11] = UInt8(checksum & 255)
+        return Array(bytes[6..<12]) + serverMAC + [8, 0] + ip
+            + [0, 53, bytes[udp], bytes[udp + 1], UInt8(udpLength >> 8), UInt8(udpLength & 255), 0, 0] + reply
     }
 
     private func arpReply(_ bytes: [UInt8]) -> [UInt8]? {
