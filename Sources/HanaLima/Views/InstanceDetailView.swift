@@ -196,6 +196,11 @@ private struct InstanceNoticeBanner: View {
                 Button("インストーラーを開く") { model.installRequest = InstallRequest(name: instance.name) }
                     .disabled(model.isBusy(instance.name) && model.installSession?.name != instance.name)
             }
+        } else if model.metadata[instance.name]?.pendingIsolation == true {
+            banner(icon: "lock.shield", color: .orange,
+                   text: String(localized: "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。")) {
+                EmptyView()
+            }
         } else if let owner = model.sharedDiskOwners[instance.name] {
             banner(icon: "externaldrive.badge.exclamationmark", color: .red,
                    text: String(localized: "この仮想マシンのディスクは「\(owner)」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「\(owner)」のディスクを書き換えるため、起動できません。")) {

@@ -956,6 +956,22 @@
         }
       }
     },
+    "HanaLima のドライバーで、Lima の NIC 0 もホームフォルダの共有も無しで作ります。NIC 1 にはゲスト専用ネットワークだけを選べます（隔離した仮想マシン同士をつなぐ用途）。Mac の 127.0.0.1、LAN、インターネットには届きません。SSH とゲストエージェントは vsock です。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creates the VM on HanaLima's driver with neither Lima's NIC 0 nor the home share. Only guest-only networks are offered for NIC 1 (to connect isolated VMs to each other). The Mac's 127.0.0.1, your LAN and the internet are out of reach. SSH and the guest agent go over vsock."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバーで、Lima の NIC 0 もホームフォルダの共有も無しで作ります。NIC 1 にはゲスト専用ネットワークだけを選べます（隔離した仮想マシン同士をつなぐ用途）。Mac の 127.0.0.1、LAN、インターネットには届きません。SSH とゲストエージェントは vsock です。"
+          }
+        }
+      }
+    },
     "HanaLima のドライバー（VZ、試験的）": {
       "localizations": {
         "en": {
@@ -2880,6 +2896,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "socket_vmnet のホストオンリー・%@"
+          }
+        }
+      }
+    },
+    "systemd 256 以降のゲスト（Ubuntu 24.10 以降、Fedora 41 以降）は最初から届きます。Alpine や古い systemd のゲストは「最初の 1 回だけ NIC 0 を付けて起動する」をオンにしてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guests with systemd 256 or later (Ubuntu 24.10+, Fedora 41+) are reachable from the start. For Alpine and older systemd, turn on “Keep NIC 0 for the first boot only”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "systemd 256 以降のゲスト（Ubuntu 24.10 以降、Fedora 41 以降）は最初から届きます。Alpine や古い systemd のゲストは「最初の 1 回だけ NIC 0 を付けて起動する」をオンにしてください。"
           }
         }
       }
@@ -8665,6 +8697,22 @@
         }
       }
     },
+    "信用しきれないものを動かす仮想マシン向けの、まとめて設定するスイッチです。オンにすると、仮想化方式・NIC 0・共有フォルダ・NIC 1 の候補が隔離の構成になります（あとから個別に変えられます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One switch for a VM that runs something you don't fully trust. Turning it on sets the virtualization, NIC 0, the shared folders and the NIC 1 choices to the isolated arrangement (each can be changed afterwards)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信用しきれないものを動かす仮想マシン向けの、まとめて設定するスイッチです。オンにすると、仮想化方式・NIC 0・共有フォルダ・NIC 1 の候補が隔離の構成になります（あとから個別に変えられます）。"
+          }
+        }
+      }
+    },
     "停止": {
       "localizations": {
         "en": {
@@ -10504,6 +10552,38 @@
         }
       }
     },
+    "最初の 1 回だけ NIC 0 を付けて起動する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep NIC 0 for the First Boot Only"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の 1 回だけ NIC 0 を付けて起動する"
+          }
+        }
+      }
+    },
+    "最初の起動だけ NIC 0 を付け、停止したら HanaLima が自動で外します。Alpine や systemd 256 より古いゲスト（Ubuntu 24.04 など）は、この 1 回で vsock の SSH 中継（socat）とプロビジョニングを入れられます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 stays for the first boot only; HanaLima removes it once the VM has stopped. Alpine and guests with systemd older than 256 (Ubuntu 24.04, say) get the vsock SSH relay (socat) and their provisioning in that one boot."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の起動だけ NIC 0 を付け、停止したら HanaLima が自動で外します。Alpine や systemd 256 より古いゲスト（Ubuntu 24.04 など）は、この 1 回で vsock の SSH 中継（socat）とプロビジョニングを入れられます。"
+          }
+        }
+      }
+    },
     "最後のコマンド: %@": {
       "localizations": {
         "en": {
@@ -12102,6 +12182,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "開発言語（Go、Node.js、Python、Rust）"
+          }
+        }
+      }
+    },
+    "隔離": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isolation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔離"
+          }
+        }
+      }
+    },
+    "隔離した仮想マシンとして作る": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create as an Isolated VM"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔離した仮想マシンとして作る"
+          }
+        }
+      }
+    },
+    "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing isolation: NIC 0 (Lima's user-mode NAT) is attached for this first boot only. It comes off automatically once the VM stops, and the next start is isolated."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。"
           }
         }
       }

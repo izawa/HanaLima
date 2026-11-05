@@ -30,6 +30,18 @@ struct CreateInstanceSheet: View {
     @State private var extraNIC: ExtraNIC = .none
     /// HanaLima's driver only: no Lima user-mode network on NIC 0 (`vmOpts.hanalima.usernet: false`).
     @State private var isolated = false
+    /// The isolation preset: the driver, no NIC 0, no home share, and only guest-only networks
+    /// as NIC 1 (one toggle for the whole arrangement).
+    @State private var isolationPreset = false
+    /// With the preset: keep NIC 0 for the first boot so the guest can fetch the vsock SSH
+    /// relay (Alpine, older systemd); HanaLima removes it after the first stop.
+    @State private var prepareFirstBoot = false
+    #if DEBUG
+    /// `HANALIMA_SNAPSHOT_CREATE=isolated` opens the sheet with the isolation preset on.
+    private static var initialIsolationPreset: Bool { DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] == "isolated" }
+    #else
+    private static var initialIsolationPreset: Bool { false }
+    #endif
 
     /// The optional second NIC offered at creation time (more can be added in Settings).
     private enum ExtraNIC: Hashable {
@@ -131,7 +143,7 @@ struct CreateInstanceSheet: View {
                     }
                     Picker("NIC 1", selection: $extraNIC) {
                         Text("なし").tag(ExtraNIC.none)
-                        ForEach(model.virtualNetworks) { n in
+                        ForEach(model.virtualNetworks.filter { !isolationPreset || $0.isGuestOnly }) { n in
                             Text(n.menuDescription)
                                 .tag(ExtraNIC.virtual(n.name))
                         }
@@ -210,6 +222,30 @@ struct CreateInstanceSheet: View {
                     }
                 }
 
+                if AppModel.hasDriver, source == .template {
+                    Section {
+                        Toggle("隔離した仮想マシンとして作る", isOn: $isolationPreset)
+                        if isolationPreset {
+                            Toggle("最初の 1 回だけ NIC 0 を付けて起動する", isOn: $prepareFirstBoot)
+                        }
+                    } header: {
+                        Text("隔離")
+                    } footer: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(isolationPreset
+                                 ? "HanaLima のドライバーで、Lima の NIC 0 もホームフォルダの共有も無しで作ります。NIC 1 にはゲスト専用ネットワークだけを選べます（隔離した仮想マシン同士をつなぐ用途）。Mac の 127.0.0.1、LAN、インターネットには届きません。SSH とゲストエージェントは vsock です。"
+                                 : "信用しきれないものを動かす仮想マシン向けの、まとめて設定するスイッチです。オンにすると、仮想化方式・NIC 0・共有フォルダ・NIC 1 の候補が隔離の構成になります（あとから個別に変えられます）。")
+                                .font(.caption).foregroundStyle(.secondary)
+                            if isolationPreset {
+                                Text(prepareFirstBoot
+                                     ? "最初の起動だけ NIC 0 を付け、停止したら HanaLima が自動で外します。Alpine や systemd 256 より古いゲスト（Ubuntu 24.04 など）は、この 1 回で vsock の SSH 中継（socat）とプロビジョニングを入れられます。"
+                                     : "systemd 256 以降のゲスト（Ubuntu 24.10 以降、Fedora 41 以降）は最初から届きます。Alpine や古い systemd のゲストは「最初の 1 回だけ NIC 0 を付けて起動する」をオンにしてください。")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
                 Section("オプション") {
                     if HostInfo.isAppleSilicon {
                         Toggle("Rosetta で x86_64 バイナリを実行", isOn: $rosetta)
@@ -235,7 +271,8 @@ struct CreateInstanceSheet: View {
                 Button("作成") {
                     model.create(options, startAfterCreate: startAfterCreate,
                                  diskFolder: diskOnOtherDrive ? diskFolder : nil,
-                                 installISO: source == .iso ? isoURL : nil)
+                                 installISO: source == .iso ? isoURL : nil,
+                                 isolateAfterFirstBoot: isolationPreset && prepareFirstBoot)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -247,8 +284,21 @@ struct CreateInstanceSheet: View {
         .frame(width: 560, height: 720)
         .onChange(of: vmType) { _, new in
             if extraNIC == .vzNAT, new != .vz, new != .hanalima { extraNIC = .none }
-            if new != .hanalima { isolated = false }
+            if new != .hanalima { isolated = false; isolationPreset = false }
             if new != .vz { rosetta = false }
+        }
+        .onAppear { if Self.initialIsolationPreset { isolationPreset = true } }
+        .onChange(of: isolationPreset) { _, on in
+            if on {
+                vmType = .hanalima
+                isolated = true
+                shareHome = false
+                rosetta = false
+                if case .virtual(let name) = extraNIC, model.virtualNetworks.first(where: { $0.name == name })?.isGuestOnly != true { extraNIC = .none }
+                if extraNIC == .vzNAT { extraNIC = .none }
+            } else {
+                prepareFirstBoot = false
+            }
         }
         .onChange(of: isolated) { _, on in
             // An isolated VM with vzNAT would reach the internet after all; keep that a choice
@@ -325,7 +375,7 @@ struct CreateInstanceSheet: View {
             mountNone: !shareHome,
             mountOnly: shareHome ? [] : workFolderMount,
             setExpressions: (source == .iso ? InstallSupport.createExpressions : []) + virtualNetworkExpression
-                + (isolated ? [".vmOpts.hanalima.usernet = false"] : []))
+                + (isolated && !(isolationPreset && prepareFirstBoot) ? [".vmOpts.hanalima.usernet = false"] : []))
     }
 
     /// The work folder as a `--mount-only` value: `<path>` or `<path>:w`.

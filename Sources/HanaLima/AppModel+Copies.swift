@@ -17,12 +17,13 @@ extension AppModel {
     }
 
     /// Records how HanaLima created `name` (the listing has already given it a bare record).
-    func recordCreation(of name: String, template: String, pendingISO: URL? = nil) {
+    func recordCreation(of name: String, template: String, pendingISO: URL? = nil, pendingIsolation: Bool = false) {
         guard let inst = instance(named: name) else { return }
         var meta = metadata[name] ?? InstanceMetadata(instanceDir: URL(filePath: inst.dir, directoryHint: .isDirectory))
         meta.createdAt = Date(timeIntervalSince1970: Date.now.timeIntervalSince1970.rounded(.down))
         meta.template = template
         meta.pendingInstall = pendingISO.map { InstanceMetadata.PendingInstall(iso: $0) }
+        meta.pendingIsolation = pendingIsolation ? true : nil
         try? meta.save()
         metadata[name] = meta
     }

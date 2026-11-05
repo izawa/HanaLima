@@ -37,6 +37,10 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     /// Set while the OS is still to be installed from an ISO (docs/07): the disk is blank, so
     /// Lima must not start it yet. Cleared when the install is done.
     public var pendingInstall: PendingInstall?
+    /// The isolation preset's first boot: the VM was created with usernet so the guest could
+    /// fetch socat (the vsock SSH relay); once it has stopped, HanaLima removes usernet and
+    /// clears this.
+    public var pendingIsolation: Bool?
     /// The playbook last chosen for this VM (docs/08). Lives outside the VM's folder, so only its path.
     public var ansible: AnsibleRecord?
 

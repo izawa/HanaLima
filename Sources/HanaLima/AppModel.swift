@@ -325,6 +325,7 @@ final class AppModel {
             updateDiskPlacements()
             updateMetadata(list)
             reattachHostedBoots()
+            applyPendingIsolation()
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {
@@ -390,7 +391,8 @@ final class AppModel {
     /// always creates the disk under ~/.lima).
     /// With `installISO`, the VM gets a blank disk (`options` carry the placeholder image) and is
     /// marked "install pending"; `startAfterCreate` then opens the installer instead.
-    func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil, installISO: URL? = nil) {
+    func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil, installISO: URL? = nil,
+                isolateAfterFirstBoot: Bool = false) {
         guard let client else { return }
         if installISO != nil {
             do { try InstallSupport.ensurePlaceholderImage() } catch {
@@ -406,7 +408,7 @@ final class AppModel {
                 if startAfterCreate { self.installRequest = InstallRequest(name: options.name) }
                 return
             }
-            self.recordCreation(of: options.name, template: options.template)
+            self.recordCreation(of: options.name, template: options.template, pendingIsolation: isolateAfterFirstBoot)
             if let diskFolder {
                 Task {
                     await self.refresh()  // moveDisk needs the instance listed
