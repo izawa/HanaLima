@@ -24,21 +24,26 @@ func makeDatagramSocketPair() throws -> (local: FileHandle, remote: FileHandle) 
     guard socketpair(AF_UNIX, SOCK_DGRAM, 0, &descriptors) == 0 else {
         throw fdError("socketpair")
     }
+    // Lima's sizes: 1 MiB to send, 4 MiB to receive, on both ends.
     for descriptor in descriptors {
-        var size: Int32 = 1 << 20
-        for option in [SO_SNDBUF, SO_RCVBUF] {
-            _ = setsockopt(descriptor, SOL_SOCKET, option, &size, socklen_t(MemoryLayout.size(ofValue: size)))
-        }
+        var send: Int32 = 1 << 20
+        var receive: Int32 = 4 << 20
+        _ = setsockopt(descriptor, SOL_SOCKET, SO_SNDBUF, &send, socklen_t(MemoryLayout<Int32>.size))
+        _ = setsockopt(descriptor, SOL_SOCKET, SO_RCVBUF, &receive, socklen_t(MemoryLayout<Int32>.size))
     }
     return (FileHandle(fileDescriptor: descriptors[0], closeOnDealloc: true),
             FileHandle(fileDescriptor: descriptors[1], closeOnDealloc: true))
 }
 
-func sendFileDescriptor(_ fd: Int32, toUnixSocketAt path: String) throws {
+/// Returns the stream socket the descriptor went over. Lima never closes its end; keep it
+/// open for the VM's lifetime too, in case the receiver treats the hang-up as the end of the
+/// connection it is reading the descriptor from.
+@discardableResult
+func sendFileDescriptor(_ fd: Int32, toUnixSocketAt path: String) throws -> FileHandle {
     var address = try fdAddress(path)
     let stream = socket(AF_UNIX, SOCK_STREAM, 0)
     guard stream >= 0 else { throw fdError("socket") }
-    defer { close(stream) }
+    let streamHandle = FileHandle(fileDescriptor: stream, closeOnDealloc: true)
     var enabled: Int32 = 1
     guard setsockopt(stream, SOL_SOCKET, SO_NOSIGPIPE, &enabled, 4) == 0 else {
         throw fdError("setsockopt(SO_NOSIGPIPE)")
@@ -76,6 +81,7 @@ func sendFileDescriptor(_ fd: Int32, toUnixSocketAt path: String) throws {
         }
     }
     guard sent == 1 else { throw fdError("sendmsg(SCM_RIGHTS)", errno: sent < 0 ? errno : EIO) }
+    return streamHandle
 }
 
 func fdPassingSelfTest() throws {

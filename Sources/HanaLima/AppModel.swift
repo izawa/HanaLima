@@ -197,6 +197,15 @@ final class AppModel {
     // MARK: - Lifecycle
 
     /// Called by both the main window and the menu bar item; only the first call does the work.
+    /// `Contents/Helpers`, when it holds `lima-driver-hanalima` (built by build-app.sh).
+    static var driverDirectory: URL? {
+        let helpers = Bundle.main.bundleURL.appending(path: "Contents/Helpers")
+        return FileManager.default.isExecutableFile(atPath: helpers.appending(path: "lima-driver-hanalima").path) ? helpers : nil
+    }
+
+    /// Whether VMs can be created with HanaLima's own driver (`vmType: hanalima`).
+    static var hasDriver: Bool { driverDirectory != nil }
+
     func bootstrap() async {
         guard !bootstrapStarted else { return }
         bootstrapStarted = true
@@ -206,7 +215,12 @@ final class AppModel {
             availability = .missing
             return
         }
-        let client = LimaClient(limactlURL: url)
+        // limactl finds HanaLima's VM driver (Driver/, docs/09) through LIMA_DRIVERS_PATH.
+        var environment = ProcessInfo.processInfo.environment
+        if let helpers = Self.driverDirectory {
+            environment["LIMA_DRIVERS_PATH"] = [helpers.path, environment["LIMA_DRIVERS_PATH"]].compactMap { $0 }.joined(separator: ":")
+        }
+        let client = LimaClient(limactlURL: url, environment: environment)
         do {
             let version = try await client.version()
             self.client = client

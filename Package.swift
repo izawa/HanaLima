@@ -29,7 +29,7 @@ let package = Package(
         .testTarget(name: "NetworkKitTests", dependencies: ["NetworkKit", "LimaKit"]),
         .testTarget(
             name: "LimaKitTests",
-            dependencies: ["LimaKit"],
+            dependencies: ["LimaKit", "NetworkKit"],
             resources: [.copy("Fixtures")]
         ),
     ]

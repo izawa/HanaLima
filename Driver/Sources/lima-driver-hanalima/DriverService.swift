@@ -10,7 +10,7 @@ struct DriverService: Driver.SimpleServiceProtocol {
 
     func info(request: Google_Protobuf_Empty, context: ServerContext) async throws -> InfoResponse {
         let json: [String: Any] = [
-            "name": "hanalima", "vsockPort": 0, "virtioPort": "", "instanceDir": core.instanceDir.path,
+            "name": "hanalima", "vsockPort": Int(InstanceSpec.guestAgentVsockPort), "virtioPort": "", "instanceDir": core.instanceDir.path,
             "features": [
                 "dynamicSSHAddress": false, "staticSSHPort": false, "skipSocketForwarding": false,
                 "noCloudInit": false, "rosettaEnabled": false, "rosettaBinFmt": false,
@@ -90,12 +90,15 @@ struct DriverService: Driver.SimpleServiceProtocol {
         .with { $0.address = "127.0.0.1" }
     }
 
+    /// false: the guest agent is reached over vsock, bridged to `ga.sock` (see GuestAgentConn).
     func forwardGuestAgent(request: Google_Protobuf_Empty, context: ServerContext) async throws -> ForwardGuestAgentResponse {
-        .with { $0.shouldForward = true }
+        .with { $0.shouldForward = false }
     }
 
     func guestAgentConn(request: Google_Protobuf_Empty, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        .init()
+        log("GuestAgentConn")
+        try await wrap { try await core.ensureGuestAgentBridge() }
+        return .init()
     }
 
     func changeDisplayPassword(request: ChangeDisplayPasswordRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {

@@ -96,3 +96,18 @@ Lima 2.2.1 の `cmd/lima-driver-vz` を `go build` して ad-hoc 署名（`vz.en
 - **起動が失敗する経路**（`vz-efi` をディレクトリにして確認）: `limactl start` は 2 秒で fatal になり、ドライバーの pid ファイルと usernet は残らない。残るのは Lima 側の `hanalima.drv.pid`・`.drv.sock`。
 - **ドライバーのプロセスの親は hostagent ではない**: 起動の Prepare（Configure・Create・CreateDisk）を `limactl start` のプロセスが起動したドライバーで行い、hostagent はその「動いているサーバー」を使い回す。だから「親が消えたら終了する」番犬をドライバーに入れると、`limactl start` が READY で抜けた瞬間にドライバーが死んで VM が Broken になる（実機で確認して取り消した）。
 - **残り（段階 2 へ）:** vsock のゲストエージェント（`ga.sock` の橋渡し）、SSH の vsock 化、`socket:` の NIC（netd）、vzNAT、追加ディスク、Rosetta、画面、アプリ側（作成画面の `hanalima`、`LIMA_DRIVERS_PATH=Contents/Helpers` を `ProcessRunner` の環境に）。
+
+## 段階 2 の結果（2026-11-05）: Lima の vz と同等の構成
+
+E2E `DriverEndToEndTests` を広げ、Alpine（起動 71 秒、停止 4 秒）で次がすべて通る: HanaLima のネットワーク（netd の `socket:`）の NIC、vzNAT の NIC、追加ディスク（Lima が `/mnt/lima-<名前>` にマウント、`in_use_by` のロックと解放）、vsock のゲストエージェント、ポート転送、停止後に残骸なし。
+
+- **アプリ側**: `AppModel.bootstrap` が `LIMA_DRIVERS_PATH=<バンドル>/Contents/Helpers` を `limactl` の環境に足す（ドライバーが無いビルドでは足さない）。作成画面の「仮想化方式」に「HanaLima のドライバー（VZ、試験的）」が並ぶ（ドライバーがあるときだけ）。
+- **NIC**: `networks[i].macAddress` は Lima の既定値（`MACAddress("<dir>#<i>")`）が Configure の JSON に埋まっているのでそれを使う。`socket:` は `StreamDatagramRelay`（QEMU の 4 バイト長＋フレームのストリーム ↔ SOCK_DGRAM の socketpair。Lima の `DialQemu` と同じ）、`vzNAT` は `VZNATNetworkDeviceAttachment`。`lima:`（socket_vmnet、user-v2）は未対応でエラーにする。
+- **追加ディスク**: `<LimaHome>/_disks/<名前>/datadisk`。**Lima 2.2.1 の `limactl disk create --format raw` は「raw を作る」と言いながら qcow2 を作る**（`disk list` も qcow2）。Lima の vz は最初の接続時に qcow2 を raw に書き換えるので、ドライバーも同じく `QCOW2Converter`（Codex が書いた v2/v3 の読み出し、圧縮・backing・暗号は拒否、スパースに書く）で `datadisk.hanalima-raw` に変換して `replaceItemAt` で置き換える。qemu-img の出力と 2 種類の画像で `cmp` 一致。ロックは `in_use_by` → VM のフォルダのシンボリックリンク（別の VM のものならエラー）。**デバイスの順番は disk（vda）、追加ディスク（vdb…）、cidata が最後**。cidata を先に付けると Lima の `05-lima-disks.sh` が cidata を `sfdisk` しようとして失敗する。
+- **vsock**: `VZVirtioSocketDeviceConfiguration` を付け、`Info` の `vsockPort` を 2222、`ForwardGuestAgent` を false にする。hostagent は `GuestAgentConn` のあと `<dir>/ga.sock` に unix で接続する（Go の外部ドライバーではサーバー側の共通コードが橋渡しするが、Swift では自前）。`UnixSocketBridge`（Codex）が `ga.sock` で待ち受け、接続ごとに `VZVirtioSocketDevice.connect(toPort: 2222)` を VZ のキューで行い、その fd の dup と双方向コピーする。bridge の close は接続の終了を待たない（VM が消えた vsock は答えないので、待つと teardown が止まり、usernet と pid ファイルが残った）。
+- **teardown は actor の外**（`Task.detached`）: usernet の終了待ち（最大 5 秒）で Info まで止まらないように。usernet の起動待ちも同様。
+- **「ゲストが usernet に何も送らない」の原因（段階 1 の未解決、2〜5 回に 1 回）**: 失敗時は fd 渡しは成功していて（usernet と VZ のヘルパーが socketpair の両端を持つ）、usernet の `/stats` が `BytesReceived: 0`。違いは、Lima の `PassFDToUnix` が fd を渡したストリーム接続を**閉じない**のに対し、こちらは sendmsg の直後に閉じていたこと（と、バッファを SND 1 MiB／RCV 4 MiB にせず両方 1 MiB にしていたこと）。Lima に揃えてストリームを VM の寿命のあいだ開いたままにし、バッファも同じにしたら 12 回連続で通った。usernet の `listenFD` は `fd.Get` のあともその接続を持ち続けるので、こちらの hang-up が何かを壊すのだと思われる（Go 側の `Recvmsg` は data を nil で呼ぶ）。
+- **2 回目の Codex のレビューで直した 7 点**: ディスクのロックを変換より先に（別の VM が使っているディスクを書き換えない）、変換の一時ファイルを pid 付きの名前にして失敗時に消す、Start/Stop の再入（`busy`）、teardown 中の次の Start を拒む、vsock の接続オブジェクトは dup のあと閉じる（保持し続けると fd が増える）、relay の `dup` の失敗を見る。
+- **残る不安定さ**: Alpine で追加ディスクが `/mnt/lima-<名前>` にマウントされないことが 4 回中 1 回あった（起動自体は通る）。Lima の `05-lima-disks.sh` が初回起動で `sfdisk`・`mkfs.ext4` を要し、それは `10-alpine-prep.sh` の apk が入れるので、初回の DNS かミラーの揺らぎを疑っている。E2E は失敗時にブートログの該当箇所を出すようにした。Ubuntu では 4 回とも通る。
+- **孤児の注意**: 手動の調査で `limactl usernet` を起動したまま親を落とすと残る（1 時間 52 分動いていた）。`ps -axo pid,ppid,command | grep usernet` で確かめる。
+- **Codex の部品の品質**: `UnixSocketBridge` と `QCOW2Converter` は自己テストが通った。`StreamDatagramRelay` は Codex 版が自己テストの終了処理で詰まった（データは両方向に流れていた）ので、同じ設計で短く書き直した。

@@ -12,8 +12,9 @@ final class VZMachine: @unchecked Sendable {
     private let delegate: Delegate
 
     /// `onStop` is called once, when the guest stops on its own or crashes (not after `stop()`).
-    init(spec: InstanceSpec, networkHandle: FileHandle, onStop: @escaping @Sendable (Error?) -> Void) throws {
-        let config = try Self.configuration(spec: spec, networkHandle: networkHandle)
+    /// `networkHandles`: the usernet NIC first, then one per `spec.nics` (vzNAT entries get nil).
+    init(spec: InstanceSpec, networkHandles: [FileHandle?], onStop: @escaping @Sendable (Error?) -> Void) throws {
+        let config = try Self.configuration(spec: spec, networkHandles: networkHandles)
         let vm = VZVirtualMachine(configuration: config, queue: queue)
         let delegate = Delegate(onStop: onStop)
         // VZVirtualMachine's properties are confined to its queue.
@@ -68,6 +69,32 @@ final class VZMachine: @unchecked Sendable {
         }
     }
 
+    /// A connection to the guest's vsock port (Lima's guest agent). Returns a dup of the
+    /// connection's descriptor for the caller to own. Call from any thread but the VZ queue
+    /// (it waits for the completion).
+    func connectVsock(port: UInt32) throws -> Int32 {
+        let done = DispatchSemaphore(value: 0)
+        nonisolated(unsafe) var result: Result<VZVirtioSocketConnection, Error>?
+        queue.async {
+            guard let device = self.machine.socketDevices.first as? VZVirtioSocketDevice else {
+                result = .failure(DriverError("no vsock device"))
+                done.signal()
+                return
+            }
+            device.connect(toPort: port) { r in
+                result = r
+                done.signal()
+            }
+        }
+        done.wait()
+        let connection = try result!.get()
+        // The dup outlives the connection object: closing the object only drops its descriptor.
+        let fd = dup(connection.fileDescriptor)
+        guard fd >= 0 else { connection.close(); throw DriverError("dup of the vsock descriptor failed (errno \(errno))") }
+        connection.close()
+        return fd
+    }
+
     private final class Delegate: NSObject, VZVirtualMachineDelegate, @unchecked Sendable {
         let onStop: @Sendable (Error?) -> Void
         init(onStop: @escaping @Sendable (Error?) -> Void) { self.onStop = onStop }
@@ -77,7 +104,7 @@ final class VZMachine: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    static func configuration(spec: InstanceSpec, networkHandle: FileHandle) throws -> VZVirtualMachineConfiguration {
+    static func configuration(spec: InstanceSpec, networkHandles: [FileHandle?]) throws -> VZVirtualMachineConfiguration {
         let fm = FileManager.default
         let config = VZVirtualMachineConfiguration()
         config.cpuCount = max(VZVirtualMachineConfiguration.minimumAllowedCPUCount,
@@ -98,16 +125,41 @@ final class VZMachine: @unchecked Sendable {
         var storage: [VZStorageDeviceConfiguration] = [VZVirtioBlockDeviceConfiguration(
             attachment: try VZDiskImageStorageDeviceAttachment(url: spec.diskURL, readOnly: false,
                                                                cachingMode: .automatic, synchronizationMode: .fsync))]
+        // Lima's order: disk (vda), additional disks (vdb…, cidata's boot script formats and
+        // mounts them by that name), then cidata.
+        for disk in spec.disks {
+            storage.append(VZVirtioBlockDeviceConfiguration(
+                attachment: try VZDiskImageStorageDeviceAttachment(url: disk.image, readOnly: false,
+                                                                   cachingMode: .automatic, synchronizationMode: .fsync)))
+        }
         if fm.fileExists(atPath: spec.cidataURL.path) {
             storage.append(VZVirtioBlockDeviceConfiguration(
                 attachment: try VZDiskImageStorageDeviceAttachment(url: spec.cidataURL, readOnly: true)))
         }
         config.storageDevices = storage
 
-        let net = VZVirtioNetworkDeviceConfiguration()
-        net.attachment = VZFileHandleNetworkDeviceAttachment(fileHandle: networkHandle)
-        if let mac = VZMACAddress(string: spec.macAddress) { net.macAddress = mac }
-        config.networkDevices = [net]
+        // NIC 0 is usernet; the rest follow lima.yaml's `networks:`.
+        var nics: [VZVirtioNetworkDeviceConfiguration] = []
+        guard let usernetHandle = networkHandles.first ?? nil else { throw DriverError("no usernet handle") }
+        nics.append(nic(handle: usernetHandle, mac: spec.macAddress))
+        for (i, entry) in spec.nics.enumerated() {
+            switch entry {
+            case .vzNAT(let mac):
+                let net = VZVirtioNetworkDeviceConfiguration()
+                net.attachment = VZNATNetworkDeviceAttachment()
+                if let m = VZMACAddress(string: mac) { net.macAddress = m }
+                nics.append(net)
+            case .socket(_, let mac):
+                guard let handle = networkHandles[i + 1] else { throw DriverError("no handle for NIC \(i + 1)") }
+                nics.append(nic(handle: handle, mac: mac))
+            case .lima(let name):
+                throw DriverError("network lima:\(name) is not supported by this driver (use a HanaLima network or vzNAT)")
+            }
+        }
+        config.networkDevices = nics
+
+        // The guest agent's vsock (Lima's guest agent listens on port 2222).
+        config.socketDevices = [VZVirtioSocketDeviceConfiguration()]
 
         config.directorySharingDevices = spec.mounts.map { mount in
             let share = VZSingleDirectoryShare(directory: VZSharedDirectory(
@@ -130,6 +182,13 @@ final class VZMachine: @unchecked Sendable {
         config.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
         try config.validate()
         return config
+    }
+
+    private static func nic(handle: FileHandle, mac: String) -> VZVirtioNetworkDeviceConfiguration {
+        let net = VZVirtioNetworkDeviceConfiguration()
+        net.attachment = VZFileHandleNetworkDeviceAttachment(fileHandle: handle)
+        if let m = VZMACAddress(string: mac) { net.macAddress = m }
+        return net
     }
 
     /// Lima's `vz-identifier` (written by Create); made here if it's missing.

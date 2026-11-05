@@ -907,6 +907,22 @@
         }
       }
     },
+    "HanaLima のドライバー（VZ、試験的）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバー（VZ、試験的）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima’s Driver (VZ, Experimental)"
+          }
+        }
+      }
+    },
     "HanaLima の仮想ネットワーク（NAT・ホストオンリー・ブリッジ）と vzNAT は管理者権限なしで使えます。": {
       "localizations": {
         "en": {
@@ -1243,6 +1259,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lima で起動"
+          }
+        }
+      }
+    },
+    "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima runs the VM on Virtualization.framework itself instead of Lima’s VZ. Still experimental: no display, Rosetta or socket_vmnet networks."
           }
         }
       }

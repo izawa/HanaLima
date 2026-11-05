@@ -15,12 +15,24 @@ actor DriverCore {
         var usernet: Process?
         var machine: VZMachine?
         var exposedLocal: String?
+        /// The VM's end of the usernet socket pair, kept for the VM's lifetime (closeOnDealloc).
+        var usernetHandle: FileHandle?
+        /// The stream over which usernet got its end (kept open like Lima does).
+        var usernetPass: FileHandle?
+        /// Relays for `socket:` NICs (closing them ends the relay threads).
+        var relays: [FileHandle] = []
+        /// Additional disks this run locked (`in_use_by`).
+        var lockedDisks: [InstanceSpec.Disk] = []
+        /// `ga.sock` → the guest agent's vsock, once Lima asks for it.
+        var guestAgentBridge: UnixSocketBridge?
         /// Ends when the guest stops; Start's stream waits on it.
         var stopped: AsyncStream<Error?>.Continuation?
     }
 
     private var run: Run?
     private var generation = 0
+    /// A start or a teardown in progress (they suspend); no other start or stop meanwhile.
+    private var busy = false
 
     init(instanceDir: URL) { self.instanceDir = instanceDir }
 
@@ -88,19 +100,38 @@ actor DriverCore {
     /// returned stream yields once, when the guest stops (nil) or dies (the error).
     func start() async throws -> AsyncStream<Error?> {
         let spec = try requireSpec()
-        guard run == nil else { throw DriverError("already started") }
+        guard run == nil, !busy else { throw DriverError("already started") }
+        busy = true
+        defer { busy = false }
         generation += 1
         var current = Run(generation: generation)
         do {
             try Data("\(ProcessInfo.processInfo.processIdentifier)".utf8).write(to: spec.pidURL)
-            current.usernet = try Usernet.start(spec: spec)
+            // usernet's start-up waits on its sockets (up to 15 s); not on the actor's executor.
+            current.usernet = try await Task.detached { try Usernet.start(spec: spec) }.value
             let pair = try makeDatagramSocketPair()
-            try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: spec.usernetFDSocket)
+            current.usernetPass = try sendFileDescriptor(pair.remote.fileDescriptor, toUnixSocketAt: spec.usernetFDSocket)
             try pair.remote.close()
+            current.usernetHandle = pair.local
+            var handles: [FileHandle?] = [pair.local]
+            for nic in spec.nics {
+                switch nic {
+                case .socket(let path, _):
+                    let relay = try connectQemuStreamSocket(path: path)
+                    current.relays.append(relay)
+                    handles.append(relay)
+                case .vzNAT, .lima:
+                    handles.append(nil)
+                }
+            }
+            for disk in spec.disks {
+                try Self.lock(disk, for: spec)
+                current.lockedDisks.append(disk)
+            }
             let (stream, continuation) = AsyncStream<Error?>.makeStream()
             current.stopped = continuation
             let gen = current.generation
-            let vm = try VZMachine(spec: spec, networkHandle: pair.local) { error in
+            let vm = try VZMachine(spec: spec, networkHandles: handles) { error in
                 Task { await self.guestStopped(generation: gen, error: error) }
             }
             current.machine = vm
@@ -110,7 +141,45 @@ actor DriverCore {
             return stream
         } catch {
             run = nil
-            tearDown(current)
+            await tearDown(current)
+            throw error
+        }
+    }
+
+    /// Lima's `GuestAgentConn` with `ForwardGuestAgent` false: the host agent dials `ga.sock`
+    /// in the instance directory, which this bridges to the guest agent's vsock port.
+    func ensureGuestAgentBridge() throws {
+        let spec = try requireSpec()
+        guard let current = run, let vm = current.machine else { throw DriverError("not started") }
+        if current.guestAgentBridge != nil { return }
+        let bridge = try UnixSocketBridge(path: spec.guestAgentSocket) {
+            try vm.connectVsock(port: InstanceSpec.guestAgentVsockPort)
+        }
+        run?.guestAgentBridge = bridge
+        log("guest agent: \(spec.guestAgentSocket) -> vsock \(InstanceSpec.guestAgentVsockPort)")
+    }
+
+    /// Lima's `in_use_by` lock on an additional disk: a symlink to the instance directory.
+    private static func lock(_ disk: InstanceSpec.Disk, for spec: InstanceSpec) throws {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: disk.image.path) else { throw DriverError("additional disk \(disk.name) has no datadisk") }
+        if let owner = try? fm.destinationOfSymbolicLink(atPath: disk.lock.path) {
+            guard owner == spec.dir.path else { throw DriverError("additional disk \(disk.name) is in use by \(owner)") }
+            try fm.removeItem(at: disk.lock)
+        }
+        try fm.createSymbolicLink(atPath: disk.lock.path, withDestinationPath: spec.dir.path)
+        // Only once the disk is ours: `limactl disk create` makes qcow2 (even with --format raw
+        // in Lima 2.2.1); Lima's vz converts it to raw in place at the first attach, so does this.
+        do {
+            if try QCOW2.isQCOW2(disk.image) {
+                log("converting additional disk \(disk.name) from qcow2 to raw")
+                let raw = disk.dir.appendingPathComponent("datadisk.hanalima-raw.\(ProcessInfo.processInfo.processIdentifier)")
+                defer { try? fm.removeItem(at: raw) }
+                try QCOW2.convertToRaw(disk.image, to: raw)
+                _ = try fm.replaceItemAt(disk.image, withItemAt: raw)
+            }
+        } catch {
+            try? fm.removeItem(at: disk.lock)
             throw error
         }
     }
@@ -135,6 +204,9 @@ actor DriverCore {
 
     /// Asks the guest to power off; pulls the plug after `deadline`. Returns once it's stopped.
     func stop(deadline: TimeInterval = 90) async throws {
+        // A start in progress: let it finish (or fail) first.
+        let waited = Date()
+        while busy, run == nil, Date().timeIntervalSince(waited) < 60 { try? await Task.sleep(for: .milliseconds(200)) }
         guard let current = run, let vm = current.machine else { return }
         let gen = current.generation
         if let local = current.exposedLocal, let spec {
@@ -166,18 +238,29 @@ actor DriverCore {
     private func guestStopped(generation: Int, error: Error?) async {
         guard let current = run, current.generation == generation else { return }
         run = nil
+        busy = true
         log(error.map { "guest stopped with error: \($0)" } ?? "guest stopped")
-        tearDown(current)
+        await tearDown(current)
+        busy = false
         current.stopped?.yield(error)
         current.stopped?.finish()
     }
 
-    private func tearDown(_ run: Run) {
-        if let usernet = run.usernet { Usernet.terminate(usernet) }
-        if let spec {
-            try? FileManager.default.removeItem(at: spec.pidURL)
-            try? FileManager.default.removeItem(at: spec.usernetPIDURL)
-        }
+    /// Off the actor's executor: ending usernet waits (up to 5 s), and Info must keep answering.
+    private func tearDown(_ run: Run) async {
+        let spec = spec
+        await Task.detached {
+            run.guestAgentBridge?.close()
+            try? run.usernetHandle?.close()
+            try? run.usernetPass?.close()
+            for relay in run.relays { try? relay.close() }
+            for disk in run.lockedDisks { try? FileManager.default.removeItem(at: disk.lock) }
+            if let usernet = run.usernet { Usernet.terminate(usernet) }
+            if let spec {
+                try? FileManager.default.removeItem(at: spec.pidURL)
+                try? FileManager.default.removeItem(at: spec.usernetPIDURL)
+            }
+        }.value
     }
 
     private func requireSpec() throws -> InstanceSpec {

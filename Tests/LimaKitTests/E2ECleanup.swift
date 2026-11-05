@@ -16,6 +16,12 @@ enum E2ECleanup {
         }
     }
 
+    /// `limactl disk delete` for each disk (errors ignored).
+    static func deleteDisks(_ names: [String]) {
+        guard let limactl = LimaClient.locate() else { return }
+        for name in names { run(limactl, ["disk", "delete", name, "--tty=false"]) }
+    }
+
     private static func run(_ executable: URL, _ arguments: [String], environment: [String: String] = [:]) {
         let p = Process()
         p.executableURL = executable

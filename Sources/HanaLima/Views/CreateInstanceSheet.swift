@@ -87,8 +87,15 @@ struct CreateInstanceSheet: View {
                     Picker("仮想化方式", selection: $vmType) {
                         Text("VZ (Virtualization.framework)").tag(CreateOptions.VMType.vz)
                         Text("QEMU").tag(CreateOptions.VMType.qemu)
+                        if AppModel.hasDriver {
+                            Text("HanaLima のドライバー（VZ、試験的）").tag(CreateOptions.VMType.hanalima)
+                        }
                     }
                     .disabled(source == .iso)
+                    if vmType == .hanalima {
+                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。まだ試験的で、画面、Rosetta、socket_vmnet のネットワークは使えません。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("ハードウェア") {

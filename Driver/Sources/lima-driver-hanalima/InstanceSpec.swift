@@ -13,14 +13,34 @@ struct InstanceSpec: Sendable {
         var tag: String { LimaMACAddress.mountTag(location: location, mountPoint: mountPoint) }
     }
 
+    /// A NIC after the first (Lima's `networks:`), with the MAC Lima's defaults gave it.
+    enum NIC: Sendable {
+        case vzNAT(mac: String)
+        /// A QEMU/socket_vmnet stream socket (HanaLima's netd, or Lima's `socket:`).
+        case socket(path: String, mac: String)
+        /// Lima's `lima:` networks (socket_vmnet, user-v2): not supported by this driver.
+        case lima(name: String)
+    }
+
+    /// Lima's `additionalDisks`: `<limaHome>/_disks/<name>/datadisk`, locked with `in_use_by`.
+    struct Disk: Sendable {
+        var name: String
+        var dir: URL
+        var image: URL { dir.appendingPathComponent("datadisk") }
+        var lock: URL { dir.appendingPathComponent("in_use_by") }
+    }
+
     var name: String
     var dir: URL
+    var limaHome: URL
     var os: String
     var arch: String
     var cpus: Int
     var memoryBytes: UInt64
     var sshLocalPort: Int
     var mounts: [Mount]
+    var nics: [NIC]
+    var disks: [Disk]
     /// Lima's MAC for the first NIC (usernet), which cidata's network config matches eth0 by.
     var macAddress: String { LimaMACAddress.address(instanceDir: dir) ?? "52:55:55:00:00:00" }
 
@@ -40,6 +60,19 @@ struct InstanceSpec: Sendable {
             guard let location = m["location"] as? String else { return nil }
             return Mount(location: location, mountPoint: m["mountPoint"] as? String ?? location,
                          writable: m["writable"] as? Bool ?? false)
+        }
+        limaHome = URL(fileURLWithPath: json["LimaHome"] as? String ?? self.dir.deletingLastPathComponent().path, isDirectory: true)
+        nics = (config["networks"] as? [[String: Any]] ?? []).compactMap { n in
+            let mac = n["macAddress"] as? String ?? ""
+            if n["vzNAT"] as? Bool == true { return .vzNAT(mac: mac) }
+            if let socket = n["socket"] as? String, !socket.isEmpty { return .socket(path: socket, mac: mac) }
+            if let lima = n["lima"] as? String, !lima.isEmpty { return .lima(name: lima) }
+            return nil
+        }
+        let home = limaHome
+        disks = (config["additionalDisks"] as? [[String: Any]] ?? []).compactMap { d in
+            guard let name = d["name"] as? String else { return nil }
+            return Disk(name: name, dir: home.appendingPathComponent("_disks/\(name)", isDirectory: true))
         }
     }
 
@@ -66,6 +99,10 @@ struct InstanceSpec: Sendable {
     var efiURL: URL { dir.appendingPathComponent("vz-efi") }
     var identifierURL: URL { dir.appendingPathComponent("vz-identifier") }
     var serialLogURL: URL { dir.appendingPathComponent("serialv.log") }
+    /// Lima's `filenames.GuestAgentSock`: where the host agent dials the guest agent.
+    var guestAgentSocket: String { dir.appendingPathComponent("ga.sock").path }
+    /// The vsock port Lima's guest agent listens on (what the vz driver uses).
+    static let guestAgentVsockPort: UInt32 = 2222
     /// Lima's `filenames.PIDFile(vmType)`: `limactl stop --force` kills what this names.
     var pidURL: URL { dir.appendingPathComponent("hanalima.pid") }
     var usernetPIDURL: URL { dir.appendingPathComponent("hanalima-usernet.pid") }
