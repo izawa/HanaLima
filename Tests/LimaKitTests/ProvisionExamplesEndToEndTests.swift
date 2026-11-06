@@ -99,6 +99,12 @@ struct ProvisionExamplesEndToEndTests {
                 // agetty logged the user in on tty1 (login hands the tty to the user), so the drop-in
                 // (systemd) or the inittab line (Alpine, reloaded by init) is in effect.
                 #expect(try await sh("stat -c %U /dev/tty1") == (try await sh("id -un")))
+            case .gateway:
+                // With no VM-side interface here, the table and forwarding are still set up and
+                // dnsmasq runs (listening on nothing but ready). The real path is GatewayEndToEndTests.
+                #expect(try await sh("sudo nft list table inet hanalima | grep -c 'chain forward'") == "1")
+                #expect(try await sh("cat /proc/sys/net/ipv4/ip_forward") == "1")
+                #expect(try await sh("pgrep dnsmasq >/dev/null && echo ok") == "ok")
             }
         }
     }

@@ -3685,6 +3685,22 @@
         }
       }
     },
+    "この VM を、ゲスト専用ネットワークの経路役にします。ネットワークの「ルーター」にこの VM のアドレスを指定すると、後ろの VM はこの VM を通って外に出て（この VM 自身の経路への NAT）、DNS もこの VM に聞きます。通せる先は /etc/hanalima/gateway.conf の許可リストだけです。ホスト名は、後ろの VM がこの VM で名前を引いたときに覚え（dnsmasq の nftset）、アドレスや CIDR はそのまま、「*」はすべて通します。落としたパケットは「hanalima-gateway」の前置きでログに残ります。nftables と dnsmasq を入れます。リストを変えたら「今すぐ実行」か再起動で反映します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Makes this VM the router of a guest-only network. Name this VM's address as the network's “Router”, and the VMs behind it go out through it (NAT to this VM's own route) and ask it for DNS. Only the allow list in /etc/hanalima/gateway.conf gets through: host names are learned when a VM behind resolves them here (dnsmasq's nftset), addresses and CIDRs pass as written, and “*” allows everything. Dropped packets are logged with the prefix “hanalima-gateway”. Installs nftables and dnsmasq. After editing the list, “Run now” or a reboot applies it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この VM を、ゲスト専用ネットワークの経路役にします。ネットワークの「ルーター」にこの VM のアドレスを指定すると、後ろの VM はこの VM を通って外に出て（この VM 自身の経路への NAT）、DNS もこの VM に聞きます。通せる先は /etc/hanalima/gateway.conf の許可リストだけです。ホスト名は、後ろの VM がこの VM で名前を引いたときに覚え（dnsmasq の nftset）、アドレスや CIDR はそのまま、「*」はすべて通します。落としたパケットは「hanalima-gateway」の前置きでログに残ります。nftables と dnsmasq を入れます。リストを変えたら「今すぐ実行」か再起動で反映します。"
+          }
+        }
+      }
+    },
     "このまま再起動": {
       "localizations": {
         "en": {
@@ -9277,6 +9293,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "処理中は複製できません。"
+          }
+        }
+      }
+    },
+    "出口を絞るゲートウェイ（ゲスト専用ネットワークの経路役）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gateway with an allow list (the router of a guest-only network)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出口を絞るゲートウェイ（ゲスト専用ネットワークの経路役）"
           }
         }
       }

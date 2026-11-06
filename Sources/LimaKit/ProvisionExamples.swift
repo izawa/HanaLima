@@ -8,7 +8,7 @@ import Foundation
 /// lima.yaml.
 public struct ProvisionExample: Identifiable, Sendable {
     public enum ID: String, CaseIterable, Sendable {
-        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin
+        case basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin, gateway
     }
 
     public let id: ID
@@ -18,7 +18,7 @@ public struct ProvisionExample: Identifiable, Sendable {
 }
 
 public enum ProvisionExamples {
-    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin]
+    public static let all: [ProvisionExample] = [basicTools, dotfiles, containerEngine, xdp, japan, noAutoUpdates, swap, devLanguages, fullUpgrade, consoleLogin, gateway]
 
     public static func example(_ id: ProvisionExample.ID) -> ProvisionExample {
         all.first { $0.id == id }!
@@ -341,6 +341,157 @@ public enum ProvisionExamples {
           echo "HanaLima example: no systemd or Alpine inittab found" >&2
           exit 1
         fi
+        """#),
+    ])
+
+    /// A gateway for a guest-only network: name this VM's address as the network's router, and
+    /// the VMs behind it get NAT and DNS through it, limited to an allow list.
+    static let gateway = ProvisionExample(id: .gateway, distributions: ["Ubuntu", "Alpine"], entries: [
+        ProvisionConfig(mode: .data, path: "/etc/hanalima/gateway.conf", content: #"""
+        # HanaLima gateway: what the VMs behind this one may reach. One entry per line.
+        #   a host name  - allowed once a VM resolves it through this gateway (every address it has)
+        #   an address or CIDR, e.g. 10.9.8.7 or 203.0.113.0/24
+        #   *            - everything
+        # The VMs can always reach this gateway itself and each other. Save, then run this
+        # example's script again ("Run now"), or just reboot the gateway.
+        dl-cdn.alpinelinux.org
+        archive.ubuntu.com
+        security.ubuntu.com
+        ports.ubuntu.com
+        deb.debian.org
+        api.anthropic.com
+
+        """#),   // the blank line keeps a trailing newline, so appending a line works
+        ProvisionConfig(mode: .system, script: #"""
+        #!/bin/sh
+        # HanaLima example: make this VM the gateway of a guest-only network. Name this VM's
+        # address on that network as the network's "router": the VMs behind it then route
+        # through it (NAT to this VM's own way out) and use it as their DNS, and reach only what
+        # /etc/hanalima/gateway.conf allows. Host names are learned as the VMs resolve them here
+        # (dnsmasq's nftset), addresses and CIDRs go straight in, "*" allows everything. Dropped
+        # packets are logged with the prefix "hanalima-gateway". Runs at every boot: it installs
+        # once, then rewrites the rules only when the allow list or the interfaces changed.
+        set -eu
+        CONF=/etc/hanalima/gateway.conf
+        [ -f "$CONF" ] || { echo "HanaLima example: $CONF is missing (the data entry of this example)" >&2; exit 1; }
+
+        # The way out: the interface of the default route (Lima's NIC 0, or a bridged NIC).
+        WAN=$(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit }}')
+        # Where the VMs are: every other interface with an IPv4 address.
+        LANS=$(ip -4 -o addr show scope global | awk -v wan="$WAN" '$2 != wan { print $2 }' | sort -u)
+        # Upstream DNS for the VMs' queries: the resolvers this VM uses itself.
+        UPSTREAM=$(awk '/^nameserver/ && $2 !~ /^127\./ && $2 !~ /:/ { print $2 }' /etc/resolv.conf 2>/dev/null || true)
+        if [ -z "$UPSTREAM" ] && [ -n "$WAN" ] && command -v resolvectl >/dev/null 2>&1; then
+          UPSTREAM=$(resolvectl dns "$WAN" 2>/dev/null | sed 's/^[^:]*: *//' | tr ' ' '\n' | grep -v ':' | grep . || true)
+        fi
+        [ -n "$UPSTREAM" ] || UPSTREAM=192.168.5.2
+
+        # dnsmasq listens on the VMs' side only (not on lo, where systemd-resolved may be, nor on
+        # the way out). Written before the packages are installed so the first start is right.
+        mkdir -p /etc/dnsmasq.d
+        DNSCONF=/etc/dnsmasq.d/hanalima-gateway.conf
+        {
+          echo "# Written by HanaLima's gateway example at every boot; edit $CONF instead."
+          echo "bind-dynamic"
+          echo "except-interface=lo"
+          [ -n "$WAN" ] && echo "except-interface=$WAN"
+          echo "no-resolv"
+          for s in $UPSTREAM; do echo "server=$s"; done
+          grep -v '^[[:space:]]*#' "$CONF" | awk 'NF { print $1 }' | while read -r entry; do
+            case $entry in
+              '*' | *[!A-Za-z0-9.-]* | [0-9]*.[0-9]*.[0-9]*.[0-9]*) ;;
+              *) echo "nftset=/$entry/4#inet#hanalima#allowed" ;;
+            esac
+          done
+        } > "$DNSCONF.new"
+
+        if ! command -v nft >/dev/null 2>&1 || ! command -v dnsmasq >/dev/null 2>&1; then
+          mv "$DNSCONF.new" "$DNSCONF"
+          if command -v apt-get >/dev/null 2>&1; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y nftables dnsmasq
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y nftables dnsmasq
+          elif command -v apk >/dev/null 2>&1; then
+            apk add --no-cache nftables dnsmasq-dnssec-nftset dnsmasq-openrc
+          else
+            echo "HanaLima example: no apt, dnf or apk found" >&2
+            exit 1
+          fi
+          dns_changed=1
+        elif cmp -s "$DNSCONF.new" "$DNSCONF"; then
+          rm -f "$DNSCONF.new"
+          dns_changed=0
+        else
+          mv "$DNSCONF.new" "$DNSCONF"
+          dns_changed=1
+        fi
+        grep -q '^conf-dir=/etc/dnsmasq.d' /etc/dnsmasq.conf 2>/dev/null || echo 'conf-dir=/etc/dnsmasq.d,*.conf' >> /etc/dnsmasq.conf
+
+        # Forwarding, now and after reboots.
+        sysctl -w net.ipv4.ip_forward=1 >/dev/null
+        echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/90-hanalima-gateway.conf
+
+        # The rules: one table, replaced as a whole when something changed (the learned
+        # addresses start over then; the VMs re-learn them with their next lookup).
+        NFT=/etc/hanalima/gateway.nft
+        all=0; nets=""
+        set -f   # "*" in the list must not become file names
+        for entry in $(grep -v '^[[:space:]]*#' "$CONF" | awk 'NF { print $1 }'); do
+          case $entry in
+            '*') all=1 ;;
+            [0-9]*.[0-9]*.[0-9]*.[0-9]*) nets="$nets${nets:+, }$entry" ;;
+          esac
+        done
+        set +f
+        {
+          echo "# Written by HanaLima's gateway example at every boot; edit $CONF instead."
+          echo "table inet hanalima"
+          echo "delete table inet hanalima"
+          echo "table inet hanalima {"
+          echo "  set allowed { type ipv4_addr; }"
+          [ -n "$nets" ] && echo "  set allowed_net { type ipv4_addr; flags interval; elements = { $nets } }"
+          echo "  chain forward {"
+          echo "    type filter hook forward priority filter; policy drop;"
+          echo "    ct state established,related accept"
+          echo "    ct state invalid drop"
+          if [ -n "$WAN" ]; then
+            echo "    iifname \"$WAN\" drop"
+            echo "    iifname != \"$WAN\" oifname != \"$WAN\" accept"
+            if [ "$all" = 1 ]; then
+              echo "    oifname \"$WAN\" accept"
+            else
+              echo "    oifname \"$WAN\" ip daddr @allowed accept"
+              [ -n "$nets" ] && echo "    oifname \"$WAN\" ip daddr @allowed_net accept"
+            fi
+          fi
+          echo "    limit rate 10/second log prefix \"hanalima-gateway drop: \""
+          echo "  }"
+          if [ -n "$WAN" ]; then
+            echo "  chain postrouting {"
+            echo "    type nat hook postrouting priority srcnat;"
+            echo "    oifname \"$WAN\" masquerade"
+            echo "  }"
+          fi
+          echo "}"
+        } > "$NFT.new"
+        if ! cmp -s "$NFT.new" "$NFT" || ! nft list table inet hanalima >/dev/null 2>&1; then
+          mv "$NFT.new" "$NFT"
+          nft -f "$NFT"
+        else
+          rm -f "$NFT.new"
+        fi
+
+        # dnsmasq: on at boot, restarted when its config changed or it isn't running.
+        if command -v systemctl >/dev/null 2>&1; then
+          systemctl enable dnsmasq >/dev/null 2>&1 || true
+          if [ "$dns_changed" = 1 ] || ! systemctl is-active --quiet dnsmasq; then systemctl restart dnsmasq; fi
+        elif command -v rc-service >/dev/null 2>&1; then
+          rc-update -q add dnsmasq default 2>/dev/null || true
+          if [ "$dns_changed" = 1 ] || ! rc-service -q dnsmasq status >/dev/null 2>&1; then rc-service dnsmasq restart; fi
+        fi
+        echo "HanaLima gateway: out via ${WAN:-none}, VMs on ${LANS:-no interface yet}, DNS upstream $UPSTREAM"
         """#),
     ])
 }

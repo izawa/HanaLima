@@ -298,6 +298,7 @@ extension ProvisionExample {
         case .devLanguages: String(localized: "開発言語（Go、Node.js、Python、Rust）")
         case .fullUpgrade: String(localized: "パッケージをすべて更新（一度だけ）")
         case .consoleLogin: String(localized: "コンソールに自動ログイン（画面・シリアル）")
+        case .gateway: String(localized: "出口を絞るゲートウェイ（ゲスト専用ネットワークの経路役）")
         }
     }
 
@@ -323,6 +324,8 @@ extension ProvisionExample {
             String(localized: "システムには Go（go.dev の公式ビルド、/usr/local/go）と Node.js・npm（ディストリビューションのパッケージ）を、ユーザーのホームには uv（Python）と rustup（Rust、minimal プロファイル）を公式のインストーラーで入れます。uv と cargo の PATH は次のログインから有効です。")
         case .consoleLogin:
             String(localized: "画面のコンソール（tty1）とシリアルコンソール（hvc0）に、パスワードなしでユーザーをログインさせます（systemd は getty@tty1 と serial-getty@hvc0 のドロップイン、Alpine は agetty を入れて inittab を書き換え）。Lima はユーザーのパスワードをロックするので、これが無いと「救出起動」の画面や、HanaLima のドライバーの仮想マシンのコンソールタブの「シリアル」からログインできません。画面やシリアルを開ける人は誰でもこのユーザーのシェル（sudo 可）を使えます。Lima の鍵で SSH できるのと同じ範囲です。")
+        case .gateway:
+            String(localized: "この VM を、ゲスト専用ネットワークの経路役にします。ネットワークの「ルーター」にこの VM のアドレスを指定すると、後ろの VM はこの VM を通って外に出て（この VM 自身の経路への NAT）、DNS もこの VM に聞きます。通せる先は /etc/hanalima/gateway.conf の許可リストだけです。ホスト名は、後ろの VM がこの VM で名前を引いたときに覚え（dnsmasq の nftset）、アドレスや CIDR はそのまま、「*」はすべて通します。落としたパケットは「hanalima-gateway」の前置きでログに残ります。nftables と dnsmasq を入れます。リストを変えたら「今すぐ実行」か再起動で反映します。")
         }
     }
 }
