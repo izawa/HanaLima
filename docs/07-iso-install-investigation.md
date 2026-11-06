@@ -56,13 +56,13 @@ Ubuntu Server 26.04 で、`limactl start` の 1 回目は約 7 秒で READY。�
 
 ## 7. 残る課題
 
-- **アプリ本体に `com.apple.security.virtualization` の entitlement** が要る（今は netd だけ）。VZ の画面（`VZVirtualMachineView`）はアプリのプロセスの中でしか出せない。
-- インストール中の VM はアプリのプロセスで動くので、アプリを終了するとインストールも止まる。
+- **アプリ本体に `com.apple.security.virtualization` の entitlement** が要る（今は netd だけ）。VZ の画面（`VZVirtualMachineView`）はアプリのプロセスの中でしか出せない。（§8 の hosted モードで解消: entitlement はドライバー側、画面はドライバーのウインドウ）
+- インストール中の VM はアプリのプロセスで動くので、アプリを終了するとインストールも止まる。（§8 の hosted モードで解消: アプリを終了しても続く）
 - **VZ の画面にはクリップボードの橋渡しがない**ので、仕上げのコマンドは手入力になる。短くするか、別の方法（シリアルコンソールへの流し込み、Ubuntu の autoinstall など）を考える。
 - インストール前の VM（空のディスク）を普通に起動すると、1 分の待ちのあとに失敗する。HanaLima では記録に「インストール待ち」の印を付け、起動を止めて「インストーラーを開く」に誘導する。
 - Ubuntu の案内付き LVM はディスクの一部しか使わず、Lima でディスクを広げたときの growpart も効かないので、「LVM を外す」ことを案内する。
 - 確かめたのは Ubuntu Server だけ。Debian・Fedora・Alpine（cloud-init の有無が違う）は未確認。
-- QEMU の VM（qcow2）は対象外。VZ 専用の機能になる。
+- QEMU の VM（qcow2）は対象外。VZ（Lima）専用の機能になる。hanalima でも作成しない（作成画面は ISO を選ぶと仮想化方式を vz に戻す。2026-11-06）。
 
 ## 8. 追記（2026-11-05）: インストーラーはドライバーの hosted モードへ
 

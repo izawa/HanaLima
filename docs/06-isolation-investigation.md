@@ -53,13 +53,13 @@
 
 ## 7. 追記（2026-11-05）: HanaLima のドライバーで NIC 0 を外した
 
-§6 の「VZ は外部ドライバーで」を実装した（docs/09 段階 4）。`vmType: hanalima` の VM で `vmOpts.hanalima.usernet: false` にすると、ドライバーは usernet を起動せず、NIC 0 はどこにもつながない状態で付ける（cidata が eth0 を期待するため。無いと cloud-init がネットワーク設定を捨てて毎回 2 分待つ）。SSH・ゲストエージェント・ポート転送は vsock を通る（systemd 256 以降の `systemd-ssh-generator`。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可）。
+§6 の「VZ は外部ドライバーで」を実装した（docs/09 段階 4）。`vmType: hanalima` の VM で `vmOpts.hanalima.usernet: false` にすると、ドライバーは usernet を起動せず、NIC 0 はどこにもつながない状態で付ける（cidata が eth0 を期待するため。無いと cloud-init がネットワーク設定を捨てて毎回 2 分待つ）。SSH・ゲストエージェント・ポート転送は vsock を通る（systemd 256 以降の `systemd-ssh-generator`。Ubuntu 24.10 以降、Fedora 41 以降。Alpine は不可（後に socat の起動スクリプトで可、§9））。
 
 実測（Ubuntu 26.04、E2E `DriverIsolationEndToEndTests`）: NIC なしでは `lo` だけで、経路なし、DNS なし、インターネット・192.168.5.2（Mac の 127.0.0.1 への入口）に届かない。HanaLima のホストオンリー NIC を足すと、そのサブネットのゲートウェイ（Mac）には届き、インターネットには届かない。§2 の結論のうち「Lima を改造せずに Mac から切り離すことはできない」は、Lima の外部ドライバーの仕組みを使えば（Lima 自体は無改造のまま）成り立たなくなった。残る接点は、共有フォルダ（作成時に外せる）、vsock（SSH とゲストエージェント。Lima の運用に必要）、そして HanaLima のネットワークを足した場合の、そのサブネット上の Mac（`0.0.0.0` で待つサービスには届く）。
 
 ## 8. 追記（2026-11-05）: ゲスト専用ネットワーク
 
-§7 の隔離プロファイルで「VM から何にも届かない」ができたので、その VM 同士だけをつなぐ材料として、ゲスト専用ネットワークを足した（docs/02 の同名の節）。netd が vmnet なしの L2 スイッチになり、Mac はセグメントに居ない。DHCP は経路も DNS も配らない。
+§7 の隔離プロファイルで「VM から何にも届かない」ができたので、その VM 同士だけをつなぐ材料として、ゲスト専用ネットワークを足した（docs/02 の同名の節）。netd が vmnet なしの L2 スイッチになり、Mac はセグメントに居ない。DHCP は経路は配らず、DNS（オプション 6、netd 自身）と検索ドメイン `hanalima`（オプション 15）を配る（2026-11-05、docs/02）。
 
 組み合わせ: `vmType: hanalima` ＋ `vmOpts.hanalima.usernet: false` ＋ NIC 1 をゲスト専用ネットワークにすると、VM の隣人は同じセグメントの VM だけで、Mac との接点は vsock（SSH とゲストエージェント）と、付けていれば virtiofs だけになる。2026-10-14 の「ゲスト専用ネットワークを足しても隔離にはならない」は、usernet を外せない前提での結論で、ドライバーでその前提が外れた。
 

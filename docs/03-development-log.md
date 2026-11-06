@@ -178,7 +178,18 @@ HanaLima の最初の 1 日の経緯を時系列でまとめる。決定事項�
 
 §31 の救出起動と docs/07 のインストーラーは、アプリ本体の `HostedVM` が VZ を抱えていた（アプリを終了すると VM も落ちる）。ドライバーに hosted モード（`--hosted`）を足して置き換えた。詳細は docs/07 §8 と docs/04 の救出起動の項。確認: Alpine の使い捨て VM で hosted 起動 → 制御ソケットで停止 → Lima で再起動（`RescueEndToEndTests`）、Ubuntu 26.04 の無人インストール（`ISOInstallEndToEndTests`）。`HANALIMA_E2E_RESCUE`・`HANALIMA_E2E_AUTOINSTALL`・`HANALIMA_VZPROBE` のアプリ側の仕掛けは削除。
 
-## 現在の状態（`e105f0c` 時点）
+## 33. ドライバーを既定に、周辺の残件（2026-11-06）
+
+docs/09 の残件を順に片付け、ドライバーを新規作成の既定にした（詳細は [docs/09](09-external-driver-investigation.md) の各残件の節）。
+- `lima:` のネットワーク（残件 2）: socket_vmnet は `<varRun>/socket_vmnet.<名前>` に `socket:` と同じ中継、最初の user-v2 は NIC 0 の usernet の代わり。
+- スナップショットの RPC（残件 3）: `limactl snapshot` が `DiskSnapshot` で動く。停止中の VM のために起動されたドライバーは、VM が無く親が消えて 15 秒で自分で終了する（取り残しも同じ規則で片付く）。
+- 隔離の注記（残件 7）: `Configure` が埋める値は lima.yaml に無いので、設定タブと概要タブに注記。
+- ゲスト専用ネットワークの DNS（残件 8）: netd の DHCP がオプション 6・15 を配り、DNS は `lima-<名前>` だけに答える（docs/02）。
+- 古いヘルパーの移行（残件 14）: netd は `networks.json` の自分の項目だけを読む。古い版のまま動くヘルパーの VM には保存・削除のときに「再起動が必要」の印（`staleHelpers`）。
+- `DriverInstaller`（残件 12）と既定の hanalima 化（残件 11、ユーザー判断）: 起動時に `<prefix>/lib/lima/` へ写し、ターミナルの `limactl` からも使える。「試験的」の表示を外した。
+- 画面に貼り付けできない旨の注記（残件 17）、ドライバーの E2E を Fedora・Debian でも通過（残件 15）。
+
+## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
 - 再起動まで使えないサブネット: 192.168.240.0/24、192.168.241.0/24、10.250.252.0/24（テストの途中で使えなくなったもの）。

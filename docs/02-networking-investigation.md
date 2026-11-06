@@ -8,7 +8,7 @@
 
 HanaLima に小さな常駐ヘルパー（以下 `hanalima-netd`）を同梱する。netd は socket_vmnet と同じプロトコルで UNIX ソケットを待ち受け、Lima の `networks: - socket: <path>` から接続を受ける。netd の中身は socket_vmnet と違い、root 不要な macOS 26 の `vmnet_network_*` API を使う。
 
-ブリッジ接続だけは新 API が対応していないため、従来どおり socket_vmnet（root）が必要。
+ブリッジ接続だけは新 API が対応していないため、従来どおり socket_vmnet（root）が必要。（後に root 不要のブリッジを netd で実装、下の節。socket_vmnet のセットアップ画面は 2026-10-12 に廃止）
 
 ## 2. 検証したこと
 
@@ -71,7 +71,7 @@ flowchart LR
 - 応答には識別子が付かなくなるが、RFC 6842 は受け取った識別子を返すことしか求めておらず、dhcpcd は受け入れた。Ubuntu（systemd-networkd）などは未検証。
 3. スループット（iperf3 で socket_vmnet・vzNAT と比較）。
 4. ネットワーク設定変更時の挙動（接続中の VM がある場合は再起動が必要、など）。
-5. ブリッジ接続: 新 API 非対応。socket_vmnet のセットアップ画面（初回のみ管理者認証）として実装済み（`SocketVMNetSetup`）。
+5. ブリッジ接続: 新 API 非対応。socket_vmnet のセットアップ画面（初回のみ管理者認証）として実装済み（`SocketVMNetSetup`）。（後に root 不要のブリッジを netd で実装。セットアップ画面は 2026-10-12 に廃止）
 
 ## 参考
 - macOS SDK `vmnet.framework/Headers/vmnet.h`（`vmnet_network_configuration_create`, `vmnet_network_create`, `vmnet_network_copy_serialization`, `vmnet_interface_start_with_network` ほか、すべて `API_AVAILABLE(macos(26.0))`）

@@ -120,7 +120,7 @@
   <text x="158" y="258" class="m">gRPC（Configure/Start/Stop/…）</text>
   <!-- Driver -->
   <rect x="16" y="266" width="488" height="98" rx="10" class="box hana"/>
-  <text x="28" y="288" class="t hana-t">lima-driver-hanalima（Contents/Helpers、HanaLima のプロセス）</text>
+  <text x="28" y="288" class="t hana-t">lima-driver-hanalima（別プロセス。Helpers と lib/lima/ の写し）</text>
   <text x="28" y="306" class="m">VZ の構成と起動 · NIC 0 = usernet は任意（隔離: 無接続）· networks: の NIC</text>
   <text x="28" y="322" class="m">シリアル = 双方向 · 画面 = 自分のウインドウ（隠す/開き直す）</text>
   <text x="28" y="338" class="m">SSH = usernet → vsock 22（usernet なしなら vsock だけ）· 追加ディスク</text>
@@ -143,7 +143,7 @@
 <table>
 <thead><tr><th>関心事</th><th>実装前（vz）</th><th>実装後（hanalima）</th><th>それで何ができたか</th></tr></thead>
 <tbody>
-<tr><td>VM の構成と起動・停止</td><td class="n">Lima の vz（hostagent 内）</td><td class="h">ドライバー（HanaLima のプロセス）</td><td>以下すべての前提</td></tr>
+<tr><td>VM の構成と起動・停止</td><td class="n">Lima の vz（hostagent 内）</td><td class="h">ドライバー（ドライバーのプロセス。アプリとは別）</td><td>以下すべての前提</td></tr>
 <tr><td>NIC 0（usernet）</td><td class="n">必ず付く（外す設定なし）</td><td class="h">つなぐかどうかを選べる（<code>vmOpts.hanalima.usernet: false</code>。NIC 自体は cidata が eth0 を名指しするので付けたままつながない）</td><td>隔離プロファイル（Mac・LAN・インターネットに届かない VM。届くのは足した NIC の先だけ）</td></tr>
 <tr><td>SSH の経路</td><td class="n">usernet の転送（vsock は後から乗り換え）</td><td class="h">同じ順序（usernet → vsock 22 を 1 回確かめて乗り換え）。usernet が無ければ vsock だけを応えるまで探す</td><td>ネットワークの無い VM にも SSH・ゲストエージェント・ポート転送が通る。起動中に vsock を探り続けるとゲストエージェントの vsock が不安定になるので、並走はしない</td></tr>
 <tr><td>シリアルポート</td><td class="n">書き込み専用のログ</td><td class="h">双方向（serialv.sock）</td><td>コンソールタブの「シリアル」。sshd を壊した VM に入る 2 つ目の経路</td></tr>
@@ -152,22 +152,22 @@
 <tr><td>追加ディスク・virtiofs・ゲストエージェント</td><td class="n">Lima の vz</td><td class="h">ドライバー（同じ振る舞いを再実装）</td><td>Lima の vz と同等（E2E で確認）</td></tr>
 <tr><td>イメージ · cloud-init · ポート転送 · list/watch · clone · edit</td><td class="y">Lima</td><td class="y">Lima（変更なし）</td><td>Lima の安定した外側だけに依存する方針はそのまま</td></tr>
 <tr><td>既存 VM との互換</td><td>—</td><td class="h">disk/vz-efi/vz-identifier が共通</td><td><code>limactl edit --set '.vmType = "hanalima"'</code> だけで移行、戻すのも同じ</td></tr>
-<tr><td>HanaLima が無い Mac</td><td class="y">動く</td><td class="n">hanalima の VM は起動しない（vz に戻せば動く）</td><td>試験的の理由。既定は vz のまま</td></tr>
+<tr><td>HanaLima が無い Mac</td><td class="y">動く</td><td class="n">hanalima の VM は起動しない（vz に戻せば動く）</td><td>既定は hanalima（2026-11-06）。HanaLima の無い Mac へ持っていくなら vz に戻す（設定タブで 1 手順）</td></tr>
 <tr><td>VM 同士だけのネットワーク（段階 5）</td><td class="n">無い（vmnet はどの種類でも Mac が参加する）</td><td class="h">netd のゲスト専用モード（vmnet なしの L2 スイッチ＋自前の DHCP/ARP。ドライバーとは別の層）</td><td>隔離プロファイルの VM 同士をつなぐ。Lima の vz の VM でも使える</td></tr>
 </tbody>
 </table>
 
 <h2>3. 今後の実装のために</h2>
 <ul>
-<li><strong>Lima との境界は gRPC（driver.proto）と cidata の約束だけ。</strong> Lima 2.2.1 の外部ドライバー API は実験的（版ごとに差分を追う）。ドライバー側で埋める既定値（<code>mountType</code>・<code>ssh.overVsock</code>・<code>vmOpts.vz</code>・<code>dns</code>、隔離では <code>param.internal_netplanOptional</code>・<code>hostResolver.enabled=false</code>・<code>containerd</code> オフ）は Configure に集めてある。Configure の結果はメモリ上だけで <code>lima.yaml</code> には書かれないので、隔離の VM でも設定タブや概要には Lima の既定値のまま見える。</li>
+<li><strong>Lima との境界は gRPC（driver.proto）と cidata の約束だけ。</strong> Lima 2.2.1 の外部ドライバー API は実験的（版ごとに差分を追う）。ドライバー側で埋める既定値（<code>mountType</code>・<code>ssh.overVsock</code>・<code>vmOpts.vz</code>・<code>dns</code>、隔離では <code>param.internal_netplanOptional</code>・<code>hostResolver.enabled=false</code>・<code>containerd</code> オフ・<code>dns</code> を最初のゲスト専用ネットワークの DNS に）は Configure に集めてある。Configure の結果はメモリ上だけで <code>lima.yaml</code> には書かれないので、設定タブの NIC 0 の下と概要タブのユーザーモードの行に「ドライバーが起動時に切る」旨の注記を出す（2026-11-06）。</li>
 <li><strong>Lima の RPC に無い操作は側道で足す。</strong> <code>RunGUI</code>（10 秒の制限）と <code>limactl screenshot</code>（内部ドライバー限定）が使えなかったので生まれた仕組み。一時停止・<code>saveMachineState</code>・ゲスト専用スイッチなども同じ経路に乗せられる。ただし Lima から見える状態（Running/Stopped）と食い違う操作は、Lima の <code>list</code>/<code>watch</code> をどう見せるかまで決めてから。</li>
 <li><strong>ドライバー独自の設定は <code>vmOpts.hanalima</code> に置く。</strong> Lima は <code>vmOpts</code> を <code>map[VMType]any</code> として保存し、<code>limactl edit</code> でも残る。最初の鍵は <code>usernet: false</code>。</li>
-<li><strong>vz ⇄ hanalima の往復を常に保つ。</strong> ディスクの形式（raw）、EFI の変数ストア、マシン識別子を vz と同じにしておくことが、「試験的」でいられる安全弁。ドライバーだけが使うファイルは <code>hanalima*</code> の名前にする。</li>
+<li><strong>vz ⇄ hanalima の往復を常に保つ。</strong> ディスクの形式（raw）、EFI の変数ストア、マシン識別子を vz と同じにしておくことが、vz に戻せる安全弁。ドライバーだけが使うファイルは <code>hanalima*</code> の名前にする。</li>
 <li><strong>ゲスト側に何かを入れる必要があるものは、プロビジョニングの例で。</strong> hvc0 の getty（シリアルからのログイン）がその形。vsock の sshd は systemd 256 以降なら何も要らず、Alpine や古い systemd には <code>BootScripts</code> RPC で socat の中継を入れる（網が要るので、NIC 0 付きで一度起動してから隔離に切り替える。作成画面のプリセットがその順を自動にする）。Rosetta の起動スクリプトも同じ経路。</li>
 <li><strong>停止は後片付けの完了まで返さない。</strong> Lima は <code>Stop</code> が返ると hostagent を終え、ドライバーに SIGTERM を送る。デリゲート経由の後片付け（usernet の終了、pid・ソケットの削除）の途中で exit すると残骸が出るので、<code>stop()</code> は <code>run == nil &amp;&amp; !busy</code> まで待つ。</li>
 <li><strong>アプリ本体は VM を持たない。</strong> 救出起動と ISO インストールもドライバーの hosted モード（<code>--hosted</code>、gRPC なし、制御ソケットと <code>hanalima-hosted.pid</code>）で動く。アプリは起動して見ているだけなので、終了しても VM は残り、次の起動で再接続する。VZ を触る場所がドライバー 1 つになった。</li>
 <li><strong>隔離は 2 つの層の組み合わせ。</strong> VM をホストから切るのはドライバーの隔離プロファイル（usernet なし、SSH は vsock）、切った VM 同士をつなぐのは netd のゲスト専用ネットワーク（vmnet なしの L2 スイッチ。DHCP は経路を配らず、DNS は <code>lima-&lt;名前&gt;</code> だけに答える）。後者は Lima の vz の VM にも付くが、vz には usernet が残るので隔離にはならない（docs/06 §8）。</li>
-<li><strong>済んだもの（2026-11-05）</strong>: Rosetta（<code>vz</code> と同じ共有と起動スクリプト）、<code>lima:</code> のネットワーク（socket_vmnet は <code>socket:</code> と同じ中継、最初の user-v2 は NIC 0 の usernet の代わり）。スナップショットの RPC（<code>limactl snapshot</code> がアプリと同じ <code>DiskSnapshot</code> を使う）。<strong>残っているもの</strong>: macOS ゲスト、一時停止。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで、ゲスト専用ネットワークは <code>GuestOnlyEndToEndTests</code> と docs/02 まで済み。</li>
+<li><strong>済んだもの（2026-11-06 時点）</strong>: Rosetta（<code>vz</code> と同じ共有と起動スクリプト）、<code>lima:</code> のネットワーク（socket_vmnet は <code>socket:</code> と同じ中継、最初の user-v2 は NIC 0 の usernet の代わり）、スナップショットの RPC（<code>limactl snapshot</code> がアプリと同じ <code>DiskSnapshot</code> を使う）、ゲスト専用ネットワークの DNS（netd が <code>lima-&lt;名前&gt;</code> だけに答える）、古いヘルパーで動く VM の印（<code>staleHelpers</code>）、<code>DriverInstaller</code>（同梱のドライバーを <code>&lt;prefix&gt;/lib/lima/</code> に写し、ターミナルの limactl からも使える）、新規作成の既定を hanalima に。隔離プロファイルは E2E（<code>DriverIsolationEndToEndTests</code>）と docs/06 §7 まで、ゲスト専用ネットワークは <code>GuestOnlyEndToEndTests</code> と docs/02 まで済み。ドライバーの E2E は Alpine・Ubuntu LTS・Fedora・Debian で通過。<strong>残っているもの</strong>: 一時停止（<code>saveMachineState</code>）、macOS ゲスト、Lima 2.3 の <code>driver.proto</code> への追従（正式リリース待ち）、Alpine の追加ディスクの揺らぎ（Lima の mdev の競合、upstream 報告の要否）、vsock 探索の設計メモ、取り残されたドライバーの原因（番犬で回避済み）。</li>
 </ul>
 <p class="note">関連: docs/09（外部ドライバーの調査と段階 0〜4 の結果）、docs/02（ゲスト専用ネットワーク、段階 5）、docs/06（隔離の調査）、docs/04（設計メモ）。</p>
 </main>

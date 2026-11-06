@@ -45,7 +45,8 @@ codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements"
     "$APP/Contents/Helpers/lima-driver-hanalima" >/dev/null
 
 # Ad-hoc signature so macOS runs it locally. Real signing/notarization comes with distribution.
-# (Not --deep: that would re-sign the helper without its entitlements.) The app itself needs
-# com.apple.security.virtualization too: it runs installer ISOs with Virtualization.framework.
+# (Not --deep: that would re-sign the helper without its entitlements.) The app keeps
+# com.apple.security.virtualization for now, although the ISO installer and the rescue boot
+# run in the driver's hosted mode, not in the app (docs/09, item 10).
 codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
 echo "Built $APP"

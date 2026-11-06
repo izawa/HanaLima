@@ -1,6 +1,6 @@
 # 09. Lima の外部ドライバーで VZ を自前にできるか（2026-11-05 調査）
 
-HanaLima が Lima に任せている部分のうち、Virtualization.framework の操作だけを自前にする道として、Lima 2.x の**外部 VM ドライバー**を調べた。Lima 2.2.1 のソース（`pkg/driver`、`pkg/driver/external`、`pkg/registry`、`pkg/driverutil`、`pkg/hostagent`、`pkg/driver/vz`、`pkg/networks/usernet`）と公式ドキュメント（lima-vm.io/docs/dev/drivers/）による。コードは書いていない。
+HanaLima が Lima に任せている部分のうち、Virtualization.framework の操作だけを自前にする道として、Lima 2.x の**外部 VM ドライバー**を調べた。Lima 2.2.1 のソース（`pkg/driver`、`pkg/driver/external`、`pkg/registry`、`pkg/driverutil`、`pkg/hostagent`、`pkg/driver/vz`、`pkg/networks/usernet`）と公式ドキュメント（lima-vm.io/docs/dev/drivers/）による。コードは書いていない（冒頭の調査時点。以降の段階で実装した）。
 
 ## 結論
 
@@ -63,7 +63,7 @@ docs/06 で「Lima を改造しないと NIC 0（usernet）は外せず、Mac �
 
 - Lima の配管は usernet 無しで成り立つ材料を持っている。SSH: vz ドライバーは起動後に vsock のポート 22 を試し、通れば usernet の転送をやめる（`startVsockForwarder`。ゲスト側は systemd 256 以降の `systemd-ssh-generator`。Ubuntu 24.10・Fedora 41 以降は無設定。それ以前と Alpine はドライバーの `BootScripts` で vsock の socket unit か socat を入れる）。ゲストエージェント: `GuestAgentConn` が vsock を返せばよい。ポートの自動転送: 2.x ではエージェントの gRPC トンネル経由。失うのは hostagent の DNS（hostResolver）だけ。
 - プロファイル案: (a) NIC なし＝ホストとの接点は vsock と共有フォルダだけ。(b) NIC 0 を HanaLima のホストオンリーに＝届くのはそのサブネットだけ。Mac の 127.0.0.1 だけで待つサービス、LAN、インターネットには届かない。ただし Mac はブリッジのゲートウェイ IP でそのサブネットに居るので、`0.0.0.0` で待つサービスには届く。
-- cidata の network-config は usernet の MAC で eth0 を書くが `optional: true` なので NIC が無くても起動は止まらない。apt・dnf は出られないので、プロビジョニングはその VM では使えない前提。
+- cidata の network-config は usernet の MAC で eth0 を書くが `optional: true` なので NIC が無くても起動は止まらない（実際は止まる: cloud-init が設定ごと捨てて wait-online が 2 分待つ。NIC 0 は付けてつながない、段階 4 参照）。apt・dnf は出られないので、プロビジョニングはその VM では使えない前提。
 - Lima 2.3 の `hostLoopback: false`（docs/03 §29）は 127.0.0.1 だけを塞ぐ部分解で、こちらはそれより強く切れる。
 
 ## 段階 0 の結果（2026-11-05、実機）
@@ -95,13 +95,13 @@ Lima 2.2.1 の `cmd/lima-driver-vz` を `go build` して ad-hoc 署名（`vz.en
 - **E2E**: Alpine（起動 58 秒、停止 5 秒）と Ubuntu LTS（起動 42 秒、停止 8 秒）。Ubuntu は resolv.conf が systemd-resolved なので `resolvectl status` も見る、nc が無いので python3 で待ち受ける。URLSession の既定の 60 秒タイムアウトで転送の確認ループが 20 分になった（3 秒に短縮）。
 - **起動が失敗する経路**（`vz-efi` をディレクトリにして確認）: `limactl start` は 2 秒で fatal になり、ドライバーの pid ファイルと usernet は残らない。残るのは Lima 側の `hanalima.drv.pid`・`.drv.sock`。
 - **ドライバーのプロセスの親は hostagent ではない**: 起動の Prepare（Configure・Create・CreateDisk）を `limactl start` のプロセスが起動したドライバーで行い、hostagent はその「動いているサーバー」を使い回す。だから「親が消えたら終了する」番犬をドライバーに入れると、`limactl start` が READY で抜けた瞬間にドライバーが死んで VM が Broken になる（実機で確認して取り消した）。
-- **残り（段階 2 へ）:** vsock のゲストエージェント（`ga.sock` の橋渡し）、SSH の vsock 化、`socket:` の NIC（netd）、vzNAT、追加ディスク、Rosetta、画面、アプリ側（作成画面の `hanalima`、`LIMA_DRIVERS_PATH=Contents/Helpers` を `ProcessRunner` の環境に）。
+- **残り（段階 2 へ）:** vsock のゲストエージェント（`ga.sock` の橋渡し）、SSH の vsock 化、`socket:` の NIC（netd）、vzNAT、追加ディスク、Rosetta、画面、アプリ側（作成画面の `hanalima`、`LIMA_DRIVERS_PATH=Contents/Helpers` を `ProcessRunner` の環境に）。（2026-11-06: すべて済み。段階 2〜4 と各残件の節を参照）
 
 ## 段階 2 の結果（2026-11-05）: Lima の vz と同等の構成
 
 E2E `DriverEndToEndTests` を広げ、Alpine（起動 71 秒、停止 4 秒）で次がすべて通る: HanaLima のネットワーク（netd の `socket:`）の NIC、vzNAT の NIC、追加ディスク（Lima が `/mnt/lima-<名前>` にマウント、`in_use_by` のロックと解放）、vsock のゲストエージェント、ポート転送、停止後に残骸なし。
 
-- **アプリ側**: `AppModel.bootstrap` が `LIMA_DRIVERS_PATH=<バンドル>/Contents/Helpers` を `limactl` の環境に足す（ドライバーが無いビルドでは足さない）。作成画面の「仮想化方式」に「HanaLima のドライバー（VZ、試験的）」が並ぶ（ドライバーがあるときだけ）。
+- **アプリ側**: `AppModel.bootstrap` が `LIMA_DRIVERS_PATH=<バンドル>/Contents/Helpers` を `limactl` の環境に足す（ドライバーが無いビルドでは足さない）。作成画面の「仮想化方式」に「HanaLima のドライバー（VZ、試験的）」が並ぶ（ドライバーがあるときだけ）。（2026-11-06: 「試験的」を外して既定に。残件 11）
 - **NIC**: `networks[i].macAddress` は Lima の既定値（`MACAddress("<dir>#<i>")`）が Configure の JSON に埋まっているのでそれを使う。`socket:` は `StreamDatagramRelay`（QEMU の 4 バイト長＋フレームのストリーム ↔ SOCK_DGRAM の socketpair。Lima の `DialQemu` と同じ）、`vzNAT` は `VZNATNetworkDeviceAttachment`。`lima:`（socket_vmnet、user-v2）は未対応でエラーにする。
 - **追加ディスク**: `<LimaHome>/_disks/<名前>/datadisk`。**Lima 2.2.1 の `limactl disk create --format raw` は「raw を作る」と言いながら qcow2 を作る**（`disk list` も qcow2）。Lima の vz は最初の接続時に qcow2 を raw に書き換えるので、ドライバーも同じく `QCOW2Converter`（Codex が書いた v2/v3 の読み出し、圧縮・backing・暗号は拒否、スパースに書く）で `datadisk.hanalima-raw` に変換して `replaceItemAt` で置き換える。qemu-img の出力と 2 種類の画像で `cmp` 一致。ロックは `in_use_by` → VM のフォルダのシンボリックリンク（別の VM のものならエラー）。**デバイスの順番は disk（vda）、追加ディスク（vdb…）、cidata が最後**。cidata を先に付けると Lima の `05-lima-disks.sh` が cidata を `sfdisk` しようとして失敗する。
 - **vsock**: `VZVirtioSocketDeviceConfiguration` を付け、`Info` の `vsockPort` を 2222、`ForwardGuestAgent` を false にする。hostagent は `GuestAgentConn` のあと `<dir>/ga.sock` に unix で接続する（Go の外部ドライバーではサーバー側の共通コードが橋渡しするが、Swift では自前）。`UnixSocketBridge`（Codex）が `ga.sock` で待ち受け、接続ごとに `VZVirtioSocketDevice.connect(toPort: 2222)` を VZ のキューで行い、その fd の dup と双方向コピーする。bridge の close は接続の終了を待たない（VM が消えた vsock は答えないので、待つと teardown が止まり、usernet と pid ファイルが残った）。
@@ -116,15 +116,15 @@ E2E `DriverEndToEndTests` を広げ、Alpine（起動 71 秒、停止 4 秒）�
 
 - **Lima の `RunGUI` は外部ドライバーでは使えない。** `pkg/driver/external/client/methods.go` の `RunGUI` は 10 秒の `context.WithTimeout` で呼び、hostagent は `CanRunGUI` なら `return a.driver.RunGUI(ctx)` で `Run` を終える（内部の vz は VM が止まるまで `RunGUI` が返らない前提）。外部ドライバーが待てば 10 秒で DeadlineExceeded、すぐ返せば `Run` が nil で返り、どちらでも hostagent のプロセスが終わる。`limactl screenshot` も `driver.Screenshotter` を内部ドライバーにしか問わない。そこで `Info` は `canRunGui: false` のまま、画面はドライバーが自分で出す。
 - **画面はドライバーのプロセスのウインドウ**（`DisplayWindow`）。`VZVirtualMachineView` は同じプロセスの VM しか映せないので、HanaLima のウインドウには出せない（アプリをドライバーにする案は VM の寿命がアプリに縛られ、ログイン時の自動起動も壊れるので採らない）。`Main` は `NSApplication` を main スレッドで回し（`setActivationPolicy(.prohibited)`）、gRPC と VM は別のスレッド。`video.display` が `none` でなければ `VZVirtioGraphicsDeviceConfiguration`（1920×1200、Lima の vz と同じ）・USB キーボード・ポインタを付け、起動後に `NSWindow` を開く。閉じる（`windowShouldClose`）は隠すだけで VM は動き続け、`openScreen` で開き直す。ウインドウを出す間は `.regular`（Cmd-Tab に出る。Dock のアイコンは `Contents/Resources/AppIcon.icns`、名前は実行ファイル名のまま）、隠すと `.accessory`。別キューの `VZVirtualMachine` を view に渡すのは Lima の vz（Go）と同じで、macOS 27 の `VZVirtualMachineViewAdaptor` は使わない（26 でも動かすため。`@unchecked Sendable` の箱で main に運ぶ）。
-- **スクリーンショットは Lima の vz と同じ `CGWindowListCreateImage`。** macOS 26 の SDK はこれを「15 以降では使えない」と印し（ScreenCaptureKit を勧める）、Swift からは呼べないが、関数自体は残っていて Lima 2.2.1（`-mmacosx-version-min=11`）はこれで撮っている。ScreenCaptureKit は自分のウインドウでも画面収録の許可を求めるので、`dlsym` で呼ぶ。撮れるのはウインドウが表示中のときだけ（隠すとエラー。Lima と同じ）。タイトルバーを除いてゲストの画面だけに切り出す。
+- **スクリーンショットは Lima の vz と同じ `CGWindowListCreateImage`。** macOS 26 の SDK はこれを「15 以降では使えない」と印し（ScreenCaptureKit を勧める）、Swift からは呼べないが、関数自体は残っていて Lima 2.2.1（`-mmacosx-version-min=11`）はこれで撮っている。ScreenCaptureKit は自分のウインドウでも画面収録の許可を求めるので、`dlsym` で呼ぶ。撮れるのはウインドウが表示中のときだけ（隠すとエラー。Lima と同じ）。タイトルバーを除いてゲストの画面だけに切り出す。画面には Mac のクリップボードから貼り付けできない（VZ の制約。Lima の vz も同じ）ので、概要タブの画面の下にコンソールタブ（シェル・シリアル）へ案内する注記を出す（残件 17、2026-11-06）。
 - **HanaLima とドライバーの側道 `hanalima-ctl.sock`**（`ControlServer`、LimaKit の `DriverControl`）: 1 接続に JSON 1 行ずつ。`status`（VZ の状態名、画面の有無、表示中か）、`openScreen`、`screenshot`（PNG を base64）。アプリは概要タブのサムネイルと「画面を開く」で使う。`limactl create` はドライバーを SIGKILL で終えるので、作成直後はこのソケットファイルが残る（接続は拒否されるだけ。次の起動で作り直す）。
 - **シリアルコンソールは双方向**（`SerialConsole`）: `VZFileHandleSerialPortAttachment` に socketpair の片側を渡し、もう片側から読んだものを `serialv.log` と `serialv.sock`（Lima の QEMU の名前）の接続先へ流し、接続先からの入力をゲストへ書く。Lima 2.2.1 の vz は書き込み専用のログしか付けないので（docs/03 §30）、これが「シリアルからログインする」の答え。アプリのコンソールタブは `serialv.sock` があれば「シェル／シリアル」を切り替えられ、シリアルは `sh -c 'stty raw -echo; exec /usr/bin/nc -U "$1"'` を SwiftTerm の pty で動かす（`/usr/local/bin/nc` は Intel 版の残骸で落ちるので絶対パス）。
 - **落とし穴: イメージは hvc0 を使っていない。** Alpine（lima 3.23）のカーネル行は `console=ttyS0,115200n8 console=ttyAMA0,115200n8` で、inittab は `tty1` の getty だけ。つまり virtio コンソールにはカーネルも getty も何も書かず、`serialv.log` は Lima の vz でも空。ゲストの中で `echo … > /dev/hvc0` と書くとホストに届くので中継は正しい。使えるようにするのはプロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」で、systemd は `serial-getty@hvc0.service.d` のドロップイン（`agetty --autologin <user> --keep-baud 115200,… %I`）と `enable`、Alpine は inittab に `hvc0::respawn:/sbin/agetty --autologin <user> --noclear hvc0 linux`。起動ログまで hvc0 に出すにはカーネル行の `console=hvc0` が要り、ディストリビューションごとに違う（grub、extlinux）ので例では触らない。
-- **既存 VM の移行は `limactl edit --set '.vmType = "hanalima"'` だけ。** Lima は `vmType` の変更を禁じておらず（`ValidateAgainstLatestConfig` はディスクの縮小だけ）、`edit` は新しい `vmType` のドライバーで `Validate` を呼ぶ。`disk`・`vz-efi`・`vz-identifier` は vz と同じファイルなので、vz で書いたファイルは hanalima で見え、戻しても見える（使い捨ての Alpine で往復を確認。`DriverMigrationEndToEndTests`）。設定タブの「ハードウェア」に「仮想化方式」のピッカー（vz ⇄ hanalima、ドライバー入りのビルドのとき）。`Validate` で断るもの（理由は `lima.REJECTED.yaml`）: Rosetta、`ssh.overVsock: true`、virtiofs 以外の `mountType`（マウントがあるとき）、`lima:` のネットワーク。
+- **既存 VM の移行は `limactl edit --set '.vmType = "hanalima"'` だけ。** Lima は `vmType` の変更を禁じておらず（`ValidateAgainstLatestConfig` はディスクの縮小だけ）、`edit` は新しい `vmType` のドライバーで `Validate` を呼ぶ。`disk`・`vz-efi`・`vz-identifier` は vz と同じファイルなので、vz で書いたファイルは hanalima で見え、戻しても見える（使い捨ての Alpine で往復を確認。`DriverMigrationEndToEndTests`）。設定タブの「ハードウェア」に「仮想化方式」のピッカー（vz ⇄ hanalima、ドライバー入りのビルドのとき）。`Validate` で断るもの（理由は `lima.REJECTED.yaml`）: Rosetta、`ssh.overVsock: true`、virtiofs 以外の `mountType`（マウントがあるとき）、`lima:` のネットワーク（Rosetta・overVsock・`lima:` はいずれも後に解除。残件 1・段階 4・残件 2）。
 - **アプリ側の「VZ だけ」判定を「vz か hanalima」に広げた**（`LimaInstance.usesVirtualization`）: vzNAT の選択肢、画面のサムネイル、救出起動（同じ `disk`・`vz-efi`・MAC の導出）。QEMU の判定（スナップショット、複製、ログの順）はそのまま。
 - **3 回目の Codex のレビューで直した 3 点**: シリアルの接続先の fd は読む側のスレッドだけが（ロックの中で）閉じ、送る側はロックの中で `MSG_DONTWAIT` で送る（閉じた番号が再利用されて別の接続に書く競合）、`SerialConsole` の初期化が途中で失敗したときの socketpair の解放、閉じた（VM が止まった）ウインドウは `dismiss` で無効にし `openScreen` と `screenshot` を断る（teardown と要求の順序）。
 - E2E: `DriverEndToEndTests`（自動ログインの例を入れ、hvc0 のシェルでコマンドを実行して出力が `serialv.sock` と `serialv.log` に出ること、制御ソケットの `status`、画面なしの VM では `openScreen` が断られること。Alpine、起動 69〜75 秒）、`DriverMigrationEndToEndTests`（130 秒）。Alpine の追加ディスクのマウントの揺らぎ（段階 2）はこの日も 8 回中 3 回あり、原因がわかった: Lima の `05-lima-disks.sh` が `sfdisk` → `mkfs` → `mount /dev/vdb1` と進むうち、`mount` が `fsconfig() failed: /dev/vdb1: Can't lookup blockdev` で落ちる（`/proc/partitions` には vdb1 があり `mkfs.ext4` も通っているのに、`/dev/vdb1` のノードが無く `/dev/vdb` だけになっている。dmesg には `vdb: vdb1` が 2 回（初回の検出と sfdisk の再読み込み）出ていて、mdev が remove と add の順を取り違えてノードを消したように見える。`mdev -s` で作り直すと mount できる。ゲスト側（mdev）の競合で、DNS やミラーではない）。**Lima 自身の vz でも同じ**（同じ Alpine＋raw の追加ディスクで初回起動を 4 回繰り返して 2 回失敗）なので、ドライバーの問題ではない。E2E は Lima が付け損ねたときは `mdev -s` でノードを作り直して自分で `mount` し、接続と区画を確かめる。
-- **残り**: `lima:` のネットワーク（socket_vmnet、user-v2）、Rosetta、スナップショット（VZ 側は HanaLima の `DiskSnapshot` が vmType を問わず使える）、macOS ゲスト、SSH の vsock 化、一時停止（`VZVirtualMachine.pause`／`saveMachineState`。Lima に「一時停止」の状態がないので、側道で持つなら Lima からは Running に見える）。
+- **残り**: `lima:` のネットワーク（socket_vmnet、user-v2）、Rosetta、スナップショット（VZ 側は HanaLima の `DiskSnapshot` が vmType を問わず使える）、macOS ゲスト、SSH の vsock 化、一時停止（`VZVirtualMachine.pause`／`saveMachineState`。Lima に「一時停止」の状態がないので、側道で持つなら Lima からは Running に見える）。（2026-11-06: macOS ゲストと一時停止を除き済み。段階 4、残件 1・2・3 の節を参照）
 
 ## 段階 4 の結果（2026-11-05）: SSH の vsock 化
 
@@ -143,8 +143,8 @@ E2E `DriverEndToEndTests` を広げ、Alpine（起動 71 秒、停止 4 秒）�
 - **1 回目: NIC を本当に付けないと、起動に 180 秒かかる。** SSH は vsock で通り、ポート転送（hostagent の SSH トンネル）も通り、ゲストは `lo` だけでインターネット・DNS・192.168.5.2 に届かない（狙いどおり）。しかし cidata の network-config は usernet の MAC の eth0 を必ず書くので（`cidata.go` が `limayaml.MACAddress(instDir)` を無条件に足す）、cloud-init が「Not all expected physical devices present」とネットワーク設定を**丸ごと捨て**、netplan は書かれず、`systemd-networkd-wait-online` が 120 秒待って失敗、`sshd-vsock.socket` は `sysinit.target` の後ろなので 156 秒後にやっと応えた。`param.internal_netplanOptional=true` は cidata には効いていた（`optional: true` が入る）が、設定ごと捨てられては意味がない。
 - **対策: NIC 0 は付けるがつながない。** `VZVirtioNetworkDeviceConfiguration` の `attachment` を nil、MAC は Lima のもの。ゲストには eth0 が NO-CARRIER で存在し、cloud-init は netplan を書き（`optional: true`）、wait-online は待たない。2 回目の起動 57 秒、sshd は 35 秒。
 - **残りは Lima の起動スクリプトの失敗。** `30-install-packages.sh`（hostResolver の DNS ポートがあると iptables、rootless containerd があると newuidmap を apt で入れる）と `40-install-containerd.sh` が網なしで失敗し、cloud-init が `status: error`。`Configure` で `hostResolver.enabled=false`・`containerd.system/user=false` にすると `status: done`、起動 37 秒（`cloud-init-network.service` にまだ 30 秒かかる。eth0 の DHCP の待ちと思われる）。
-- **できること・できないこと**: 届くのは `networks:` に足した NIC の先だけ。HanaLima のホストオンリーを足せばそのサブネット（と、その上の Mac）だけ。SSH・ゲストエージェント・ポート転送・共有フォルダ（virtiofs）は vsock と VZ の中なので残る。ゲストに systemd 256 以降が要り（`sshd-vsock.socket`）、Alpine は使えない。apt・dnf は出られないのでプロビジョニングは使えない。docs/06 の結論「Lima を改造せずに Mac から切り離すことはできない」は、外部ドライバーで覆った（§7）。
-- UI: 作成画面と設定タブの「NIC 0: Lima のユーザーモード NAT」のトグル（hanalima のときだけ）、概要タブの「ユーザーモード: なし（隔離）」。
+- **できること・できないこと**: 届くのは `networks:` に足した NIC の先だけ。HanaLima のホストオンリーを足せばそのサブネット（と、その上の Mac）だけ。SSH・ゲストエージェント・ポート転送・共有フォルダ（virtiofs）は vsock と VZ の中なので残る。ゲストに systemd 256 以降が要り（`sshd-vsock.socket`）、Alpine は使えない（後に残件 6 の socat で可）。apt・dnf は出られないのでプロビジョニングは使えない。docs/06 の結論「Lima を改造せずに Mac から切り離すことはできない」は、外部ドライバーで覆った（§7）。
+- UI: 作成画面と設定タブの「NIC 0: Lima のユーザーモード NAT」のトグル（hanalima のときだけ）、概要タブの「ユーザーモード: なし（隔離）」。残件 7（2026-11-06）: `Configure` が隔離で埋める値（`hostResolver` オフ、containerd オフ、`dns` をゲスト専用の DNS に、eth0 を optional に）は lima.yaml に書かれないので、設定タブの NIC 0 の下と概要タブのユーザーモードの行に「ドライバーが起動時に切る」旨の注記を出す。
 - **4 回目の Codex のレビューで直した 4 点（SSH の経路）**: 競走は「先に終わった方」でなく「先に通った方」を採る（その後、上記の理由で並走自体をやめた）。`AdditionalSetupForSSH` の待ちは `Task` として Run に持ち、`Stop` が取り消す（取り消さないと vsock の探索が時間切れまで続く）。`unexpose` の待ちのあとに世代を見直し、橋渡しの bind に失敗したら usernet の転送を張り直す（乗り換えで SSH が消えない）。`connectVsock` の完了待ちに期限（10 秒）を付け、遅れて来た接続は閉じる。
 - 作成画面: 隔離のトグルはドライバー以外に切り替えると戻り、隔離中は NIC 1 の vzNAT を隠す（NAT を足せば出られるのは説明に書く）。
 - **停止の競合**: `Stop` の RPC が「VM が止まった」時点で返ると、hostagent が終わって SIGTERM が来て、デリゲート経由の後片付け（usernet の終了、pid・ソケットの削除）が終わる前にドライバーが exit することがあった（E2E で停止直後に `hanalima-usernet.pid`・`default_ep.sock` が残る）。`stop()` は後片付けの完了（`run == nil && !busy`）まで待ってから返す（最大 30 秒）。
@@ -167,3 +167,25 @@ Lima の vz を写した。`VZMachine` が `vmOpts.vz.rosetta.enabled` のとき
 - **残件 12: HanaLima なしでも動く配り方**（2026-11-06）: `DriverInstaller`（LimaKit）がアプリの起動時に同梱のドライバーを `<prefix>/lib/lima/lima-driver-hanalima` に写す。prefix は limactl のあるフォルダの親（`/opt/homebrew/bin` → `/opt/homebrew`）で、Lima 2.2.1 の `usrlocal.LibexecLima` が `<prefix>/libexec/lima` と `<prefix>/lib/lima` を探す（Homebrew は `libexec` を自分用に予約しているので Lima 側が `lib/lima` を足した、lima-vm/lima#4295）。Cellar の中ではないので Lima の更新で消えない。ユーザー所有の prefix なので sudo は要らない。実機: 写したあと `limactl info` の `vmTypes` に `hanalima` が出て、`limactl list` の「vmType `hanalima` is not a registered driver」の警告が消えた。
 - **残件 11: 新規作成の既定を hanalima に**（2026-11-06 ユーザー判断、12 を先に済ませたうえで）: 作成画面の既定を HanaLima のドライバーにし、作成画面・設定タブの「試験的」を外した。説明に「ターミナルの limactl からも使える」「HanaLima を入れていない Mac では起動できない」「VZ に戻すのは設定タブで 1 手順」を書いた。
 - **取り残されるドライバー**: この回の E2E で 1 度、停止・削除のあとにドライバーのプロセス（アイドル、`NSApp.run` で待機）が残った。hostagent は終了時に `*.drv.pid` へ SIGTERM を送る（`server.Stop(force: false)`）が、それが届かなかったとみられる（手で SIGTERM を送るとすぐ終了した）。再現はしていないが、ドライバーに番犬を足した（最初は `ha.pid` の生存を見ていたが、残件 3 で「VM が無く、親プロセスが消えた」に改めた。Lima は起動ごとに新しいドライバーを起動するので、残っても使われない）。E2E は 10 秒の猶予のあとに pid ファイルとログを出す。
+
+## 残件 10（2026-11-05）: 救出起動と ISO インストールをドライバーの hosted モードに
+
+アプリ本体が VZ を抱えていた `HostedVM`（救出起動、インストーラー）を、`lima-driver-hanalima --hosted <dir> --cpus <n> --memory <MiB> [--iso] [--boot-image] [--helper] [--seed] [--no-cidata] [--headless] [--serial-log]` に置き換えた。gRPC は立てず、制御ソケット `hanalima-ctl.sock`（`status`・`openScreen`・`screenshot`・`stop`・`forceStop`）と pid ファイル `hanalima-hosted.pid`（`hanalima.pid` と分け、Lima が hanalima の VM と誤認しない）だけ。同じフォルダの二重起動は `hanalima-hosted.lock` の排他ロックで防ぐ。画面はドライバーのウインドウで、hosted ではウインドウを閉じると電源が切れる（Lima 配下では隠すだけ）。NIC 0 は usernet（Lima の MAC）なので、cidata が eth0 の DNS を 192.168.5.2 に固定していても名前解決が通る（VZ の NAT だった頃は通らないことがあった）。アプリ側は `HostedProcess` がドライバーを起動して制御ソケットを 1 秒おきに見るだけで、VM はアプリを終了しても動き続け、次の起動で `hanalima-hosted.pid`（`ps` のコマンド行が `--hosted <そのフォルダ>` のものに限る）と制御ソケットから再接続する（`reattachHostedBoots`。`pendingInstall` があればインストール、無ければ救出のセッション）。アプリ本体の virtualization の entitlement は不要になったが残している。E2E は `RescueEndToEndTests`（ヘッドレスで起動し、シリアルの `login:` か usernet の `wait_port` で 22 番を待って制御ソケットで止め、Lima で再起動）と `ISOInstallEndToEndTests`（無人インストール）。詳細は docs/07 §8、docs/03 §32。
+
+## 残件 9（2026-11-05）: 隔離のプリセット
+
+作成画面の「隔離した仮想マシンとして作る」は、ドライバー・NIC 0 なし（`usernet: false`）・ホームの共有なし・NIC 1 の候補はゲスト専用ネットワークだけ、をまとめて設定するトグル。Alpine や古い systemd のゲストは残件 6 の socat に網が要るので、「最初の 1 回だけ NIC 0 を付けて起動する」（`prepareFirstBoot`）を選ぶと usernet 付きで作り、記録（`hanalima-vm.json`）の `pendingIsolation` を見て、最初の停止のあとに HanaLima が `usernet = false` を書く（`applyPendingIsolation`）。この 1 回の起動でプロビジョニング（apt・dnf・apk）も済ませられる。docs/06 §9 も参照。
+
+## 検証済みのゲストと E2E（2026-11-06）
+
+- ドライバーの E2E（`DriverEndToEndTests`、`HANALIMA_E2E_TEMPLATE` でゲストを変える）は Alpine・Ubuntu LTS・Fedora・Debian で通過（2026-11-06）。
+- ドライバーに関わるスイート: `DriverEndToEndTests`（NIC・追加ディスク・ゲストエージェント・ポート転送・制御ソケット・シリアル）、`DriverMigrationEndToEndTests`（vz ⇄ hanalima）、`DriverRosettaEndToEndTests`、`DriverSnapshotEndToEndTests`（`limactl snapshot`）、`DriverLimaNetworksEndToEndTests`（`lima:user-v2`）、`DriverIsolationEndToEndTests`（隔離。ゲスト専用 NIC と DNS を Ubuntu と Alpine で）、`RescueEndToEndTests`、`ISOInstallEndToEndTests`（hosted モード）、`GuestOnlyEndToEndTests`（netd のゲスト専用ネットワーク）。
+
+## 現在の残件（2026-11-06）
+
+- 一時停止（`VZVirtualMachine.pause`／`saveMachineState`。Lima の状態との見せ方が先）。
+- macOS ゲスト（`VZMacPlatformConfiguration`）。
+- Lima 2.3 の `driver.proto` への追従（正式リリース待ち。docs/03 §29）。
+- Alpine の追加ディスクの揺らぎ（Lima の `05-lima-disks.sh` と mdev の競合。Lima の vz でも起きる。upstream に報告するかは未定）。
+- vsock 探索の設計メモ（段階 4: 起動中の探索がゲストエージェントの vsock を不安定にする件の整理）。
+- 取り残されたドライバーの原因（hostagent の SIGTERM が届かない件。番犬で回避済み）。
