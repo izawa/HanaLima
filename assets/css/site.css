@@ -214,6 +214,11 @@ h3 { font-size: 19px; margin: 0 0 8px; letter-spacing: -.005em; }
 a.dive .num:hover, .dive .num:hover { color: var(--hana); }
 .dive:target { border-color: var(--hana); }
 .dive p { margin: 0 0 10px; color: var(--muted); }
+/* Key points under a dive or a card: short items, bold lead-ins. */
+.points { margin: 0 0 10px; padding-left: 1.15em; color: var(--muted); }
+.points li { margin: 0 0 7px; }
+.points strong { color: var(--text); font-weight: 600; }
+.card .points { font-size: 15px; margin-top: 10px; }
 .dive .tag { display: inline-block; margin-top: 4px; }
 pre.code {
   margin: 0; background: #07080c; color: #d6dbe6; border: 1px solid var(--line); border-radius: 10px;
