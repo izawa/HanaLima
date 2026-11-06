@@ -973,6 +973,7 @@
       }
     },
     "HanaLima のドライバー（VZ、試験的）": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -984,6 +985,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "HanaLima のドライバー（VZ、試験的）"
+          }
+        }
+      }
+    },
+    "HanaLima のドライバー（VZ）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバー（VZ）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima's Driver (VZ)"
           }
         }
       }
@@ -1377,7 +1394,24 @@
         }
       }
     },
+    "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、隔離した仮想マシンも作れます。ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できません。VZ に戻すのは設定タブで 1 手順です。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、隔離した仮想マシンも作れます。ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できません。VZ に戻すのは設定タブで 1 手順です。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima itself runs the VM on Virtualization.framework instead of Lima's VZ. The screen can be closed and reopened, the Console tab gets a serial console, and isolated VMs become possible. It works from the terminal's limactl too (HanaLima places the driver where Lima looks). A Mac without HanaLima can't start it; going back to VZ is one step in the Settings tab."
+          }
+        }
+      }
+    },
     "Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、HanaLima が無い環境では起動できません。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2277,6 +2311,7 @@
       }
     },
     "VZ (Virtualization.framework)": {
+      "extractionState": "stale",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -4133,7 +4168,24 @@
         }
       }
     },
+    "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できなくなります。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できなくなります。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both run on Virtualization.framework and keep the disk and EFI variables as they are. With HanaLima's driver the screen can be closed and reopened, the Console tab gets a serial console, and the terminal's limactl works too (HanaLima places the driver where Lima looks). A Mac without HanaLima can no longer start it."
+          }
+        }
+      }
+    },
     "どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。HanaLima が無い環境では起動できなくなります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6619,16 +6671,16 @@
     },
     "ネットワーク %@ のヘルパーが古い版のまま動いています（仮想マシンが接続している間は入れ替えられません）。再起動すると新しい版に切り替わり、保存した設定を読めるようになります。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ネットワーク %@ のヘルパーが古い版のまま動いています（仮想マシンが接続している間は入れ替えられません）。再起動すると新しい版に切り替わり、保存した設定を読めるようになります。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The helper of network %@ is still the older build (it can't be replaced while a VM is connected). Restarting switches to the new one, which can read the saved settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワーク %@ のヘルパーが古い版のまま動いています（仮想マシンが接続している間は入れ替えられません）。再起動すると新しい版に切り替わり、保存した設定を読めるようになります。"
           }
         }
       }

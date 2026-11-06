@@ -23,7 +23,8 @@ struct CreateInstanceSheet: View {
         #endif
         return .template
     }
-    @State private var vmType: CreateOptions.VMType = .vz
+    /// HanaLima's own driver by default (docs/09); VZ and QEMU stay a click away.
+    @State private var vmType: CreateOptions.VMType = AppModel.hasDriver ? .hanalima : .vz
     @State private var cpus = min(4, HostInfo.cpuCount)
     @State private var memoryGiB = min(4, HostInfo.memoryGiB)
     @State private var diskGiB = 100
@@ -99,15 +100,15 @@ struct CreateInstanceSheet: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Picker("仮想化方式", selection: $vmType) {
-                        Text("VZ (Virtualization.framework)").tag(CreateOptions.VMType.vz)
-                        Text("QEMU").tag(CreateOptions.VMType.qemu)
                         if AppModel.hasDriver {
-                            Text("HanaLima のドライバー（VZ、試験的）").tag(CreateOptions.VMType.hanalima)
+                            Text("HanaLima のドライバー（VZ）").tag(CreateOptions.VMType.hanalima)
                         }
+                        Text("VZ（Lima）").tag(CreateOptions.VMType.vz)
+                        Text("QEMU").tag(CreateOptions.VMType.qemu)
                     }
                     .disabled(source == .iso)
                     if vmType == .hanalima {
-                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。まだ試験的で、HanaLima が無い環境では起動できません。")
+                        Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、隔離した仮想マシンも作れます。ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できません。VZ に戻すのは設定タブで 1 手順です。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

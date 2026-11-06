@@ -242,10 +242,10 @@ private struct HardwareSection: View {
             if isVZ, AppModel.hasDriver || config.vmType?.lowercased() == "hanalima" {
                 Picker("仮想化方式", selection: Binding(get: { config.vmType?.lowercased() ?? "vz" },
                                                    set: { config.vmType = $0 })) {
+                    Text("HanaLima のドライバー（VZ）").tag("hanalima")
                     Text("VZ（Lima）").tag("vz")
-                    Text("HanaLima のドライバー（VZ、試験的）").tag("hanalima")
                 }
-                Text("どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使えます。HanaLima が無い環境では起動できなくなります。")
+                Text("どちらも Virtualization.framework で、ディスクと EFI の変数はそのまま引き継ぎます。HanaLima のドライバーでは、画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できなくなります。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

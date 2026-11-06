@@ -222,6 +222,17 @@ final class AppModel {
             environment["LIMA_DRIVERS_PATH"] = [helpers.path, environment["LIMA_DRIVERS_PATH"]].compactMap { $0 }.joined(separator: ":")
         }
         let client = LimaClient(limactlURL: url, environment: environment)
+        // And for the terminal's limactl: a copy in Lima's own driver directory.
+        if let helpers = Self.driverDirectory {
+            let bundled = helpers.appending(path: DriverInstaller.driverName)
+            Task.detached(priority: .utility) {
+                do {
+                    if case .installed(let dest) = try DriverInstaller.installIfNeeded(bundled: bundled, limactl: url) {
+                        NSLog("HanaLima: placed %@ for limactl", dest.path)
+                    }
+                } catch { NSLog("HanaLima: driver copy for limactl failed: %@", "\(error)") }
+            }
+        }
         do {
             let version = try await client.version()
             self.client = client
