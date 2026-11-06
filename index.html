@@ -39,6 +39,7 @@
       <a href="#how"><span class="en">How it works</span><span class="ja">仕組み</span></a>
       <a href="#networking"><span class="en">Networking</span><span class="ja">ネットワーク</span></a>
       <a href="#features"><span class="en">Features</span><span class="ja">機能</span></a>
+      <a href="#lab"><span class="en">Lab</span><span class="ja">構成例</span></a>
       <a href="#quickstart"><span class="en">Quick start</span><span class="ja">クイックスタート</span></a>
       <a href="#roadmap"><span class="en">Roadmap</span><span class="ja">ロードマップ</span></a>
     </nav>
@@ -547,6 +548,96 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
         <p><span class="en">Developer ID signing, notarization and auto-update — once enough people use HanaLima. Until then, one command builds it and installs it into <code>/Applications</code>.</span><span class="ja">Developer ID の署名、公証、自動アップデートは、使う人が増えたら取り組みます。それまではコマンド 1 つでビルドして <code>/Applications</code> に入れられます。</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== LAB ============================== -->
+<section id="lab">
+  <div class="wrap">
+    <div class="kicker">// what you can build</div>
+    <h2><span class="en">A lab Lima alone can't build</span><span class="ja">Lima だけでは組めない構成</span></h2>
+    <p class="section-lead">
+      <span class="en">Two VMs that can reach each other and one gateway — and nothing else, not even the Mac they run on. The gateway lets through only the hosts on its allow list. Every piece comes from a HanaLima feature: the isolation profile, the guest-only network with a router, the gateway provisioning example, and copies that cost no disk.</span>
+      <span class="ja">お互いとゲートウェイにだけ届く VM が 2 台。動いている Mac にも届きません。ゲートウェイは許可リストにあるホストだけを通します。どの部品も HanaLima の機能です。隔離プロファイル、ルーターを指定したゲスト専用ネットワーク、ゲートウェイのプロビジョニングの例、ディスクを増やさない複製。</span>
+    </p>
+
+    <figure class="fig reveal"><svg viewBox="0 0 1000 490" role="img" aria-label="Two isolated Alpine VMs on a guest-only network reach each other and a gateway VM; the gateway, named as the network's router, NATs only allow-listed hosts out through Lima's NIC 0. The Mac's loopback is unreachable from the VMs.">
+      <text x="28" y="24" class="f en">YOUR MAC · everything runs as your user, no sudo</text><text x="28" y="24" class="f ja">あなたの Mac · すべて一般ユーザー、sudo なし</text>
+      <rect x="16" y="34" width="760" height="420" rx="16" class="box dashed"/>
+
+      <rect x="60" y="70" width="270" height="96" rx="9" class="box hana"/>
+      <text x="74" y="94" class="t">guest1 · Alpine</text>
+      <text x="74" y="114" class="m">10.0.0.2</text>
+      <text x="74" y="134" class="hana-t small en">isolated: no NIC 0 · SSH over vsock</text><text x="74" y="134" class="hana-t small ja">隔離: NIC 0 なし・SSH は vsock</text>
+      <text x="74" y="154" class="f en">270 MB on disk</text><text x="74" y="154" class="f ja">ディスク 270 MB</text>
+
+      <rect x="350" y="70" width="270" height="96" rx="9" class="box hana"/>
+      <text x="364" y="94" class="t">guest2 · Alpine</text>
+      <text x="364" y="114" class="m">10.0.0.3</text>
+      <text x="364" y="134" class="hana-t small en">APFS clone of guest1 · adds no disk</text><text x="364" y="134" class="hana-t small ja">APFS クローン・ディスクは増えない</text>
+      <text x="364" y="154" class="f en">lima-guest1.hanalima resolves</text><text x="364" y="154" class="f ja">lima-guest1.hanalima が引ける</text>
+
+      <path d="M195 166 L 195 206" class="ln sky"/>
+      <path d="M485 166 L 485 206" class="ln sky"/>
+      <rect x="60" y="206" width="620" height="24" rx="6" class="bus"/>
+      <text x="370" y="222" class="sky-t small en" text-anchor="middle">lab · guest-only 10.0.0.0/24 · switched by hanalima-netd, no vmnet, no interface on the Mac</text>
+      <text x="370" y="222" class="sky-t small ja" text-anchor="middle">lab · ゲスト専用 10.0.0.0/24 · hanalima-netd が中継、vmnet なし、Mac にインターフェースなし</text>
+
+      <path d="M400 230 L 400 270" class="ln lime"/>
+      <rect x="210" y="270" width="380" height="124" rx="9" class="box lime"/>
+      <text x="234" y="294" class="t">gateway · Alpine</text>
+      <text x="234" y="314" class="ok en">10.0.0.1 · the network's router (DHCP option 3)</text><text x="234" y="314" class="ok ja">10.0.0.1 · ネットワークの「ルーター」（DHCP option 3）</text>
+      <text x="234" y="334" class="m en">nftables + dnsmasq · one provisioning example</text><text x="234" y="334" class="m ja">nftables と dnsmasq、プロビジョニングの例 1 つ</text>
+      <text x="234" y="354" class="m en">allow: dl-cdn.alpinelinux.org, api.anthropic.com</text><text x="234" y="354" class="m ja">許可: dl-cdn.alpinelinux.org, api.anthropic.com</text>
+      <text x="234" y="376" class="ng small en">everything else is dropped and logged</text><text x="234" y="376" class="ng small ja">ほかは落としてログに残す</text>
+
+      <path d="M590 332 L 700 332 L 700 232 L 832 232" class="ln lime" marker-end="url(#fa-l)"/>
+      <text x="712" y="300" class="f en">NIC 0 (Lima usernet) · NAT</text><text x="712" y="300" class="f ja">NIC 0（Lima の usernet）· NAT</text>
+      <text x="712" y="372" class="ok small en">✓ allowed hosts</text><text x="712" y="372" class="ok small ja">✓ 許可したホスト</text>
+      <text x="712" y="392" class="ng small en">✗ example.com · 1.1.1.1</text><text x="712" y="392" class="ng small ja">✗ example.com · 1.1.1.1</text>
+      <rect x="836" y="200" width="148" height="64" rx="9" class="box"/>
+      <text x="910" y="228" class="t" text-anchor="middle">Internet / LAN</text>
+      <text x="910" y="248" class="m small en" text-anchor="middle">DNS yes · traffic no</text><text x="910" y="248" class="m small ja" text-anchor="middle">名前は引ける・届かない</text>
+
+      <path d="M130 230 L 130 300" class="ln dash" style="stroke:var(--red)"/>
+      <text x="130" y="272" class="ng big" text-anchor="middle">✗</text>
+      <rect x="60" y="300" width="140" height="56" rx="9" class="box ng"/>
+      <text x="130" y="324" class="t" text-anchor="middle">Mac · 127.0.0.1</text>
+      <text x="130" y="344" class="ng small en" text-anchor="middle">unreachable</text><text x="130" y="344" class="ng small ja" text-anchor="middle">届かない</text>
+
+      <text x="16" y="480" class="ok en">Only the gateway sees the outside. The two VMs see each other, the gateway, and nothing else.</text>
+      <text x="16" y="480" class="ok ja">外に出られるのはゲートウェイだけ。2 台の VM に見えるのは、お互いとゲートウェイだけ。</text>
+    </svg></figure>
+
+    <div class="grid" style="margin-top:18px">
+      <div class="card reveal">
+        <h3><span class="en">What is cut off</span><span class="ja">何が切れているか</span></h3>
+        <ul class="points">
+          <li><span class="en"><strong>No NIC 0.</strong> The isolation profile leaves out Lima's user-mode network, so there is no route to the internet, the LAN or the Mac's <code>127.0.0.1</code>. SSH, the guest agent and port forwards ride vsock instead.</span><span class="ja"><strong>NIC 0 がない。</strong>隔離プロファイルは Lima のユーザーモードネットワークを付けないので、インターネット、LAN、Mac の <code>127.0.0.1</code> への経路がありません。SSH、ゲストエージェント、ポート転送は vsock を通ります。</span></li>
+          <li><span class="en"><strong>The Mac is not on the segment.</strong> A guest-only network is a switch inside <code>hanalima-netd</code>: no vmnet, no host interface. Its DHCP names the gateway as the route (option 3) and as the second DNS.</span><span class="ja"><strong>Mac はセグメントにいない。</strong>ゲスト専用ネットワークは <code>hanalima-netd</code> の中のスイッチで、vmnet もホストのインターフェースもありません。その DHCP がゲートウェイを経路（option 3）と 2 番目の DNS として配ります。</span></li>
+          <li><span class="en"><strong>One door, with a list.</strong> The gateway forwards only to hosts a VM has resolved through it and that are on the allow list; the rest is dropped and shows up in <code>dmesg</code>.</span><span class="ja"><strong>出口は 1 つ、リストつき。</strong>ゲートウェイは、VM がゲートウェイで名前を引いた先のうち許可リストにあるものだけを通し、ほかは落として <code>dmesg</code> に残します。</span></li>
+        </ul>
+      </div>
+      <div class="card reveal">
+        <h3><span class="en">How it's put together</span><span class="ja">どう組むか</span></h3>
+        <ol class="points">
+          <li><span class="en">Create a guest-only network and set its <em>Router</em> to the address you'll reserve for the gateway.</span><span class="ja">ゲスト専用ネットワークを作り、「ルーター」にゲートウェイ用に予約するアドレスを入れる。</span></li>
+          <li><span class="en">Create the gateway VM on HanaLima's driver with NIC 0 and that network; add the examples “Gateway with an allow list” and “Console auto-login”.</span><span class="ja">ゲートウェイの VM を HanaLima のドライバーで、NIC 0 とそのネットワークを付けて作り、例「出口を絞るゲートウェイ」と「コンソールに自動ログイン」を追加する。</span></li>
+          <li><span class="en">Create guest1 as an isolated VM on the same network (one first boot with NIC 0 installs the vsock SSH relay on Alpine). Copy it to guest2.</span><span class="ja">guest1 を同じネットワークで隔離した VM として作る（Alpine では最初の 1 回だけ NIC 0 付きで起動して vsock の SSH 中継を入れる）。複製して guest2 にする。</span></li>
+          <li><span class="en">Edit the allow list in the gateway's Settings tab and “Run now”.</span><span class="ja">許可リストはゲートウェイの設定タブで編集して「今すぐ実行」。</span></li>
+        </ol>
+      </div>
+      <div class="card reveal">
+        <h3><span class="en">What to show</span><span class="ja">デモで見せること</span></h3>
+        <ul class="points">
+          <li><span class="en"><code>tcpdump</code> on the gateway while guest1 fetches an allowed page, then a blocked one.</span><span class="ja">ゲートウェイで <code>tcpdump</code> を流しながら、guest1 から許可したページと、許可していないページを取りに行く。</span></li>
+          <li><span class="en">Add <code>*</code> to the list, “Run now”, and the blocked page loads.</span><span class="ja">リストに <code>*</code> を足して「今すぐ実行」すると、さっきのページが開く。</span></li>
+          <li><span class="en">Stop the gateway: the two VMs still talk to each other and nothing else.</span><span class="ja">ゲートウェイを止めると、2 台はお互いとだけ話せる。</span></li>
+          <li><span class="en">Open guest1's serial console from the Console tab — no SSH involved.</span><span class="ja">guest1 にはコンソールタブの「シリアル」から入る。SSH は使わない。</span></li>
+        </ul>
+        <p style="margin-top:12px"><span class="en">Three Alpine VMs: about 1 GB of disk in all.</span><span class="ja">Alpine 3 台で、ディスクは合わせて 1 GB ほど。</span></p>
       </div>
     </div>
   </div>
