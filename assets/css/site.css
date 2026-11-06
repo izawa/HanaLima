@@ -53,9 +53,10 @@ html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+html { background: var(--bg); }
 body {
   margin: 0;
-  background: var(--bg);
+  background: transparent;   /* the ambient layer (#ambient) shows through; html carries --bg */
   color: var(--text);
   font: 16px/1.65 var(--sans);
   overflow-x: hidden;
@@ -106,6 +107,11 @@ html.lang-en .lang-toggle [data-lang="en"], html.lang-ja .lang-toggle [data-lang
 .btn:hover { transform: translateY(-1px); border-color: var(--faint); }
 .btn.primary { background: var(--grad); color: #0b0d12; border: 0; }
 .btn svg { width: 18px; height: 18px; }
+
+/* ---------- Ambient background ----------
+   A canvas fixed behind the page (site.js draws slow waves and drifting sparks). */
+#ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+#ambient canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 /* ---------- Hero ---------- */
 .hero { position: relative; padding: 84px 0 56px; overflow: hidden; }
@@ -187,7 +193,7 @@ html.lang-ja .hero h1 { font-size: clamp(34px, 5.2vw, 58px); line-height: 1.12; 
 
 /* ---------- Sections ---------- */
 section { padding: 84px 0; }
-section.alt { background: var(--bg-2); border-block: 1px solid var(--line); }
+section.alt { background: color-mix(in srgb, var(--bg-2) 72%, transparent); border-block: 1px solid var(--line); }
 .kicker { font: 600 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--hana); }
 h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.15; letter-spacing: -.015em; margin: 10px 0 14px; }
 h3 { font-size: 19px; margin: 0 0 8px; letter-spacing: -.005em; }
