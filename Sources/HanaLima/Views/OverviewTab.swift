@@ -57,6 +57,10 @@ struct OverviewTab: View {
                             Button("画面を開く") { model.openScreen(instance) }
                                 .help("仮想マシンの画面ウィンドウを前に出します（閉じていても開き直せます）。")
                         }
+                        Text(instance.usesHanaLimaDriver
+                             ? "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルか「シリアル」に貼り付けてください。"
+                             : "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルに貼り付けてください。")
+                            .font(.caption).foregroundStyle(.secondary)
                     } else {
                         Text("起動すると、ここに仮想マシンの画面が表示されます。").foregroundStyle(.secondary)
                     }

@@ -79,10 +79,12 @@ struct DriverEndToEndTests {
         // The guest: DNS through usernet's gateway (resolv.conf on Alpine, systemd-resolved on
         // Ubuntu), the home share, the guest agent.
         #expect(try await sh("{ cat /etc/resolv.conf; resolvectl status 2>/dev/null; } | grep -q 192.168.5.2 && echo ok") == "ok")
-        #expect(try await sh("nslookup dl-cdn.alpinelinux.org >/dev/null 2>&1 && echo ok") == "ok")
+        // getent exists on glibc and busybox alike (Fedora and Debian images have no nslookup).
+        #expect(try await sh("getent hosts dl-cdn.alpinelinux.org >/dev/null 2>&1 && echo ok") == "ok")
         #expect(try await sh("mount | grep -c virtiofs") == "1")
         #expect(try await sh("ls \(NSHomeDirectory()) >/dev/null && echo ok") == "ok")
-        #expect(try await sh("ps -o args= 2>/dev/null | grep '[l]ima-guestagent' | grep -c 'vsock-port 2222'") != "0")
+        // -e: procps' ps lists only the session without it (busybox lists everything either way).
+        #expect(try await sh("ps -eo args= 2>/dev/null | grep '[l]ima-guestagent' | grep -c 'vsock-port 2222'; true") != "0")
         // NIC 1 on the HanaLima network, NIC 2 on vzNAT, the additional disk mounted by Lima.
         #expect(try await sh("ip -4 -o addr show lima0 | grep -c 192.168.237.") == "1")
         #expect(try await sh("ip -4 -o addr show lima1 | grep -c 192.168.64.") == "1")
