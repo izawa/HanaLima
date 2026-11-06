@@ -148,6 +148,8 @@ private struct NetworkRow: View {
                 Group {
                     if network.isBridged {
                         Text("\(network.bridgedInterface) の LAN に接続・IP は LAN の DHCP から")
+                    } else if network.isGuestOnly, !network.router.isEmpty {
+                        Text("\(network.subnet?.description ?? "—")・VM 同士のみ・ルーター \(network.router)")
                     } else if network.isGuestOnly {
                         Text("\(network.subnet?.description ?? "—")・VM 同士のみ（Mac は参加しない）")
                     } else {
@@ -326,10 +328,20 @@ struct NetworkEditorSheet: View {
                     Text("/\(len)（\(IPv4.mask(prefixLength: len).description)）").tag(len)
                 }
             }
+            if draft.isGuestOnly {
+                TextField("ルーター（任意）", text: $draft.router, prompt: Text("ほかの VM の経路になる VM のアドレス"))
+                    .font(.body.monospaced())
+            }
             if let subnet = draft.subnet {
                 LabeledContent("サブネット", value: subnet.description)
                 LabeledContent("DHCP") {
-                    Text(draft.isGuestOnly ? "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）" : "ゲートウェイ以外のアドレスを VM に自動で割り当てます")
+                    if draft.isGuestOnly {
+                        Text(draft.router.isEmpty
+                             ? "このアドレス以外を VM に自動で割り当てます。DNS はこのサーバー（VM の名前だけに答えます）。経路は配りません。"
+                             : "このアドレスとルーター以外を VM に自動で割り当てます。既定の経路としてルーターを、DNS としてこのサーバーとルーターを配ります。")
+                    } else {
+                        Text("ゲートウェイ以外のアドレスを VM に自動で割り当てます")
+                    }
                 }
             }
         }
@@ -355,7 +367,7 @@ struct NetworkEditorSheet: View {
                         Text("ゲスト専用（VM 同士のみ・Mac は参加しない）").tag(VirtualNetwork.Mode.guestOnly)
                     }
                     if draft.isGuestOnly {
-                        Text("vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。")
+                        Text("vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路を配りません（下の「ルーター」に VM を指定したときだけ、その VM を経路にします）。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     TextField("説明", text: $draft.comment, prompt: Text("任意"))

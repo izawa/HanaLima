@@ -93,8 +93,8 @@ actor DriverCore {
             // at every boot, over dhcpcd's). A guest-only network's DHCP server is also its
             // DNS (`lima-<name>` only), so name the first one; nothing else is reachable anyway.
             if (config["dns"] as? [Any])?.isEmpty ?? true,
-               let gateway = Self.guestOnlyDNS(for: config["networks"] as? [[String: Any]] ?? []) {
-                config["dns"] = [gateway]
+               let servers = Self.guestOnlyDNS(for: config["networks"] as? [[String: Any]] ?? []) {
+                config["dns"] = servers
             }
         }
         var vmOpts = config["vmOpts"] as? [String: Any] ?? [:]
@@ -508,12 +508,14 @@ actor DriverCore {
     }
 
     /// The DNS server (netd) of the first guest-only HanaLima network among `networks`.
-    private static func guestOnlyDNS(for networks: [[String: Any]]) -> String? {
+    /// netd's DNS on the first guest-only network, then that network's router VM if it has one
+    /// (netd refuses names it doesn't know, so the router's resolver gets the internet's).
+    private static func guestOnlyDNS(for networks: [[String: Any]]) -> [String]? {
         guard let known = try? NetworkStore.load() else { return nil }
         for nic in networks {
             guard let socket = nic["socket"] as? String,
                   let network = known.first(where: { $0.socketPath == socket }), network.isGuestOnly else { continue }
-            return network.gateway
+            return [network.gateway] + (network.routerAddress.map { [$0.description] } ?? [])
         }
         return nil
     }

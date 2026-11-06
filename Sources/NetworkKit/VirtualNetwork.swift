@@ -13,8 +13,9 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         /// with com.apple.security.virtualization.
         case bridged
         /// VMs only: a userspace switch inside hanalima-netd, no vmnet and no host interface, so
-        /// the Mac is not on the segment. netd's own DHCP hands out addresses with no router and
-        /// no DNS; `gateway` is just the DHCP server's address.
+        /// the Mac is not on the segment. netd's own DHCP hands out addresses, itself as the DNS
+        /// and, when `router` is set, that VM as the default route; `gateway` is just the DHCP
+        /// server's address.
         case guestOnly
 
         public var id: String { rawValue }
@@ -34,10 +35,14 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
     public var reservations: [DHCPReservation]
     /// Host interface to bridge to in bridged mode, e.g. "en0".
     public var bridgedInterface: String
+    /// Guest-only mode: the address of a VM on this network that routes for the others. netd's
+    /// DHCP hands it out as the default route (option 3) and as a second DNS server after
+    /// itself, and never leases it to anyone else. Empty: no route.
+    public var router: String
 
     public init(name: String, mode: Mode = .shared, gateway: String = "192.168.200.1",
                 prefixLength: Int = 24, comment: String = "", reservations: [DHCPReservation] = [],
-                bridgedInterface: String = "en0") {
+                bridgedInterface: String = "en0", router: String = "") {
         self.name = name
         self.mode = mode
         self.gateway = gateway
@@ -45,9 +50,10 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         self.comment = comment
         self.reservations = reservations
         self.bridgedInterface = bridgedInterface
+        self.router = router
     }
 
-    enum CodingKeys: String, CodingKey { case name, mode, gateway, prefixLength, comment, reservations, bridgedInterface }
+    enum CodingKeys: String, CodingKey { case name, mode, gateway, prefixLength, comment, reservations, bridgedInterface, router }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -58,6 +64,20 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         comment = try c.decodeIfPresent(String.self, forKey: .comment) ?? ""
         reservations = try c.decodeIfPresent([DHCPReservation].self, forKey: .reservations) ?? []
         bridgedInterface = try c.decodeIfPresent(String.self, forKey: .bridgedInterface) ?? "en0"
+        router = try c.decodeIfPresent(String.self, forKey: .router) ?? ""
+    }
+
+    /// Writes `router` only when set, so helpers of older builds read the file unchanged.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(mode, forKey: .mode)
+        try c.encode(gateway, forKey: .gateway)
+        try c.encode(prefixLength, forKey: .prefixLength)
+        try c.encode(comment, forKey: .comment)
+        try c.encode(reservations, forKey: .reservations)
+        try c.encode(bridgedInterface, forKey: .bridgedInterface)
+        if !router.isEmpty { try c.encode(router, forKey: .router) }
     }
 
     public var isBridged: Bool { mode == .bridged }
@@ -67,6 +87,8 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
     public var usesVmnetNetwork: Bool { mode == .shared || mode == .host }
     /// nil in bridged mode: the LAN owns the addressing.
     public var gatewayAddress: IPv4? { isBridged ? nil : IPv4(gateway) }
+    /// The routing VM's address on a guest-only network, if one is set.
+    public var routerAddress: IPv4? { isGuestOnly && !router.isEmpty ? IPv4(router) : nil }
     public var subnet: IPv4Subnet? { gatewayAddress.map { IPv4Subnet(containing: $0, prefixLength: prefixLength) } }
     public var netmask: String { IPv4.mask(prefixLength: prefixLength).description }
 
@@ -101,6 +123,7 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
         case overlaps(String)
         case invalidReservation(String)
         case missingInterface
+        case invalidRouter
 
         public var errorDescription: String? {
             switch self {
@@ -113,6 +136,7 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
             case .overlaps(let what): String(localized: "\(what) とアドレス範囲が重なっています。")
             case .invalidReservation(let why): String(localized: "固定 IP: \(why)")
             case .missingInterface: String(localized: "ブリッジするインターフェースを選んでください。")
+            case .invalidRouter: String(localized: "ルーターは、このサブネットの中で DHCP サーバー以外のアドレスにしてください（空欄なら経路を配りません）。")
             }
         }
     }
@@ -146,6 +170,11 @@ public struct VirtualNetwork: Codable, Hashable, Sendable, Identifiable {
             if let os = other.subnet, subnet.overlaps(os) { errors.append(.overlaps(String(localized: "ネットワーク「\(other.name)」"))) }
         }
         errors += reservationErrors(gateway: gw, subnet: subnet)
+        if isGuestOnly, !router.isEmpty {
+            if let r = IPv4(router), subnet.contains(r), r != subnet.network, r != subnet.broadcast, r != gw {} else {
+                errors.append(.invalidRouter)
+            }
+        }
         return errors
     }
 

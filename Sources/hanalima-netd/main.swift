@@ -198,7 +198,7 @@ final class GuestSwitch: @unchecked Sendable {
         serverMAC = [0x02, 0x68, 0x6c, UInt8(hash >> 16 & 0xff), UInt8(hash >> 8 & 0xff), UInt8(hash & 0xff)]
         let subnet = config.subnet ?? IPv4Subnet(cidr: "192.168.233.0/24")!
         dhcp = GuestOnlyDHCP(subnet: subnet, serverIP: config.gatewayAddress ?? IPv4(subnet.network.value + 1),
-                             serverMAC: serverMAC, reservations: config.reservations)
+                             serverMAC: serverMAC, reservations: config.reservations, router: config.routerAddress)
         leasesFile = NetworkPaths.leases(for: config.name)
         try? FileManager.default.removeItem(at: leasesFile)
     }

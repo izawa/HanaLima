@@ -285,6 +285,22 @@
         }
       }
     },
+    "%@・VM 同士のみ・ルーター %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · VMs only · router %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@・VM 同士のみ・ルーター %2$@"
+          }
+        }
+      }
+    },
     "%@・VM 同士のみ（Mac は参加しない）": {
       "localizations": {
         "en": {
@@ -3002,18 +3018,18 @@
         }
       }
     },
-    "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。": {
+    "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路を配りません（下の「ルーター」に VM を指定したときだけ、その VM を経路にします）。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No vmnet: HanaLima's helper relays frames between the VMs itself. The Mac gets no interface, and the DHCP hands out no route and no DNS. This NIC leads nowhere outside (Lima's standard NIC 0 is separate; to cut a VM off entirely, combine this with the isolation profile of HanaLima's driver)."
+            "value": "No vmnet: HanaLima's helper relays frames between the VMs itself. The Mac gets no interface, and the DHCP hands out no route (unless “Router” below names a VM, which then becomes the route). This NIC leads nowhere outside (Lima's standard NIC 0 is separate; to cut a VM off entirely, combine this with the isolation profile of HanaLima's driver)."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路も DNS も配りません。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。"
+            "value": "vmnet を使わず、HanaLima のヘルパーが VM のあいだでフレームを中継します。Mac にはインターフェースが生えず、DHCP は経路を配りません（下の「ルーター」に VM を指定したときだけ、その VM を経路にします）。VM から外に出る経路は、この NIC にはありません（Lima の標準の NIC 0 は別。VM を丸ごと切り離すなら、HanaLima のドライバーの隔離プロファイルと組み合わせます）。"
           }
         }
       }
@@ -3717,18 +3733,34 @@
         }
       }
     },
-    "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）": {
+    "このアドレスとルーター以外を VM に自動で割り当てます。既定の経路としてルーターを、DNS としてこのサーバーとルーターを配ります。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Assigns every address but this one to VMs automatically (no route, no DNS)"
+            "value": "Addresses other than this one and the router are handed out to VMs automatically. The router is handed out as the default route, and this server and the router as the DNS servers."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このアドレス以外を VM に自動で割り当てます（経路と DNS は配りません）"
+            "value": "このアドレスとルーター以外を VM に自動で割り当てます。既定の経路としてルーターを、DNS としてこのサーバーとルーターを配ります。"
+          }
+        }
+      }
+    },
+    "このアドレス以外を VM に自動で割り当てます。DNS はこのサーバー（VM の名前だけに答えます）。経路は配りません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Addresses other than this one are handed out to VMs automatically. This server is the DNS (it answers only the VMs’ names). No route is handed out."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアドレス以外を VM に自動で割り当てます。DNS はこのサーバー（VM の名前だけに答えます）。経路は配りません。"
           }
         }
       }
@@ -4310,6 +4342,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "のスナップショット「%@」"
+          }
+        }
+      }
+    },
+    "ほかの VM の経路になる VM のアドレス": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address of the VM that routes for the others"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの VM の経路になる VM のアドレス"
           }
         }
       }
@@ -7562,6 +7610,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "ユーザー（一般ユーザーで実行）"
+          }
+        }
+      }
+    },
+    "ルーターは、このサブネットの中で DHCP サーバー以外のアドレスにしてください（空欄なら経路を配りません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The router must be an address in this subnet other than the DHCP server (leave it empty to hand out no route)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーターは、このサブネットの中で DHCP サーバー以外のアドレスにしてください（空欄なら経路を配りません）。"
+          }
+        }
+      }
+    },
+    "ルーター（任意）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Router (optional)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーター（任意）"
           }
         }
       }
@@ -11042,32 +11122,32 @@
     },
     "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルか「シリアル」に貼り付けてください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルか「シリアル」に貼り付けてください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The screen can't take a paste from the Mac's clipboard (a limit of Virtualization.framework). Paste long commands into the Console tab's shell or its “Serial” mode instead."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルか「シリアル」に貼り付けてください。"
           }
         }
       }
     },
     "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルに貼り付けてください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルに貼り付けてください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The screen can't take a paste from the Mac's clipboard (a limit of Virtualization.framework). Paste long commands into the Console tab's shell instead."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面には Mac のクリップボードから貼り付けできません（Virtualization.framework の制約）。長いコマンドは、コンソールタブのシェルに貼り付けてください。"
           }
         }
       }

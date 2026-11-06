@@ -116,6 +116,29 @@ import Testing
         #expect(Self.yiaddr(second) != ip)
     }
 
+    @Test func routerIsHandedOutAndNeverLeased() throws {
+        let clock = Clock()
+        let router = IPv4("192.168.233.2")!
+        let server = GuestOnlyDHCP(subnet: Self.subnet, serverIP: Self.serverIP, serverMAC: Self.serverMAC,
+                                   reservations: [], router: router, leaseTime: 80, now: { clock.read() })
+        let offer = try #require(handle(server, Self.request(1)))
+        #expect(Self.yiaddr(offer) == [192, 168, 233, 3], "the router's address is skipped")
+        let options = Self.options(offer)
+        #expect(options[3] == [192, 168, 233, 2], "the router is the default route")
+        #expect(options[6] == [192, 168, 233, 1, 192, 168, 233, 2], "netd first, then the router, for DNS")
+        // Asking for the router's address gets a NAK, which carries no route or DNS.
+        let nak = try #require(handle(server, Self.request(3, mac: Self.second, requested: [192, 168, 233, 2],
+                                                           extra: [54, 4, 192, 168, 233, 1])))
+        #expect(Self.options(nak)[53] == [6])
+        #expect(Self.options(nak)[3] == nil && Self.options(nak)[6] == nil)
+        // The router itself (identified by a reservation) gets its address and the same options.
+        let routed = GuestOnlyDHCP(subnet: Self.subnet, serverIP: Self.serverIP, serverMAC: Self.serverMAC,
+                                   reservations: [.init(mac: "52:55:55:a:b:c", ip: "192.168.233.2")], router: router,
+                                   leaseTime: 80, now: { clock.read() })
+        let own = try #require(handle(routed, Self.request(1, mac: Self.reserved)))
+        #expect(Self.yiaddr(own) == [192, 168, 233, 2])
+    }
+
     @Test func reservationsBroadcastAndLeaseFile() throws {
         let clock = Clock()
         let server = server(clock: clock)

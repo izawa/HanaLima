@@ -28,8 +28,25 @@ import Testing
 }
 
 @Suite struct VirtualNetworkTests {
-    @Test func validNetworkPasses() {
+    @Test func validNetworkPasses() throws {
         #expect(VirtualNetwork(name: "dev", gateway: "192.168.200.1").validate(against: []).isEmpty)
+        // A guest-only router must be a host address in the subnet other than the DHCP server.
+        var lab = VirtualNetwork(name: "lab", mode: .guestOnly, gateway: "10.0.0.1", prefixLength: 24, router: "10.0.0.2")
+        #expect(lab.validate(against: []).isEmpty)
+        #expect(lab.routerAddress == IPv4("10.0.0.2"))
+        for bad in ["10.0.0.1", "10.0.0.0", "10.0.0.255", "192.168.1.1", "x"] {
+            lab.router = bad
+            #expect(lab.validate(against: []) == [.invalidRouter], Comment(rawValue: bad))
+        }
+        lab.router = ""
+        #expect(lab.validate(against: []).isEmpty && lab.routerAddress == nil)
+        // Not written when empty, so older helpers read the file unchanged; round-trips otherwise.
+        lab.router = "10.0.0.2"
+        let json = String(decoding: try JSONEncoder().encode(lab), as: UTF8.self)
+        #expect(json.contains("\"router\":\"10.0.0.2\""))
+        #expect(try JSONDecoder().decode(VirtualNetwork.self, from: Data(json.utf8)) == lab)
+        lab.router = ""
+        #expect(!String(decoding: try JSONEncoder().encode(lab), as: UTF8.self).contains("router"))
     }
 
     @Test func rejectsBadInput() {

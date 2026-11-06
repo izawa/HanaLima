@@ -5,8 +5,9 @@ import Testing
 
 /// A guest-only network (stage 5): hanalima-netd switches frames between the VMs itself, with no
 /// vmnet and no host interface. Two Alpine VMs on Lima's vz (no driver needed) get distinct
-/// addresses from netd's DHCP (one reserved), reach each other, have no default route from that
-/// NIC, resolve each other's `lima-<name>` through netd's DNS while the internet still resolves
+/// addresses from netd's DHCP (one reserved), reach each other, get the reserved one as the
+/// default route of that NIC (the network names it as the router) while usernet's route on eth0
+/// keeps the internet, resolve each other's `lima-<name>` through netd's DNS while the internet still resolves
 /// through usernet's, can't reach the server address with ICMP (only ARP answers), and the Mac
 /// has no interface on the subnet. Needs `scripts/build-app.sh` first.
 @Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["HANALIMA_E2E"] == "1"))
@@ -14,7 +15,8 @@ struct GuestOnlyEndToEndTests {
     let reservedMAC = "52:55:55:e2:e0:01"
     var network: VirtualNetwork {
         VirtualNetwork(name: "e2e-guestonly", mode: .guestOnly, gateway: "192.168.233.1", prefixLength: 24,
-                       reservations: [DHCPReservation(mac: reservedMAC, ip: "192.168.233.50", comment: "e2e")])
+                       reservations: [DHCPReservation(mac: reservedMAC, ip: "192.168.233.50", comment: "e2e")],
+                       router: "192.168.233.50")
     }
     let vms = ["hanalima-e2e-guest-a", "hanalima-e2e-guest-b"]
     let agents = LaunchAgentManager()
@@ -62,12 +64,15 @@ struct GuestOnlyEndToEndTests {
         #expect(a == "192.168.233.50")
         #expect(b != a)
         #expect(IPv4(b).map { network.subnet!.contains($0) } == true)
-        // No route from this NIC (the default route here is usernet's, on eth0). netd's DNS
+        // The router (VM a) is the default route on lima0 for VM b; usernet's route on eth0 has
+        // the lower metric, so the internet still goes there. VM a is the router itself and gets
+        // the same option (a route to its own address is harmless on Linux). netd's DNS
         // resolves the other VM, bare and under the search domain, and refuses anything else.
         // Lima's Alpine keeps cloud-init's resolv.conf (usernet's resolver only) while usernet
         // is on, so the server is asked directly here; an isolated VM uses it as its resolver
         // (DriverIsolationEndToEndTests). The internet still resolves through usernet's.
-        #expect(try await sh(vms[0], "ip route show dev lima0 | grep -c default; true") == "0")
+        #expect(try await sh(vms[1], "ip route show dev lima0 | grep -c 'default via 192.168.233.50'; true") == "1")
+        #expect(try await sh(vms[1], "ip route show default | head -1 | grep -c eth0; true") == "1", "usernet stays the preferred route")
         #expect(try await sh(vms[0], "nslookup lima-\(vms[1]) \(network.gateway) 2>/dev/null | grep -c 'Address: \(b)$'") == "1")
         #expect(try await sh(vms[0], "nslookup lima-\(vms[1]).hanalima \(network.gateway) 2>/dev/null | grep -c 'Address: \(b)$'") == "1")
         #expect(try await sh(vms[0], "nslookup example.com \(network.gateway) >/dev/null 2>&1 && echo resolves || echo refused") == "refused")

@@ -2,7 +2,9 @@ import Foundation
 
 /// DHCP, ARP and a small DNS for a guest-only switch; the host needs no interface on the subnet.
 ///
-/// DHCP hands out no router. It names the server as the DNS server (option 6) with the search
+/// DHCP hands out a router (option 3) only when the network names one: a VM that routes for
+/// the others, which then also comes second in the DNS list. It names the server as the DNS
+/// server (option 6) with the search
 /// domain `hanalima` (option 15), and the DNS answers only the names the leases know: the
 /// hostnames the VMs sent (Lima's `lima-<name>`), bare or under `.hanalima`. Anything else is
 /// REFUSED, which resolvers take as "ask the next server" (NXDOMAIN would be final), so a VM
@@ -18,6 +20,7 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
     private let subnet: IPv4Subnet
     private let serverIP: IPv4
     private let serverMAC: [UInt8]
+    private let router: IPv4?
     private let reservations: [String: IPv4]
     private let reservedIPs: Set<IPv4>
     private let leaseSeconds: UInt32
@@ -33,9 +36,11 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
     public private(set) var stateVersion = 0
 
     public init(subnet: IPv4Subnet, serverIP: IPv4, serverMAC: [UInt8], reservations: [DHCPReservation],
-                leaseTime: TimeInterval = 86400, now: @escaping @Sendable () -> Date = { Date() }) {
+                router: IPv4? = nil, leaseTime: TimeInterval = 86400,
+                now: @escaping @Sendable () -> Date = { Date() }) {
         self.subnet = subnet
         self.serverIP = serverIP
+        self.router = router
         self.serverMAC = Array((serverMAC + [UInt8](repeating: 0, count: 6)).prefix(6))
         self.now = now
         leaseSeconds = leaseTime.isFinite ? UInt32(max(1, min(Double(UInt32.max), leaseTime))) : 86400
@@ -46,7 +51,8 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
             }
         }
         self.reservations = fixed
-        reservedIPs = Set(reservations.compactMap { IPv4($0.ip) })
+        // The router's address is never leased to another VM, reservation or not.
+        reservedIPs = Set(reservations.compactMap { IPv4($0.ip) } + [router].compactMap { $0 })
     }
 
     /// Returns a frame for the originating VM, or nil so the caller can switch it normally.
@@ -192,7 +198,12 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
             bootp += [code, 4] + Self.octets(value)
         }
         if type != 6 {
-            bootp += [6, 4] + Self.octets(serverIP.value)
+            if let router {
+                bootp += [3, 4] + Self.octets(router.value)
+                bootp += [6, 8] + Self.octets(serverIP.value) + Self.octets(router.value)
+            } else {
+                bootp += [6, 4] + Self.octets(serverIP.value)
+            }
             let domain = Array(Self.searchDomain.utf8)
             bootp += [15, UInt8(domain.count)] + domain
         }
