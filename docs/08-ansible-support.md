@@ -14,14 +14,14 @@ Lima にはプロビジョニングの `mode: ansible`（`playbook:` を指定�
 
 **ホスト側だけで完結する。** ゲストに Ansible を入れない（コントロールノードは Mac）。
 
-1. **インベントリを HanaLima が作る。** `~/Library/Application Support/HanaLima/ansible/<VM 名>.ini`:
+1. **インベントリを HanaLima が作る。** `~/Library/Application Support/HanaLima/ansible/inventory.ini` の `[hanalima]` に全 VM を 1 行ずつ書く（実装では段階 3 の形。当初の案は VM ごとのファイルだった）:
    ```
    lima-<VM 名> ansible_ssh_common_args='-F /Users/<me>/.lima/<VM 名>/ssh.config'
    ```
-   Lima の `ssh.config` がホスト名 `lima-<VM 名>`、ポート、鍵、ユーザーを持つので、これだけで届く。VM を起動するたび（ポートが変わりうる）に書き直す。
+   Lima の `ssh.config` がホスト名 `lima-<VM 名>`、ポート、鍵、ユーザーを持つので、これだけで届く。VM の一覧が変わったときと、実行の直前に書き直す。
 2. **`ansible-playbook` の有無は、実行して確かめる**（`ansible-playbook --version`）。パスだけ見ると、Intel 版の残骸（この Mac には `/usr/local/bin/ansible-playbook` 8.4.0 があり、「bad CPU type」で落ちる）を拾ってしまう。候補は `/opt/homebrew/bin`、`~/.pyenv/shims`（pip。Finder から起動したアプリの PATH には無い）、`~/.local/bin`（pipx・uv）、`/usr/local/bin`。設定画面で場所を指定できるようにもする。無ければ `brew install ansible` か `pip install ansible` を案内する。
-3. **実行は「今すぐ実行」と同じ出力エンジン（`ScriptRun`）で。** `ansible-playbook -i <インベントリ> --limit lima-<VM 名> <playbook>` を、作業ディレクトリ＝Playbook のあるフォルダ（`roles/`、`group_vars/` が相対パスで解決される）、`ANSIBLE_FORCE_COLOR` なし、`ANSIBLE_HOST_KEY_CHECKING=False` は不要（`ssh.config` が `StrictHostKeyChecking=no` を持つ）で起動し、出力をシートに流す。中止は SIGINT。
-4. **VM ごとの記録に残す**（`hanalima-vm.json` の `ansible: {playbook, extraArgs, lastRunAt}`）。概要タブか設定タブに「Playbook: …」「前回: …」「実行」「もう一度」を置く。Playbook は VM のフォルダの外（ユーザーのリポジトリ）にあるので、パスだけを持つ。
+3. **実行は「今すぐ実行」と同じ出力エンジン（`ScriptRun`）で。** `ansible-playbook -i <インベントリ> --limit lima-<VM 名> <playbook>` を、作業ディレクトリ＝Playbook のあるフォルダ（`roles/`、`group_vars/` が相対パスで解決される）、`ANSIBLE_FORCE_COLOR` なし、`ANSIBLE_HOST_KEY_CHECKING=False` は足さない（ホスト鍵の検証は Lima の `ssh.config` に任せる。Lima 2.2 は `StrictHostKeyChecking no`、2.3 は `yes` と VM ごとの `ssh.known_hosts`）で起動し、出力をシートに流す。中止は SIGTERM。
+4. **VM ごとの記録に残す**（`hanalima-vm.json` の `ansible: {playbook, extraArguments, lastRunAt, lastExitStatus}`）。概要タブか設定タブに「Playbook: …」「前回: …」「実行」「もう一度」を置く。Playbook は VM のフォルダの外（ユーザーのリポジトリ）にあるので、パスだけを持つ。
 5. **ゲストの前提は Python 3 だけ。** Ubuntu・Debian・Fedora は既定で入っている。Alpine は入っていないので、「基本ツール一式」のような例に `python3` を足すか、Playbook の最初に `raw: apk add python3` を置く（ユーザーの判断）。
 
 ## 4. やらないこと
