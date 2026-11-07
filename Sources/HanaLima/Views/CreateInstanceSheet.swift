@@ -7,7 +7,7 @@ struct CreateInstanceSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
-    @State private var template = "default"
+    @State private var template = "ubuntu-lts"
     @State private var source: Source = Self.initialSource
     @State private var isoURL: URL?
 
@@ -74,7 +74,7 @@ struct CreateInstanceSheet: View {
                     if source == .template {
                         Picker("テンプレート", selection: $template) {
                             if templateGroups.isEmpty {
-                                Text("標準").tag("default")
+                                Text(verbatim: "Ubuntu LTS").tag("ubuntu-lts")
                             }
                             ForEach(templateGroups) { group in
                                 Section(group.title) {
