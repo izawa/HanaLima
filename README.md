@@ -94,7 +94,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    scripts/make-app.sh --install --open
    ```
 
-5. Click **＋ New VM** at the bottom of the sidebar, pick a template (for example `default` or `alpine`), and create it. New VMs run on HanaLima's driver by default. The first start downloads the OS image.
+5. Click **＋ New VM** at the bottom of the sidebar and create a VM. The template is preset to Ubuntu LTS (`ubuntu-lts`); you can pick another, such as `alpine`. New VMs run on HanaLima's driver by default. The first start downloads the OS image.
 
 To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab.
 
