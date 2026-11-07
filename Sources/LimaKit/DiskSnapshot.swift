@@ -109,6 +109,15 @@ public struct DiskSnapshot: Codable, Identifiable, Equatable, Sendable {
             try FileManager.default.copyItem(at: efi, to: temp)
             try replace(target, with: temp)
         }
+        forgetPinnedHostKey(instanceDir: targetDir)
+    }
+
+    /// Lima 2.3 pins the guest's SSH host key on the first boot (`ssh.known_hosts`) and refuses
+    /// a different one later. A disk from an earlier point may hold other keys, or lack Lima's
+    /// cloud-init setting that keeps them (snapshots taken under Lima 2.2), and then the guest
+    /// makes new ones at the next boot. Forgetting the pin lets that boot pin the key again.
+    static func forgetPinnedHostKey(instanceDir: URL) {
+        try? FileManager.default.removeItem(at: instanceDir.appending(path: "ssh.known_hosts"))
     }
 
     public static func delete(_ snapshot: DiskSnapshot, instanceDir: URL) throws {

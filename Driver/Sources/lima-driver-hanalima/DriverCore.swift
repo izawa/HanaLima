@@ -533,28 +533,32 @@ actor DriverCore {
     func snapshotCreate(tag: String) throws {
         try requireStoppedForSnapshot()
         try validateTag(tag)
-        if findSnapshot(tag) != nil { throw DriverError("a snapshot named \(tag) already exists") }
+        if snapshotList().contains(where: { $0.name == tag }) { throw DriverError("a snapshot named \(tag) already exists") }
         _ = try DiskSnapshot.create(instanceDir: instanceDir, name: tag)
         log("snapshot \(tag) created")
     }
 
-    func snapshotApply(tag: String) throws {
+    func snapshotApply(id: String) throws {
         try requireStoppedForSnapshot()
-        guard let snapshot = findSnapshot(tag) else { throw DriverError("no snapshot named \(tag)") }
+        guard let snapshot = findSnapshot(id) else { throw DriverError("no snapshot \(id)") }
         try DiskSnapshot.restore(snapshot, of: instanceDir, into: instanceDir)
-        log("snapshot \(tag) applied")
+        log("snapshot \(snapshot.name) (\(snapshot.id)) applied")
     }
 
-    func snapshotDelete(tag: String) throws {
-        guard let snapshot = findSnapshot(tag) else { throw DriverError("no snapshot named \(tag)") }
+    func snapshotDelete(id: String) throws {
+        guard let snapshot = findSnapshot(id) else { throw DriverError("no snapshot \(id)") }
         try DiskSnapshot.delete(snapshot, instanceDir: instanceDir)
-        log("snapshot \(tag) deleted")
+        log("snapshot \(snapshot.name) (\(snapshot.id)) deleted")
     }
 
-    /// QEMU's `info snapshots` layout, which `limactl snapshot list --quiet` parses (the tag is
-    /// the second column, so a tag with spaces shows only its first word there).
-    func snapshotList() -> String {
-        let snapshots = DiskSnapshot.list(instanceDir: instanceDir)
+    func snapshotList() -> [DiskSnapshot] {
+        DiskSnapshot.list(instanceDir: instanceDir)
+    }
+
+    /// The table Lima 2.2 printed as is: QEMU's `info snapshots` layout, which its
+    /// `limactl snapshot list --quiet` parses (the tag is the second column).
+    func snapshotTable() -> String {
+        let snapshots = snapshotList()
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
@@ -573,8 +577,12 @@ actor DriverCore {
         return ([header] + rows).map(line).joined(separator: "\n") + "\n"
     }
 
-    private func findSnapshot(_ tag: String) -> DiskSnapshot? {
-        DiskSnapshot.list(instanceDir: instanceDir).last { $0.name == tag }
+    /// Lima 2.3 sends the ID that `ListSnapshots` returned (the snapshot's UUID); Lima 2.2 sent
+    /// the tag in the same field. The ID wins; a tag picks the newest snapshot with that name.
+    private func findSnapshot(_ idOrTag: String) -> DiskSnapshot? {
+        let snapshots = DiskSnapshot.list(instanceDir: instanceDir)
+        if let uuid = UUID(uuidString: idOrTag), let match = snapshots.first(where: { $0.id == uuid }) { return match }
+        return snapshots.last { $0.name == idOrTag }
     }
 
     private func validateTag(_ tag: String) throws {

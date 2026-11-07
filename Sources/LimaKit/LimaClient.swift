@@ -212,15 +212,21 @@ public struct LimaClient: Sendable {
 
     // MARK: - Snapshots (QEMU only; see LimaSnapshot)
 
+    /// Lima 2.3 prints `ID TAG CREATED` and offers `--json`; Lima 2.2 printed qemu-img's table and
+    /// rejects the flag, so that is the fallback.
     public func snapshots(_ name: String) async throws -> [LimaSnapshot] {
-        LimaSnapshot.parseList(try await runner.run(["snapshot", "list", name, "--tty=false"]).stdoutString)
+        if let out = try? await runner.run(["snapshot", "list", name, "--json", "--tty=false"]) {
+            return LimaSnapshot.parseJSONLines(out.stdoutString)
+        }
+        return LimaSnapshot.parseList(try await runner.run(["snapshot", "list", name, "--tty=false"]).stdoutString)
     }
 
     public func createSnapshot(_ name: String, tag: String) -> AsyncThrowingStream<LogEntry, Error> {
         logStream(["snapshot", "create", name, "--tag", tag])
     }
 
-    /// Restores the main disk to `tag`. Changes made after the snapshot are lost.
+    /// Restores the main disk to `tag`. Changes made after the snapshot are lost. Lima 2.3 looks
+    /// the tag up and refuses one that isn't unique; HanaLima's tags are.
     public func applySnapshot(_ name: String, tag: String) -> AsyncThrowingStream<LogEntry, Error> {
         logStream(["snapshot", "apply", name, "--tag", tag])
     }

@@ -10,11 +10,12 @@ public struct LimaSnapshot: Hashable, Sendable, Identifiable {
     public var id: String { tag }
     public var number: Int
     public var tag: String
-    /// RAM state size as qemu-img prints it ("0 B" for disk-only snapshots).
-    public var vmSize: String
+    /// RAM state size as qemu-img prints it ("0 B" for disk-only snapshots). Lima 2.3's JSON
+    /// doesn't carry it: nil.
+    public var vmSize: String?
     public var date: Date?
 
-    public init(number: Int, tag: String, vmSize: String = "0 B", date: Date? = nil) {
+    public init(number: Int, tag: String, vmSize: String? = "0 B", date: Date? = nil) {
         self.number = number
         self.tag = tag
         self.vmSize = vmSize
@@ -33,6 +34,32 @@ public struct LimaSnapshot: Hashable, Sendable, Identifiable {
                   let number = Int(m.1) else { return nil }
             return LimaSnapshot(number: number, tag: String(m.2), vmSize: String(m.3),
                                 date: formatter.date(from: String(m.4)))
+        }
+    }
+
+    /// Parses Lima 2.3's `limactl snapshot list --json`: one object per line,
+    /// `{"id":"1","tag":"s1","createdAt":"2026-10-10T14:58:15+09:00"}` (`id` and `createdAt`
+    /// may be missing).
+    public static func parseJSONLines(_ text: String) -> [LimaSnapshot] {
+        struct Entry: Decodable {
+            var id: String?
+            var tag: String
+            var createdAt: Date?
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let string = try decoder.singleValueContainer().decode(String.self)
+            let plain = ISO8601DateFormatter()
+            let fractional = ISO8601DateFormatter()
+            fractional.formatOptions.insert(.withFractionalSeconds)
+            guard let date = plain.date(from: string) ?? fractional.date(from: string) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "bad date \(string)"))
+            }
+            return date
+        }
+        return text.split(whereSeparator: \.isNewline).enumerated().compactMap { index, line in
+            guard let entry = try? decoder.decode(Entry.self, from: Data(line.utf8)) else { return nil }
+            return LimaSnapshot(number: entry.id.flatMap { Int($0) } ?? index + 1, tag: entry.tag, vmSize: nil, date: entry.createdAt)
         }
     }
 

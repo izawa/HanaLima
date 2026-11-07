@@ -42,7 +42,11 @@ struct SnapshotTab: View {
                     }
                 }
                 TableColumn("メモリの状態") { s in
-                    Text(s.vmSize == "0 B" ? String(localized: "なし（ディスクのみ）") : s.vmSize).foregroundStyle(.secondary)
+                    switch s.vmSize {
+                    case nil: Text("—").foregroundStyle(.secondary)
+                    case "0 B": Text("なし（ディスクのみ）").foregroundStyle(.secondary)
+                    case let size?: Text(size).foregroundStyle(.secondary)
+                    }
                 }
             }
             .contextMenu(forSelectionType: LimaSnapshot.ID.self) { ids in

@@ -90,8 +90,13 @@ import Testing
         let copy = try makeInstance(root, "b", byte: 2)
         _ = InstanceMetadata.reconcile([("b", copy)])
         #expect(DiskSnapshot.list(instanceDir: copy).isEmpty)  // keyed by the VM's own id
+        try Data("lima-b ssh-ed25519 AAAA\n".utf8).write(to: source.appending(path: "ssh.known_hosts"))
+        try Data("lima-b ssh-ed25519 AAAA\n".utf8).write(to: copy.appending(path: "ssh.known_hosts"))
         try DiskSnapshot.restore(snap, of: source, into: copy)
         #expect(try read(copy) == 1)
         #expect(try read(source) == 2)
+        // Lima 2.3's pinned host key goes with the restored target only; the next boot pins again.
+        #expect(!FileManager.default.fileExists(atPath: copy.appending(path: "ssh.known_hosts").path))
+        #expect(FileManager.default.fileExists(atPath: source.appending(path: "ssh.known_hosts").path))
     }
 }

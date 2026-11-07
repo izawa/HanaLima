@@ -16,9 +16,16 @@ public enum LimaMACAddress {
     /// The instance directory as Lima spells it (`~/.lima/<name>`, no trailing slash).
     public static func address(instanceDir: URL) -> String? {
         guard let id = machineID() else { return nil }
-        var path = instanceDir.standardizedFileURL.path(percentEncoded: false)
+        return address(machineID: id, instanceDir: limaSpelling(of: instanceDir))
+    }
+
+    /// The path exactly as Lima passed it, without a trailing slash. Not `standardizedFileURL`:
+    /// for an existing folder it drops the `/private` of `/private/tmp/…` (where Lima keeps it),
+    /// and a different MAC leaves the guest's eth0 down.
+    static func limaSpelling(of instanceDir: URL) -> String {
+        var path = instanceDir.path(percentEncoded: false)
         while path.count > 1, path.hasSuffix("/") { path.removeLast() }
-        return address(machineID: id, instanceDir: path)
+        return path
     }
 
     /// Lima's `limayaml.MountTag`: the virtiofs tag of a share, "lima-" + the first 8 bytes of

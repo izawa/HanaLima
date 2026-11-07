@@ -26,6 +26,16 @@ import Testing
             #expect(LimaMACAddress.address(instanceDir: dir) != nil)
         }
     }
+
+    /// Lima keeps `/private` in `/private/tmp/…` (LIMA_HOME under a temporary folder), and the
+    /// MAC follows that spelling even when the folder exists.
+    @Test func keepsPrivatePrefix() throws {
+        let dir = URL(filePath: "/private/tmp/hanalima-mac-\(UUID())", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(LimaMACAddress.limaSpelling(of: dir) == dir.path(percentEncoded: false).dropLast().description)
+        #expect(LimaMACAddress.limaSpelling(of: dir).hasPrefix("/private/tmp/"))
+    }
 }
 
 @Suite struct LimaMountTagTests {

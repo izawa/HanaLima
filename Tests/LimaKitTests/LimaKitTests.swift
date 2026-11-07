@@ -19,6 +19,21 @@ import Testing
         #expect(LimaSnapshot.parseList("").isEmpty)
     }
 
+    @Test func parsesLima23JSONLines() {
+        let text = """
+        {"id":"1","tag":"s1","createdAt":"2026-10-10T14:58:15+09:00"}
+        {"id":"2","tag":"before-upgrade"}
+        not json
+        """
+        let list = LimaSnapshot.parseJSONLines(text)
+        #expect(list.map(\.tag) == ["s1", "before-upgrade"])
+        #expect(list.map(\.number) == [1, 2])
+        #expect(list[0].vmSize == nil)
+        #expect(list[0].date == ISO8601DateFormatter().date(from: "2026-10-10T05:58:15Z"))
+        #expect(list[1].date == nil)
+        #expect(LimaSnapshot.parseJSONLines("").isEmpty)
+    }
+
     @Test func validatesTags() {
         #expect(LimaSnapshot.isValidTag("snap-20261010-153012"))
         #expect(LimaSnapshot.isValidTag("v1.2_ok"))

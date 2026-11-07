@@ -124,20 +124,44 @@ struct DriverService: Driver.SimpleServiceProtocol {
     }
 
     func applySnapshot(request: ApplySnapshotRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        log("ApplySnapshot \(request.tag)")
-        try await wrap { try await core.snapshotApply(tag: request.tag) }
+        log("ApplySnapshot \(request.id)")
+        try await wrap { try await core.snapshotApply(id: request.id) }
         return .init()
     }
 
     func deleteSnapshot(request: DeleteSnapshotRequest, context: ServerContext) async throws -> Google_Protobuf_Empty {
-        log("DeleteSnapshot \(request.tag)")
-        try await wrap { try await core.snapshotDelete(tag: request.tag) }
+        log("DeleteSnapshot \(request.id)")
+        try await wrap { try await core.snapshotDelete(id: request.id) }
         return .init()
     }
 
     func listSnapshots(request: Google_Protobuf_Empty, context: ServerContext) async throws -> ListSnapshotsResponse {
-        let text = await core.snapshotList()
-        return .with { $0.snapshots = text }
+        let snapshots = await core.snapshotList()
+        // Field 1 is reserved since Lima 2.3 (it was 2.2's preformatted table). Carrying the
+        // table there as an unknown field keeps `limactl snapshot list` working on both.
+        var response = (try? ListSnapshotsResponse(serializedBytes: Self.legacyTableField(await core.snapshotTable()))) ?? ListSnapshotsResponse()
+        response.snapshots = snapshots.map { snapshot in
+            .with {
+                $0.id = snapshot.id.uuidString
+                $0.tag = snapshot.name
+                $0.createdAt = Google_Protobuf_Timestamp(date: snapshot.createdAt)
+            }
+        }
+        return response
+    }
+
+    /// Field 1, wire type 2 (length-delimited): the tag byte, a varint length, the UTF-8 bytes.
+    static func legacyTableField(_ text: String) -> [UInt8] {
+        let bytes = Array(text.utf8)
+        var out: [UInt8] = [0x0A]
+        var length = UInt64(bytes.count)
+        repeat {
+            var byte = UInt8(length & 0x7F)
+            length >>= 7
+            if length != 0 { byte |= 0x80 }
+            out.append(byte)
+        } while length != 0
+        return out + bytes
     }
 
     /// Driver errors become gRPC statuses with their message (Lima logs the message).
