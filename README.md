@@ -29,7 +29,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Lima's classic networks**: VMs that use `lima:shared`, `lima:host` or `lima:bridged` (socket_vmnet, installed by following Lima's instructions) keep working and can be edited as usual. HanaLima itself doesn't install socket_vmnet; its own networks need no root.
 - **Menu bar item**: every VM with its state, start/stop, and quick access to the console. HanaLima keeps running in the menu bar when the window is closed.
 - **Start at login**: per-VM switch using `limactl autostart`.
-- **Snapshots**: save the state of a stopped VM and return to it at any time. VZ VMs, which Lima 2.2 can't snapshot, use HanaLima's own snapshots: APFS clones of the disk, instant and taking space only as the disk changes. QEMU VMs use Lima's. On a VM running on HanaLima's driver, `limactl snapshot` (create, apply, delete, list) works on the same snapshots too, while the VM is stopped and with one-word tags. A snapshot can also become a new VM.
+- **Snapshots**: save the state of a stopped VM and return to it at any time. VZ VMs, which Lima can't snapshot (still the case in 2.3), use HanaLima's own snapshots: APFS clones of the disk, instant and taking space only as the disk changes. QEMU VMs use Lima's. On a VM running on HanaLima's driver, `limactl snapshot` (create, apply, delete, list) works on the same snapshots too, while the VM is stopped and with one-word tags. A snapshot can also become a new VM.
 - **Create from an installer ISO**: Lima only boots cloud images, but HanaLima can start from a Linux installer ISO (arm64): it creates the VM with a blank disk, has HanaLima's driver (below) run the installer in its own window right into that disk (the installer is a separate process, so it carries on if you quit the app, which reconnects when reopened), and after a one-line fix-up in the installed OS hands the VM to Lima, which configures it like any other (user, SSH key, guest agent, shared folders, provisioning). Tested with Ubuntu Server 26.04; the install must end with cloud-init installed (the fix-up takes care of it on Ubuntu, Debian, Fedora and Alpine). Creates VZ (Lima) VMs; not for QEMU.
 - **Rescue boot**: when Lima (SSH) can no longer reach a VM, say after a bad sshd change, HanaLima's driver (below) boots it with a screen and keyboard. Log in on the screen console, repair it, and hand it back with “Start with Lima”. The NIC is Lima's own user-mode network, so the internet and name resolution work (you can reinstall packages). The VM keeps running if you quit the app, which reconnects when reopened. VZ Linux guests only. Lima locks the user’s password, so do this **before SSH breaks**, as insurance:
   1. In the Settings tab, under Provisioning, “Add from Examples…” → “Log In Automatically on the Consoles (Screen and Serial)”, then save.
@@ -57,7 +57,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 ## Requirements
 
 - macOS 26 or later (developed on macOS 27 with Apple Silicon; Intel Macs are untested)
-- [Lima](https://lima-vm.io/) 2.2 or later, from Homebrew
+- [Lima](https://lima-vm.io/) 2.3 or later, from Homebrew
 - To build: Xcode 26 or later, including the Metal Toolchain (required by [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm))
 
 ## Quick Start
@@ -134,7 +134,7 @@ Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/
 ## Known issues
 
 - macOS 27.0.1's vmnet has bugs that HanaLima works around. In particular, reusing a vmnet network after its interface stopped can take over a bridged interface's `bridge100` and remove the Mac's own IPv4 address (reported to Apple as FB25122122). HanaLima never reuses networks, but other virtualization tools running at the same time might. If your Mac loses its IPv4 address, renew DHCP in System Settings (or run `sudo ipconfig set en0 DHCP`) or restart. Details: [docs/02-networking-investigation.md](docs/02-networking-investigation.md).
-- Lima 2.2 limits two features: Lima's snapshots work only for QEMU VMs (HanaLima operates on them while the VM is stopped, because live snapshots fail silently with 9p shares; VZ VMs get HanaLima's own), and screenshots only for VZ VMs with a display whose window is open. VMs on HanaLima's driver are not limited this way: `limactl snapshot` and thumbnails work through the driver.
+- Lima limits two features: Lima's snapshots work only for QEMU VMs, still in 2.3 (HanaLima operates on them while the VM is stopped, because live snapshots fail silently with 9p shares; VZ VMs get HanaLima's own), and HanaLima shows screen thumbnails only for VZ VMs with a display whose window is open. Lima 2.3 can also capture a QEMU VM's screen, which HanaLima doesn't use yet. VMs on HanaLima's driver are not limited this way: `limactl snapshot` and thumbnails work through the driver.
 - Bridging to Wi-Fi works on our network (tested with a VM getting a LAN address over `en1`), but some access points refuse frames from more than one MAC address per client; if a VM on a Wi-Fi bridge gets no address, try a wired interface.
 
 ## Uninstalling
