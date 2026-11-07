@@ -78,7 +78,7 @@
       <div class="badges">
         <span class="badge"><b>Swift 6</b> strict concurrency</span>
         <span class="badge"><b>vmnet</b> macOS 26 API</span>
-        <span class="badge"><b>0</b> sudo prompts*</span>
+        <span class="badge"><b>0</b> sudo prompts</span>
         <span class="badge"><b>unofficial</b> · not affiliated with Lima</span>
       </div>
     </div>
@@ -114,22 +114,6 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ============================== STATS ============================== -->
-<section style="padding:20px 0 64px">
-  <div class="wrap">
-    <div class="stats reveal">
-      <div class="stat"><b class="grad">0</b><span class="en">sudo prompts for NAT, host-only and bridged networks*</span><span class="ja">NAT・ホストオンリー・ブリッジで必要な sudo の回数*</span></div>
-      <div class="stat"><b>4</b><span class="en">network kinds, each with its own launchd-activated helper</span><span class="ja">種類のネットワーク。それぞれのヘルパーを launchd が起動</span></div>
-      <div class="stat"><b>4 B</b><span class="en">big-endian length + Ethernet frame: the whole wire protocol</span><span class="ja">ビッグエンディアンの長さ＋フレーム。プロトコルはこれだけ</span></div>
-      <div class="stat"><b>0</b><span class="en">patches to Lima. It's all <code>limactl</code> and its JSON</span><span class="ja">Lima への変更。すべて <code>limactl</code> とその JSON で行う</span></div>
-    </div>
-    <p class="muted" style="font-size:13px;margin-top:10px">
-      <span class="en">* Tested on macOS 27.0.1 with an ad-hoc signed helper carrying <code>com.apple.security.virtualization</code>. Lima's classic socket_vmnet networks still work for VMs that use them, but HanaLima doesn't need or install socket_vmnet.</span>
-      <span class="ja">* macOS 27.0.1 で、<code>com.apple.security.virtualization</code> 付きで ad-hoc 署名したヘルパーで確認。Lima の従来方式（socket_vmnet）を使う VM もそのまま動きます。HanaLima 自体には socket_vmnet は不要で、インストールもしません。</span>
-    </p>
   </div>
 </section>
 
