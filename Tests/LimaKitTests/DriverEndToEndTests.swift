@@ -87,7 +87,16 @@ struct DriverEndToEndTests {
         #expect(try await sh("ps -eo args= 2>/dev/null | grep '[l]ima-guestagent' | grep -c 'vsock-port 2222'; true") != "0")
         // NIC 1 on the HanaLima network, NIC 2 on vzNAT, the additional disk mounted by Lima.
         #expect(try await sh("ip -4 -o addr show lima0 | grep -c 192.168.237.") == "1")
-        #expect(try await sh("ip -4 -o addr show lima1 | grep -c 192.168.64.") == "1")
+        // Lima reports READY without waiting for DHCP on the extra NICs (vzNAT's server answers
+        // later than netd's): poll for the lease before judging.
+        var vzNAT = ""
+        for attempt in 0..<30 {
+            vzNAT = try await sh("ip -4 -o addr show lima1 | grep -c 192.168.64.; true")
+            if vzNAT == "1" { print("lima1 leased after \(attempt * 2) s"); break }
+            try await Task.sleep(for: .seconds(2))
+        }
+        if vzNAT != "1" { print("lima1 without a lease:", try await sh("ip addr show lima1; ps -o args= | grep '[d]hcp'")) }
+        #expect(vzNAT == "1")
         // Lima's 05-lima-disks.sh partitions, formats and mounts it at the first boot. On Alpine
         // the mount sometimes fails with "/dev/vdb1: Can't lookup blockdev" (the partition's
         // node isn't there yet right after sfdisk; a guest-side race, seen under this driver in

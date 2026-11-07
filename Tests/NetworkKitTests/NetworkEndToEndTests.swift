@@ -50,7 +50,13 @@ struct NetworkEndToEndTests {
         }
         #expect(NetworkDaemonStatus.load(for: network.name)?.clients.count == 1)
 
-        let addr = try await client.runner.run(["shell", vm, "ip", "-4", "-o", "addr", "show", "lima0"]).stdoutString
+        // Lima reports READY without waiting for DHCP on the extra NIC: poll for the lease.
+        var addr = ""
+        for _ in 0..<30 {
+            addr = (try? await client.runner.run(["shell", vm, "ip", "-4", "-o", "addr", "show", "lima0"]))?.stdoutString ?? ""
+            if addr.contains("inet ") { break }
+            try await Task.sleep(for: .seconds(2))
+        }
         print("lima0:", addr)
         let ip = try #require(addr.firstMatch(of: /inet (\d+\.\d+\.\d+\.\d+)/).map { String($0.1) })
         #expect(network.subnet!.contains(IPv4(ip)!))

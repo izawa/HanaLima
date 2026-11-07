@@ -19,6 +19,10 @@ struct EndToEndTests {
             for try await ev in client.watch() where ev.instance == name { collected.append(ev) }
         }
         defer { watcher.cancel() }
+        // `limactl watch` notices a new instance through a file-system watch on the Lima
+        // directory, which takes a moment to start; an instance created before that is never
+        // followed. Lima 2.3 creates from its converted-image cache fast enough to hit that.
+        try await Task.sleep(for: .seconds(3))
 
         let opts = CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1, diskGiB: 10, vmType: .vz)
         let createLog = try await drain(client.create(opts))

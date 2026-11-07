@@ -34,7 +34,13 @@ struct DriverSnapshotEndToEndTests {
         #expect(DiskSnapshot.list(instanceDir: dir).map(\.name) == ["clean"])
         let listed = try await client.runner.run(["snapshot", "list", vm]).stdoutString
         print(listed, terminator: "")
-        #expect(listed.hasPrefix("ID  TAG"), "QEMU-style header")
+        // Lima 2.2 printed the driver's QEMU-style table as is; 2.3 prints its own
+        // `ID TAG CREATED` from the structured list (the ID is the DiskSnapshot's UUID).
+        let snapshotID = DiskSnapshot.list(instanceDir: dir).first?.id.uuidString ?? "-"
+        #expect(listed.hasPrefix("ID  TAG") || listed.contains(snapshotID), "the driver's list reaches limactl")
+        if let json = try? await client.runner.run(["snapshot", "list", vm, "--json"]) {
+            #expect(json.stdoutString.contains(#""id":"\#(snapshotID)""#) && json.stdoutString.contains(#""tag":"clean""#))
+        }
         #expect(try await client.runner.run(["snapshot", "list", vm, "--quiet"]).stdoutString == "clean\n")
         // Tags are one word (the quiet list is parsed by columns).
         await #expect(throws: (any Error).self) { try await client.runner.run(["snapshot", "create", vm, "--tag", "two words"]) }

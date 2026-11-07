@@ -189,6 +189,17 @@ docs/09 の残件を順に片付け、ドライバーを新規作成の既定に
 - `DriverInstaller`（残件 12）と既定の hanalima 化（残件 11、ユーザー判断）: 起動時に `<prefix>/lib/lima/` へ写し、ターミナルの `limactl` からも使える。「試験的」の表示を外した。
 - 画面に貼り付けできない旨の注記（残件 17）、ドライバーの E2E を Fedora・Debian でも通過（残件 15）。
 
+## 34. Lima 2.3.0 への更新（2026-11-07）
+
+Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v2.2.1 からの差分を読み、壊れる箇所を直してから Homebrew の `lima` と `lima-additional-guestagents` を上げた。docs/04 の確認表に沿って確かめた。
+- 外部ドライバーの gRPC 定義: 変わったのはスナップショットだけ。一覧の応答が ID・タグ・作成日時の配列になり、apply・delete は ID を受け取る。ドライバーを追従させ、2.2.1 にも従来の表を添えて返す（docs/09 の残件 13）。アプリの QEMU のスナップショット一覧は `--json` を読む。
+- SSH のホスト鍵: 2.3 は最初の起動で `ssh.known_hosts` に鍵を記録し、以後は違う鍵を断る。VZ のスナップショットを戻すとこのファイルを消す（docs/04 の `DiskSnapshot`）。
+- 別に見つかった不具合: `LIMA_HOME` が `/private/tmp` の下にあると、ドライバーの VM の NIC 0 がつながらなかった。MAC を作るときのパスの正規化が `/private` を落としていた。
+- `LibexecLima`: アプリの起動で同梱のドライバーが `/opt/homebrew/lib/lima/` に写り、`limactl info` の `vmTypes` に `hanalima` が出る。
+- E2E: 全スイートを 2.3.0 で通した。途中で落ちたのは、どれもテストの側の前提だった。`DriverSnapshotEndToEndTests` は表の先頭の行（2.3 では `limactl` が作る）。`EndToEndTests` は `limactl watch` の見落としで、`watch` は `~/.lima` のファイルの変化の通知で新しい VM を見つけるため、待ち受けの準備の前に作った VM を追わない。2.3 は変換済みのイメージを使い回して `create` が速くなり、テストがその前に作るようになった。テストは 3 秒待つ（アプリは起動時から `watch` を動かすので当たらない）。`DriverMigrationEndToEndTests` は、`lima:shared` の切り替えを断っていたのがドライバーではなく Lima 2.2 の `edit` の sudoers の検査だったので、ドライバーが必ず断る 9p の共有に替えた。`NetworkEndToEndTests` は、Lima の READY が追加 NIC の DHCP を待たないので、アドレスが付くまで待つようにした。`DriverEndToEndTests` の vzNAT の NIC も同じ理由で、通しの 3 回のうち 2 回落ちた。macOS の DHCP のリースを見ると、2 回ともテストが確かめたのとほぼ同じ時刻に `192.168.64.x` を得ていた（単独では毎回すぐ付く）ので、こちらもアドレスが付くまで待つようにした。
+- 2.3 の初回起動では、ゲストエージェントの「events closed unexpectedly」の警告が数回出るが、そのまま READY になる。
+- socket_vmnet の片付け: `/etc/sudoers.d/lima` が 2.3 の `limactl sudoers` と合わなくなっていた（変わったのは `--pidfile` の位置と `pkill -F` の空白だけで、権限の範囲は同じ）。このファイルと `/opt/socket_vmnet` は、2026-10-09 に当時の HanaLima のセットアップ画面（a0fd62a、2026-10-12 に削除）が入れたもので、Homebrew の管理外。使う VM が無いので、ユーザーが両方を削除した。HanaLima は導入を Lima の手順に任せているので、Lima の更新で sudoers が合わなくなっても知らせない。
+
 ## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。

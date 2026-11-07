@@ -54,8 +54,10 @@ struct DriverMigrationEndToEndTests {
         _ = try await drain(client.stop(vm))
 
         // What the driver refuses at edit time (Validate), with the reason for lima.REJECTED.yaml.
-        await #expect(throws: Error.self, "a lima: network is refused by the driver's Validate") {
-            _ = try await drain(client.edit(vm, set: [".vmType = \"hanalima\"", #".networks = [{"lima": "shared"}]"#]))
+        // (A `lima:` network is no longer a reliable probe: the driver accepts it when socket_vmnet
+        // is installed, and only Lima 2.2's edit also checked the sudoers file.)
+        await #expect(throws: Error.self, "a 9p share is refused by the driver's Validate") {
+            _ = try await drain(client.edit(vm, set: [".vmType = \"hanalima\"", #".mountType = "9p""#]))
         }
         listed = try #require(try await client.list().first { $0.name == vm })
         #expect(listed.vmType == "vz", "a rejected edit leaves lima.yaml alone")
