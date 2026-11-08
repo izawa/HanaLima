@@ -427,5 +427,10 @@ struct HostedRow: View {
         }
         .padding(.trailing, 8)
         .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("SwiftUI メニュー: 起動 \(name)") {}
+            Button("SwiftUI メニュー: 停止 \(name)") {}
+        }
     }
 }

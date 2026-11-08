@@ -10,7 +10,7 @@ enum Probe {
     static func startIfRequested(_ store: Store) {
         guard dir != nil else { return }
         Task {
-            if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "A" { await runA(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "B" { await runB(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "2" { await run2(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "3" { await run3(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "4" { await run4(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "5" { await run5(store) } else { await run(store) }
+            if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "A" { await runA(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "M" { await runM(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "B" { await runB(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "2" { await run2(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "3" { await run3(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "4" { await run4(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "5" { await run5(store) } else { await run(store) }
         }
     }
 
@@ -359,6 +359,32 @@ enum Probe {
         await probe("group 空 among the ungrouped VMs", group: "空", "section:vm", s.groups.count + 1)
         await probe("guest2 onto itself", vm: "guest2", "vm:guest2", on, accept: false)
         print("EVENTS\n" + s.events.joined(separator: "\n"))
+        exit(0)
+    }
+
+    /// Right-clicks rows and records which menu opens (closed again from a timer in the
+    /// menu's tracking run loop mode).
+    static func runM(_ s: Store) async {
+        try? await Task.sleep(for: .seconds(1.5))
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        try? await Task.sleep(for: .milliseconds(500))
+        let obs = NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: nil) { note in
+            guard let menu = note.object as? NSMenu else { return }
+            let titles = menu.items.map(\.title)
+            print("MENU opened: \(titles)")
+            let timer = Timer(timeInterval: 0.3, repeats: false) { _ in menu.cancelTracking() }
+            RunLoop.current.add(timer, forMode: .eventTracking)
+        }
+        _ = obs
+        for key in ["vm:guest1", "vm:macOS27", "group:隔離テスト", "disks"] {
+            print("RIGHT-CLICK \(key)")
+            let p = point(row: rowIndex(key, s)!, x: 80)
+            mouse(.rightMouseDown, p)
+            mouse(.rightMouseUp, p)
+            try? await Task.sleep(for: .seconds(1.2))
+            print("  selection=\(s.selection?.description ?? "nil")")
+        }
         exit(0)
     }
 }
