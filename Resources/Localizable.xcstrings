@@ -7550,6 +7550,22 @@
         }
       }
     },
+    "メモリの内容を保ったまま、仮想マシンを止める": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop the virtual machine, keeping its memory"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモリの内容を保ったまま、仮想マシンを止める"
+          }
+        }
+      }
+    },
     "メモリの状態": {
       "localizations": {
         "en": {
@@ -7754,6 +7770,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "一度だけ実行する（次の起動で 1 回）"
+          }
+        }
+      }
+    },
+    "一時停止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止"
+          }
+        }
+      }
+    },
+    "一時停止した仮想マシンを再開": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume the paused virtual machine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止した仮想マシンを再開"
+          }
+        }
+      }
+    },
+    "一時停止しています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止しています"
+          }
+        }
+      }
+    },
+    "一時停止できるのは、HanaLima のドライバーで動く仮想マシンだけです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only virtual machines on HanaLima’s driver can be paused."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止できるのは、HanaLima のドライバーで動く仮想マシンだけです。"
+          }
+        }
+      }
+    },
+    "一時停止中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止中"
+          }
+        }
+      }
+    },
+    "一時停止中です": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止中です"
+          }
+        }
+      }
+    },
+    "一時停止中は実行できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t run while paused."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止中は実行できません。"
           }
         }
       }
@@ -9249,6 +9377,54 @@
         }
       }
     },
+    "再開": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再開"
+          }
+        }
+      }
+    },
+    "再開しています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resuming"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再開しています"
+          }
+        }
+      }
+    },
+    "再開すると、コンソールを使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume the virtual machine to use the console."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再開すると、コンソールを使えます。"
+          }
+        }
+      }
+    },
     "処理中…": {
       "localizations": {
         "en": {
@@ -9261,6 +9437,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "処理中…"
+          }
+        }
+      }
+    },
+    "処理中は一時停止できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t pause while an operation is in progress."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中は一時停止できません。"
           }
         }
       }
@@ -10112,6 +10304,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "実行中"
+          }
+        }
+      }
+    },
+    "実行中ではありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中ではありません。"
           }
         }
       }

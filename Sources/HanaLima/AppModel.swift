@@ -12,6 +12,7 @@ struct Operation: Sendable {
         case clone
         case install, rescue
         case runScript
+        case pause, resume
 
         var label: String {
             switch self {
@@ -31,6 +32,8 @@ struct Operation: Sendable {
             case .install: String(localized: "インストール")
             case .rescue: String(localized: "救出起動")
             case .runScript: String(localized: "スクリプトの実行")
+            case .pause: String(localized: "一時停止")
+            case .resume: String(localized: "再開")
             }
         }
 
@@ -54,6 +57,8 @@ struct Operation: Sendable {
             case .install: String(localized: "インストール中")
             case .rescue: String(localized: "救出起動中")
             case .runScript: String(localized: "スクリプトを実行中")
+            case .pause: String(localized: "一時停止しています")
+            case .resume: String(localized: "再開しています")
             }
         }
     }
@@ -127,6 +132,11 @@ final class AppModel {
     /// says Running as soon as the VM boots, so readiness comes from the watch `running` event
     /// or from `limactl start` returning.
     private(set) var readyInstances: Set<String> = []
+    /// Running `hanalima` VMs the driver reports as paused (docs/11). Lima doesn't know about a
+    /// pause and keeps listing them as Running, so this comes from the control socket.
+    var pausedInstances: Set<String> = []
+    /// Bumped by each pause or resume, so a status poll that started before one is discarded.
+    var pauseEpochs: [String: Int] = [:]
     @ObservationIgnored private var hasListedOnce = false
     @ObservationIgnored private var bootstrapStarted = false
     /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).
@@ -310,6 +320,7 @@ final class AppModel {
     /// "作成中" while a command runs (Lima lists a VM being created as stopped), else the state.
     func statusText(of name: String) -> String {
         if let op = operations[name], op.isRunning { return op.kind.progressLabel }
+        if isPaused(name) { return String(localized: "一時停止中") }
         return instance(named: name)?.status.label ?? String(localized: "作成中")
     }
 
@@ -340,6 +351,7 @@ final class AppModel {
             updateMetadata(list)
             reattachHostedBoots()
             applyPendingIsolation()
+            await refreshPausedInstances(list)
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {
@@ -602,7 +614,10 @@ final class AppModel {
                      completion: (@MainActor (Bool) -> Void)? = nil) {
         guard !isBusy(name) else { return }
         operations[name] = Operation(kind: kind)
-        if [.start, .restart, .stop, .delete].contains(kind) { readyInstances.remove(name) }
+        if [.start, .restart, .stop, .delete].contains(kind) {
+            readyInstances.remove(name)
+            pausedInstances.remove(name)
+        }
         Task {
             var ok = true
             var monitor: Task<Void, Never>?

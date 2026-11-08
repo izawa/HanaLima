@@ -36,6 +36,10 @@ actor DriverCore {
         var sshBridge: UnixSocketBridge?
         /// AdditionalSetupForSSH in progress; Stop cancels it.
         var sshWait: Task<Void, Error>?
+        /// AdditionalSetupForSSH has finished: the earliest a pause is allowed (docs/11).
+        var sshSetUp = false
+        /// Stop has asked the guest to power off; no pause from then on.
+        var stopping = false
     }
 
     private var run: Run?
@@ -245,6 +249,9 @@ actor DriverCore {
         let spec = try requireSpec()
         guard let current = run, let vm = current.machine else { throw DriverError("not started") }
         if current.guestAgentBridge != nil { return }
+        // Paused (docs/11): the host agent's guest agent calls have no deadline, so a bridge
+        // to a paused guest would hang them, and `limactl stop` with them. Refuse until resumed.
+        if [.paused, .pausing].contains(vm.state) { throw DriverError("the VM is paused") }
         let bridge = try UnixSocketBridge(path: spec.guestAgentSocket) {
             try vm.connectVsock(port: InstanceSpec.guestAgentVsockPort)
         }
@@ -281,13 +288,14 @@ actor DriverCore {
     /// guest's port 22, once the guest has an address, and wait for sshd to answer.
     func waitForSSH() async throws {
         let spec = try requireSpec()
-        guard spec.sshLocalPort != 0 else { return }
         guard let gen = run?.generation, let vm = run?.machine else { throw DriverError("not started") }
+        guard spec.sshLocalPort != 0 else { run?.sshSetUp = true; return }
         // Cancelled by Stop (a probe would otherwise keep going until its timeout).
         let task = Task { try await self.setUpSSH(spec: spec, vm: vm, generation: gen) }
         run?.sshWait = task
         defer { if run?.generation == gen { run?.sshWait = nil } }
         try await task.value
+        if run?.generation == gen { run?.sshSetUp = true }
     }
 
     /// SSH over vsock (stage 4): a guest with systemd 256+ has sshd on vsock port 22 from early
@@ -393,6 +401,7 @@ actor DriverCore {
         while busy, run == nil, Date().timeIntervalSince(waited) < 60 { try? await Task.sleep(for: .milliseconds(200)) }
         guard let current = run, let vm = current.machine else { return }
         let gen = current.generation
+        run?.stopping = true
         current.sshWait?.cancel()
         if let local = current.exposedLocal, let spec {
             try? await UsernetClient(socketPath: spec.usernetEndpointSocket).unexpose(local: local)
@@ -401,6 +410,16 @@ actor DriverCore {
         if let bridge = current.sshBridge {
             await Task.detached { bridge.close() }.value
             run?.sshBridge = nil
+        }
+        // A paused guest can't take the power button: resume it first, so it shuts down
+        // cleanly (docs/11 §5). A pause or resume in flight finishes first.
+        let settling = Date()
+        while [.pausing, .resuming].contains(vm.state), Date().timeIntervalSince(settling) < 10 {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        if vm.state == .paused {
+            log("resuming the paused VM to stop it")
+            do { try await vm.resume() } catch { log("resume failed: \(error)") }
         }
         if vm.requestStop() {
             let start = Date()
@@ -496,6 +515,10 @@ actor DriverCore {
                 }
             }
             return DriverControl.Response(ok: true, state: vm.stateName)
+        case .pause:
+            return await pause()
+        case .resume:
+            return await resume()
         case .screenshot:
             guard let window = run?.window else { return .failure("the VM has no display or is not running") }
             do {
@@ -505,6 +528,51 @@ actor DriverCore {
                 return .failure("\(error)")
             }
         }
+    }
+
+    // MARK: - Pause (docs/11, stage 1)
+
+    /// VZ's pause. Only once SSH is set up (Lima's start retries SSH a limited number of times,
+    /// so a pause mid-boot could fail `limactl start`) and not while stopping. The bridge to the
+    /// guest agent is closed, and refused until the resume: the host agent's calls to the guest
+    /// agent have no deadline, and one hanging on a paused guest blocks `limactl stop`.
+    private func pause() async -> DriverControl.Response {
+        guard let current = run, let vm = current.machine else { return .failure("the VM is not running") }
+        guard !busy, !current.stopping else { return .failure("the VM is starting or stopping") }
+        guard current.sshSetUp else { return .failure("the VM is still booting") }
+        guard vm.state == .running else { return .failure("the VM is \(vm.stateName)") }
+        busy = true
+        defer { busy = false }
+        do {
+            try await vm.pause()
+        } catch {
+            log("pause failed: \(error)")
+            return .failure("\(error)")
+        }
+        if let bridge = run?.guestAgentBridge {
+            run?.guestAgentBridge = nil
+            await Task.detached { bridge.close() }.value
+        }
+        log("paused")
+        return DriverControl.Response(ok: true, state: vm.stateName)
+    }
+
+    private func resume() async -> DriverControl.Response {
+        guard let current = run, let vm = current.machine else { return .failure("the VM is not running") }
+        guard !busy, !current.stopping else { return .failure("the VM is starting or stopping") }
+        guard vm.state == .paused else { return .failure("the VM is \(vm.stateName)") }
+        busy = true
+        defer { busy = false }
+        do {
+            try await vm.resume()
+        } catch {
+            log("resume failed: \(error)")
+            return .failure("\(error)")
+        }
+        log("resumed")
+        // The host agent asks again on its own; reopening now saves it a retry.
+        try? ensureGuestAgentBridge()
+        return DriverControl.Response(ok: true, state: vm.stateName)
     }
 
     /// The DNS server (netd) of the first guest-only HanaLima network among `networks`.

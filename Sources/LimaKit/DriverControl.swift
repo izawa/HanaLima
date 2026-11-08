@@ -24,6 +24,11 @@ public enum DriverControl {
         case stop
         /// Pulls the plug now.
         case forceStop
+        /// Pauses the VM in memory (VZ's pause): the guest's RAM stays in the driver's process
+        /// and the guest sees only a jump in time (docs/11). Refused before SSH is set up.
+        case pause
+        /// Resumes a paused VM.
+        case resume
     }
 
     /// The pid file of a hosted boot (`lima-driver-hanalima --hosted`: the rescue boot and the

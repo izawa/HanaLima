@@ -42,7 +42,7 @@ extension AppModel {
     /// Runs the VM's playbook now (the VM must be ready) and shows the output. The working
     /// directory is the playbook's folder, so roles and ansible.cfg next to it apply.
     func runAnsible(in name: String) {
-        guard let tool = ansibleTool, let record = metadata[name]?.ansible, isReady(name), !isBusy(name) else { return }
+        guard let tool = ansibleTool, let record = metadata[name]?.ansible, isReady(name), !isBusy(name), !isPaused(name) else { return }
         let inventory: URL
         do { inventory = try writeAnsibleInventory() } catch {
             alert = AlertMessage(title: String(localized: "Ansible のインベントリを書けませんでした"), message: error.localizedDescription)

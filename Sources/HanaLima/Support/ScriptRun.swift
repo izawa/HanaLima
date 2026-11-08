@@ -68,7 +68,7 @@ extension AppModel {
     /// Runs `script` in `name` now (root for `asRoot`) and shows its output. The VM must be
     /// ready (SSH up). Counts as an operation while it runs, so start/stop wait.
     func runScript(_ script: String, in name: String, asRoot: Bool, title: String) {
-        guard let client, isReady(name), !isBusy(name) else { return }
+        guard let client, isReady(name), !isBusy(name), !isPaused(name) else { return }
         let run = ScriptRun(title: title, instance: name)
         operations[name] = Operation(kind: .runScript)
         scriptRun = run

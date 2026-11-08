@@ -33,7 +33,8 @@ struct OverviewTab: View {
             Section("状態") {
                 LabeledContent("状態") {
                     HStack(spacing: 6) {
-                        StatusDot(color: model.isBusy(instance.name) ? .orange : instance.status.color)
+                        StatusDot(color: model.isBusy(instance.name) ? .orange
+                                  : model.isPaused(instance.name) ? .yellow : instance.status.color)
                         Text(model.statusText(of: instance.name))
                     }
                 }
@@ -178,6 +179,14 @@ struct ScreenThumbnail: View {
                     .frame(maxWidth: .infinity, maxHeight: 280)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
+                    .overlay {
+                        // A paused guest doesn't redraw: the picture is the moment it stopped.
+                        if model.isPaused(name) {
+                            Label("一時停止中", systemImage: "pause.fill")
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(.regularMaterial, in: Capsule())
+                        }
+                    }
             } else if error == nil {
                 ProgressView().frame(maxWidth: .infinity, minHeight: 120)
             }

@@ -102,6 +102,17 @@ struct InstanceDetailView: View {
     private func toolbarActions(_ instance: LimaInstance?) -> some View {
         let busy = model.isBusy(name)
         if instance?.isRunning == true {
+            if instance?.usesHanaLimaDriver == true {
+                if model.isPaused(name) {
+                    Button { model.resume(name) } label: { Label("再開", systemImage: "playpause.fill") }
+                        .help("一時停止した仮想マシンを再開")
+                        .disabled(busy)
+                } else {
+                    Button { model.pause(name) } label: { Label("一時停止", systemImage: "pause.fill") }
+                        .help(model.pauseBlocker(name) ?? String(localized: "メモリの内容を保ったまま、仮想マシンを止める"))
+                        .disabled(model.pauseBlocker(name) != nil)
+                }
+            }
             Button { model.stop(name) } label: { Label("停止", systemImage: "stop.fill") }
                 .help("停止")
                 .disabled(busy)

@@ -21,12 +21,13 @@ struct AnsibleSection: View {
         if !instance.isRunning { return String(localized: "起動すると実行できます。") }
         if !model.isReady(instance.name) { return String(localized: "起動の完了を待っています。") }
         if model.isBusy(instance.name) { return String(localized: "処理中は実行できません。") }
+        if model.isPaused(instance.name) { return String(localized: "一時停止中は実行できません。") }
         return String(localized: "この仮想マシンに対して Playbook を実行し、出力を表示します。")
     }
 
     private var canRun: Bool {
         !model.ansibleState.probing && model.ansibleTool != nil && record != nil
-            && instance.isRunning && model.isReady(instance.name) && !model.isBusy(instance.name)
+            && instance.isRunning && model.isReady(instance.name) && !model.isBusy(instance.name) && !model.isPaused(instance.name)
     }
 
     private var inventoryPath: String {

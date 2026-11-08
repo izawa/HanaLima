@@ -65,6 +65,31 @@ final class VZMachine: @unchecked Sendable {
         }
     }
 
+    /// VZ's pause: the guest's RAM stays in this process.
+    func pause() async throws {
+        try await call { vm, done in
+            guard vm.canPause else { done(DriverError("can't pause in state \(vm.state.rawValue)")); return }
+            vm.pause { if case .failure(let e) = $0 { done(e) } else { done(nil) } }
+        }
+    }
+
+    func resume() async throws {
+        try await call { vm, done in
+            guard vm.canResume else { done(DriverError("can't resume in state \(vm.state.rawValue)")); return }
+            vm.resume { if case .failure(let e) = $0 { done(e) } else { done(nil) } }
+        }
+    }
+
+    private func call(_ body: @escaping (VZVirtualMachine, @escaping (Error?) -> Void) -> Void) async throws {
+        try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
+            queue.async {
+                body(self.machine) { error in
+                    if let error { c.resume(throwing: error) } else { c.resume() }
+                }
+            }
+        }
+    }
+
     /// ACPI power button. Returns false if the guest doesn't accept it (not running yet).
     func requestStop() -> Bool {
         queue.sync {

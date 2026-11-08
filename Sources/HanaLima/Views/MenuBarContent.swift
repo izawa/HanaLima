@@ -53,6 +53,13 @@ struct MenuBarContent: View {
                 showMainWindow()
             }
             Divider()
+            if instance.usesHanaLimaDriver {
+                if model.isPaused(name) {
+                    Button("再開") { model.resume(name) }.disabled(busy)
+                } else {
+                    Button("一時停止") { model.pause(name) }.disabled(model.pauseBlocker(name) != nil)
+                }
+            }
             Button("停止") { model.stop(name) }.disabled(busy)
             Button("再起動") {
                 model.restart(name)
@@ -83,6 +90,7 @@ struct MenuBarContent: View {
             }
             return op.kind.progressLabel
         }
+        if model.isPaused(instance.name) { return String(localized: "一時停止中") }
         if instance.isRunning && !model.isReady(instance.name) { return String(localized: "起動処理中") }
         return instance.status.label
     }

@@ -83,7 +83,7 @@ private struct SidebarRow: View {
             if model.isBusy(name) {
                 ProgressView().controlSize(.small)
             } else {
-                StatusDot(color: instance?.status.color ?? .gray)
+                StatusDot(color: model.isPaused(name) ? .yellow : instance?.status.color ?? .gray)
             }
         }
         .padding(.vertical, 2)
@@ -97,7 +97,7 @@ private struct SidebarRow: View {
             return op.kind.progressLabel + "…"
         }
         guard let instance else { return String(localized: "作成中…") }
-        var parts = [instance.status.label]
+        var parts = [model.isPaused(name) ? String(localized: "一時停止中") : instance.status.label]
         if model.pendingInstall(instance.name) != nil {
             parts.append(String(localized: "インストール待ち"))
         } else if model.sharedDiskOwners[instance.name] != nil {
@@ -124,6 +124,13 @@ struct InstanceActionsMenu: View {
         let instance = model.instance(named: name)
         let busy = model.isBusy(name)
         if instance?.isRunning == true {
+            if instance?.usesHanaLimaDriver == true {
+                if model.isPaused(name) {
+                    Button("再開") { model.resume(name) }.disabled(busy)
+                } else {
+                    Button("一時停止") { model.pause(name) }.disabled(model.pauseBlocker(name) != nil)
+                }
+            }
             Button("停止") { model.stop(name) }.disabled(busy)
             Button("再起動") { model.restart(name) }.disabled(busy)
         } else {

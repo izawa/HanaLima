@@ -55,7 +55,7 @@ struct ProvisionSection: View {
     /// Running and ready (SSH up), with nothing else going on.
     private var canRunNow: Bool {
         guard let instance else { return false }
-        return instance.isRunning && model.isReady(instance.name) && !model.isBusy(instance.name)
+        return instance.isRunning && model.isReady(instance.name) && !model.isBusy(instance.name) && !model.isPaused(instance.name)
     }
 
     private var runNowHelp: String {
@@ -63,6 +63,7 @@ struct ProvisionSection: View {
         if !instance.isRunning { return String(localized: "起動すると実行できます。") }
         if !model.isReady(instance.name) { return String(localized: "起動の完了を待っています。") }
         if model.isBusy(instance.name) { return String(localized: "処理中は実行できません。") }
+        if model.isPaused(instance.name) { return String(localized: "一時停止中は実行できません。") }
         return String(localized: "この項目を今すぐ一度だけ実行し、出力を表示します（保存はしません）。")
     }
 

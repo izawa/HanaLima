@@ -146,7 +146,16 @@ struct ConsoleTab: View {
     }
 
     var body: some View {
-        if instance.isRunning, let client = model.client {
+        if instance.isRunning, model.isPaused(instance.name) {
+            // A paused guest answers nothing; an open session resumes with the VM.
+            ContentUnavailableView {
+                Label("一時停止中です", systemImage: "pause.fill")
+            } description: {
+                Text("再開すると、コンソールを使えます。")
+            } actions: {
+                Button("再開") { model.resume(instance.name) }.disabled(model.isBusy(instance.name))
+            }
+        } else if instance.isRunning, let client = model.client {
             let serial = kind == .serial ? serialSocket : nil
             let session = TerminalSessions.shared.session(for: serial == nil ? instance.name : instance.name + "/serial")
             let ready = model.isReady(instance.name)
