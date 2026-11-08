@@ -119,6 +119,7 @@ struct GroupRunSheet: View {
                 : String(localized: "起動する仮想マシンのメモリの合計は \(Formatting.bytes(plan.memoryToStart)) です（この Mac の物理メモリは \(Formatting.bytes(physical))）。")
             return (text, total > physical)
         case .hibernate:
+            guard !plan.steps.isEmpty else { return nil }
             let needed = plan.steps.reduce(Int64(0)) { $0 + $1.memory } + Int64(gib)
             guard let free = request.freeSpace else { return nil }
             let text = String(localized: "保存には最大 \(Formatting.bytes(needed)) を使います（空き \(Formatting.bytes(free))）。")
