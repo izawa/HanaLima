@@ -114,6 +114,8 @@ IID を書き換えて起動したことにする方法は採らない。起動�
 
 ### 段階 1: 一時停止（A）
 
+2026-11-08 にブランチ `feature/pause` で実装した（下の方針どおり。E2E は `DriverPauseEndToEndTests`、Alpine と Ubuntu LTS で通過）。
+
 - 対象は `vmType: hanalima` の VM だけ。Lima の `vz` の VM には一時停止の手段が無い（内部ドライバーが VZ を持ち、Lima のドライバーのインターフェースに一時停止が無い）。
 - 経路は制御ソケット `hanalima-ctl.sock` に `pause`・`resume` を足す。Lima の gRPC には足せない。
 - ドライバーは、一時停止のときに `ga.sock` を閉じて、一時停止中は `GuestAgentConn` を断る（3.2）。再開で開き直す。
