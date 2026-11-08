@@ -80,6 +80,19 @@ final class VZMachine: @unchecked Sendable {
         }
     }
 
+    /// Takes every connected NIC's link down and up again (VZ's `attachment` to nil and back),
+    /// so the guest's DHCP client confirms its lease: after a long pause the guest's timers
+    /// (its monotonic clock stood still) still trust a lease the server may have let go.
+    func relinkNetworks(downFor seconds: TimeInterval = 1) async {
+        let saved: [(VZNetworkDevice, VZNetworkDeviceAttachment)] = queue.sync {
+            machine.networkDevices.compactMap { device in device.attachment.map { (device, $0) } }
+        }
+        guard !saved.isEmpty else { return }
+        queue.sync { for (device, _) in saved { device.attachment = nil } }
+        try? await Task.sleep(for: .seconds(seconds))
+        queue.sync { for (device, attachment) in saved { device.attachment = attachment } }
+    }
+
     private func call(_ body: @escaping (VZVirtualMachine, @escaping (Error?) -> Void) -> Void) async throws {
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
             queue.async {

@@ -40,6 +40,8 @@ actor DriverCore {
         var sshSetUp = false
         /// Stop has asked the guest to power off; no pause from then on.
         var stopping = false
+        /// When the current pause began.
+        var pausedAt: Date?
     }
 
     private var run: Run?
@@ -557,9 +559,13 @@ actor DriverCore {
             await Task.detached { bridge.close() }.value
             do { try ensureGuestAgentBridge() } catch { log("guest agent bridge: \(error)") }
         }
+        run?.pausedAt = Date()
         log("paused")
         return DriverControl.Response(ok: true, state: vm.stateName)
     }
+
+    /// A pause at least this long ends with a link down and up on every NIC (see resume()).
+    static let relinkAfterPause: TimeInterval = 60
 
     private func resume() async -> DriverControl.Response {
         guard let current = run, let vm = current.machine else { return .failure("the VM is not running") }
@@ -573,7 +579,17 @@ actor DriverCore {
             log("resume failed: \(error)")
             return .failure("\(error)")
         }
-        log("resumed")
+        let paused = run?.pausedAt.map { Date().timeIntervalSince($0) } ?? 0
+        run?.pausedAt = nil
+        log("resumed after \(Int(paused)) s")
+        // The guest's clocks stood still, so its DHCP client still trusts a lease the server
+        // may have let go and handed to another VM. A link down and up makes it confirm the
+        // lease (docs/11). Not after a short pause: Alpine's dhcpcd probes the address again,
+        // about 5 s without routes.
+        if paused >= Self.relinkAfterPause {
+            await vm.relinkNetworks()
+            log("relinked the NICs so the guest confirms its DHCP lease")
+        }
         return DriverControl.Response(ok: true, state: vm.stateName)
     }
 

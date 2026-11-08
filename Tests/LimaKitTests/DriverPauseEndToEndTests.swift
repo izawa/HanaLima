@@ -33,20 +33,20 @@ struct DriverPauseEndToEndTests {
         let bootID = try await sh("cat /proc/sys/kernel/random/boot_id")
         #expect(!bootID.isEmpty)
 
-        // Pause for 30 s.
+        // Pause for 65 s (a pause of 60 s or more ends with a link down and up on the NICs).
         let haLog = dir.appending(path: "ha.stderr.log")
         let refusalsBefore = count("Failed to get guest agent connection", in: haLog)
         #expect(try control(.pause, dir).state == "paused")
         #expect(try control(.status, dir).state == "paused")
         #expect(try await client.list().first { $0.name == vm }?.status == .running, "Lima doesn't know about the pause")
         #expect(throws: DriverControl.Failure.self) { try control(.pause, dir) }
-        try await Task.sleep(for: .seconds(30))
+        try await Task.sleep(for: .seconds(65))
         // The driver closes guest agent connections rather than refusing GuestAgentConn, which
         // Lima would log as an error every 2 s or so.
         #expect(count("Failed to get guest agent connection", in: haLog) == refusalsBefore)
         #expect(try control(.resume, dir).state == "running")
 
-        // Same boot; the clock (30 s behind) is corrected by Lima's time sync within ~20 s.
+        // Same boot; the clock (65 s behind) is corrected by Lima's time sync within ~20 s.
         #expect(try await sh("cat /proc/sys/kernel/random/boot_id") == bootID)
         var drift = Int.max
         let syncing = Date()
@@ -57,6 +57,17 @@ struct DriverPauseEndToEndTests {
         }
         print("clock: drift \(drift) s after \(Int(Date().timeIntervalSince(syncing))) s")
         #expect(drift <= 2)
+        // The NICs went down and up, and the guest still (or again) has its address.
+        let driverLog = (try? String(contentsOf: dir.appending(path: "driver.stderr.log"), encoding: .utf8)) ?? ""
+        #expect(driverLog.contains("relinked the NICs"))
+        var address = ""
+        let relinking = Date()
+        while Date().timeIntervalSince(relinking) < 30 {
+            address = try await sh("ip -4 -o addr show eth0 | awk '{print $4}'")
+            if address.hasPrefix("192.168.5.") { break }
+            try await Task.sleep(for: .seconds(2))
+        }
+        #expect(address.hasPrefix("192.168.5."), "eth0 has its usernet address again")
 
         // Stop while paused: the driver resumes and the guest shuts down on the power button.
         #expect(try control(.pause, dir).state == "paused")
