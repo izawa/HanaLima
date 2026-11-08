@@ -43,6 +43,7 @@ struct GroupDetailView: View {
                             Text(member.name)
                         }
                     }
+                    .width(min: 120, ideal: 240)
                     TableColumn("状態") { Text(model.statusText(of: $0.name)) }
                         .width(min: 60, ideal: 90)
                     TableColumn("仮想化方式") { Text(model.instance(named: $0.name)?.vmType?.uppercased() ?? "—") }
