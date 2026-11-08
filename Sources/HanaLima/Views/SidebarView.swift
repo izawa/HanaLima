@@ -343,6 +343,16 @@ struct SidebarOutline: NSViewRepresentable {
                 })
                 menu.addItem(MenuAction.item(String(localized: "グループを解除")) { [weak self] in self?.model.ungroup(name) })
                 menu.addItem(.separator())
+                let active = model.isGroupRunActive(name)
+                let members = model.sidebarGroups.first { $0.name == name }?.members ?? []
+                for action in GroupAction.allCases {
+                    if action == .hibernate, !members.contains(where: { model.instance(named: $0)?.usesHanaLimaDriver == true }) { continue }
+                    let item = MenuAction.item(action.label + "…") { [weak self] in self?.model.requestGroupRun(action, group: name) }
+                    item.isEnabled = !active && !members.isEmpty
+                    menu.addItem(item)
+                }
+                menu.autoenablesItems = false
+                menu.addItem(.separator())
             }
             if n == nil || n?.kind == .group || n === vmSection {
                 menu.addItem(MenuAction.item(String(localized: "新規グループ")) { [weak self] in self?.model.newGroup() })

@@ -211,16 +211,30 @@ extension AppModel {
     /// `limactl edit` needs the VM stopped, so a running one is stopped first.
     func removeDeletedNICs(_ name: String, thenStart: Bool) {
         guard let client, let inst = instance(named: name) else { return }
-        let paths = deletedNetworkSockets(of: inst)
-        guard !paths.isEmpty else { return }
-        let keep = paths.map { #".socket != "\#($0)""# }.joined(separator: " and ")
-        let expression = ".networks |= map(select(\(keep)))"
+        guard let expression = deletedNICsExpression(of: inst) else { return }
         var steps: [@Sendable () -> AsyncThrowingStream<LogEntry, Error>] = []
         if inst.isRunning { steps.append { client.stop(name) } }
         steps.append { client.edit(name, set: [expression]) }
         if thenStart { steps.append { client.start(name) } }
         let kind: Operation.Kind = thenStart ? (inst.isRunning ? .restart : .start) : .edit
         run(kind, on: name, Self.sequence(steps))
+    }
+
+    /// The `limactl edit --set` expression that drops the NICs pointing at deleted networks.
+    func deletedNICsExpression(of inst: LimaInstance) -> String? {
+        let paths = deletedNetworkSockets(of: inst)
+        guard !paths.isEmpty else { return nil }
+        let keep = paths.map { #".socket != "\#($0)""# }.joined(separator: " and ")
+        return ".networks |= map(select(\(keep)))"
+    }
+
+    /// The conflict starting `name` would cause with `others` running (a group-wide start counts
+    /// the VMs it starts before this one, docs/12 5.3).
+    func networkConflict(starting name: String, alongside others: [String]) -> NetworkConflict.Conflict? {
+        guard let inst = instance(named: name) else { return nil }
+        let running = others.filter { $0 != name }.compactMap { instance(named: $0) }
+            .map { (name: $0.name, attachments: conflictAttachments(of: $0)) }
+        return NetworkConflict.check(vm: name, attachments: conflictAttachments(of: inst), running: running)
     }
 
     /// Runs the streams one after another as one operation; stops at the first failure.

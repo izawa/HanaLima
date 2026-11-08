@@ -200,6 +200,10 @@ final class AppModel {
     var renamingGroup: String?
     /// VMs being created or copied, by the group they go into, until their record has it.
     var pendingGroups: [String: String] = [:]
+    /// A group-wide start/stop/hibernate waiting for the user to confirm its plan in a sheet.
+    var groupRunRequest: GroupRunRequest?
+    /// Group-wide operations in progress or just finished, by lowercased group name.
+    var groupRuns: [String: GroupRunState] = [:]
     /// VMs whose disk link points to another VM's moved disk (a `limactl clone` copies the link),
     /// with the VM that owns it.
     var sharedDiskOwners: [String: String] = [:]
@@ -640,55 +644,79 @@ final class AppModel {
 
     /// Runs a limactl command for `name`, showing its progress. `keepBusy` leaves the operation
     /// running (and skips the refresh) for a `completion` that has more to do and ends it.
+    /// The command is made (and so started) only when `name` isn't busy: a stream starts its
+    /// process when it is created.
     func run(_ kind: Operation.Kind, on name: String,
-                     _ stream: AsyncThrowingStream<LogEntry, Error>,
-                     keepBusy: Bool = false,
-                     completion: (@MainActor (Bool) -> Void)? = nil) {
-        guard !isBusy(name) else { return }
+             _ stream: @autoclosure () -> AsyncThrowingStream<LogEntry, Error>,
+             keepBusy: Bool = false,
+             completion: (@MainActor (Bool) -> Void)? = nil) {
+        guard begin(kind, on: name) else { return }
+        let stream = stream()
+        Task {
+            let error = await follow(kind, on: name, stream, keepBusy: keepBusy, quiet: false)
+            completion?(error == nil)
+        }
+    }
+
+    /// Like `run`, but waits for the command and returns its error (nil: it succeeded), without
+    /// an alert: for group-wide operations, which report all results together (docs/12 5.4).
+    /// Returns "busy" without starting anything if `name` is busy.
+    func perform(_ kind: Operation.Kind, on name: String,
+                 _ stream: @autoclosure () -> AsyncThrowingStream<LogEntry, Error>) async -> String? {
+        guard begin(kind, on: name) else { return String(localized: "処理中です。") }
+        return await follow(kind, on: name, stream(), keepBusy: false, quiet: true)
+    }
+
+    /// Marks `name` busy with `kind`; false if it already is.
+    private func begin(_ kind: Operation.Kind, on name: String) -> Bool {
+        guard !isBusy(name) else { return false }
         operations[name] = Operation(kind: kind)
         if [.start, .restart, .stop, .delete].contains(kind) {
             readyInstances.remove(name)
             pausedInstances.remove(name)
         }
-        Task {
-            var ok = true
-            var monitor: Task<Void, Never>?
-            defer { monitor?.cancel() }
-            do {
-                for try await entry in stream {
-                    appendLog(entry, to: name)
-                    // Lima logs "Attempting to download the image" (with the URL), then prints
-                    // "Downloading the image (<file>)", so other output doesn't mean it's done:
-                    // the monitor ends by itself when the temp file is renamed into place.
-                    if entry.message.hasPrefix("Attempting to download"), let location = entry.fields["location"] {
-                        monitor?.cancel()
-                        operations[name]?.download = nil
-                        monitor = monitorDownload(location, for: name)
-                    }
-                    // Status flips (Installing → Running etc.) happen mid-command.
-                    if kind != .delete { scheduleRefresh() }
+        return true
+    }
+
+    /// Follows a started command to its end; returns its error, or nil.
+    private func follow(_ kind: Operation.Kind, on name: String, _ stream: AsyncThrowingStream<LogEntry, Error>,
+                        keepBusy: Bool, quiet: Bool) async -> String? {
+        var failure: String?
+        var monitor: Task<Void, Never>?
+        defer { monitor?.cancel() }
+        do {
+            for try await entry in stream {
+                appendLog(entry, to: name)
+                // Lima logs "Attempting to download the image" (with the URL), then prints
+                // "Downloading the image (<file>)", so other output doesn't mean it's done:
+                // the monitor ends by itself when the temp file is renamed into place.
+                if entry.message.hasPrefix("Attempting to download"), let location = entry.fields["location"] {
+                    monitor?.cancel()
+                    operations[name]?.download = nil
+                    monitor = monitorDownload(location, for: name)
                 }
-            } catch {
-                ok = false
-                operations[name]?.error = error.localizedDescription
+                // Status flips (Installing → Running etc.) happen mid-command.
+                if kind != .delete { scheduleRefresh() }
+            }
+        } catch {
+            failure = error.localizedDescription
+            operations[name]?.error = error.localizedDescription
+            if !quiet {
                 alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"),
                                      message: error.localizedDescription)
             }
-            monitor?.cancel()
-            operations[name]?.download = nil
-            if keepBusy && ok {
-                completion?(ok)
-                return
-            }
-            operations[name]?.isRunning = false
-            // `limactl start` only returns after the instance reports READY.
-            if ok && (kind == .start || kind == .restart) {
-                readyInstances.insert(name)
-                restartNeeded[name] = nil
-            }
-            await refresh()
-            completion?(ok)
         }
+        monitor?.cancel()
+        operations[name]?.download = nil
+        if keepBusy && failure == nil { return nil }
+        operations[name]?.isRunning = false
+        // `limactl start` only returns after the instance reports READY.
+        if failure == nil && (kind == .start || kind == .restart) {
+            readyInstances.insert(name)
+            restartNeeded[name] = nil
+        }
+        await refresh()
+        return failure
     }
 
     private func monitorDownload(_ location: String, for name: String) -> Task<Void, Never> {

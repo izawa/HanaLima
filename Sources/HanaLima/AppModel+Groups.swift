@@ -116,6 +116,12 @@ extension AppModel {
     func renameGroup(_ old: String, to new: String) {
         let new = new.trimmingCharacters(in: .whitespacesAndNewlines)
         guard new != old, let i = groupLayout.index(ofGroup: old) else { return }
+        // Runs are kept by group name (docs/12 4.1).
+        if isGroupRunActive(old) {
+            alert = AlertMessage(title: String(localized: "グループの名前を変更できませんでした"),
+                                 message: String(localized: "このグループの一括操作が終わってから変更してください。"))
+            return
+        }
         if let problem = groupNameProblem(new, renaming: groupLayout.groups[i].name) {
             alert = AlertMessage(title: String(localized: "グループの名前を変更できませんでした"), message: problem)
             return
@@ -132,6 +138,11 @@ extension AppModel {
     /// Takes the VMs out of the group (to the top of the ungrouped VMs) and removes it.
     func ungroup(_ name: String) {
         guard let i = groupLayout.index(ofGroup: name) else { return }
+        if isGroupRunActive(name) {
+            alert = AlertMessage(title: String(localized: "グループを解除できませんでした"),
+                                 message: String(localized: "このグループの一括操作が終わってから解除してください。"))
+            return
+        }
         let ids = groupLayout.groups[i].members
         let members = metadata.filter { ids.contains($0.value.id) }.map(\.key)
         guard writeGroup(nil, to: members, title: String(localized: "グループを解除できませんでした")) else { return }

@@ -19,27 +19,40 @@ extension AppModel {
 
     /// Saves the guest's RAM next to its disk and powers it off; the next start resumes there.
     func hibernate(_ name: String) {
-        guard hibernateBlocker(name) == nil, let instance = instance(named: name) else { return }
+        Task { await hibernateNow(name, quiet: false) }
+    }
+
+    /// `hibernate`, waited for. Returns the failure (nil: hibernated); `quiet` leaves out the
+    /// alert, for group-wide operations. `locked`: the failure was the Secure Enclave key, which
+    /// every other VM would hit too.
+    @discardableResult
+    func hibernateNow(_ name: String, quiet: Bool) async -> (message: String, locked: Bool)? {
+        if let blocker = hibernateBlocker(name) { return (blocker, false) }
+        guard let instance = instance(named: name) else { return ("", false) }
         let dir = instance.instanceDir
         // About a second per GiB on an internal SSD; generous for slow drives.
         let timeout = 60 + Double((instance.memory ?? 0) >> 30) * 10
         operations[name] = Operation(kind: .hibernate)
         pauseEpochs[name, default: 0] += 1
-        Task {
-            do {
-                _ = try await Task.detached {
-                    try DriverControl.send(DriverControl.Request(op: .hibernate), instanceDir: dir, timeout: timeout)
-                }.value
-                pausedInstances.remove(name)
-                operations[name] = nil
-            } catch {
-                operations[name]?.isRunning = false
-                operations[name]?.error = "\(error)"
-                alert = AlertMessage(title: String(localized: "\(name) の休止に失敗しました"), message: Self.describeHibernateFailure(error))
+        var failure: (message: String, locked: Bool)?
+        do {
+            _ = try await Task.detached {
+                try DriverControl.send(DriverControl.Request(op: .hibernate), instanceDir: dir, timeout: timeout)
+            }.value
+            pausedInstances.remove(name)
+            operations[name] = nil
+        } catch {
+            operations[name]?.isRunning = false
+            operations[name]?.error = "\(error)"
+            let message = Self.describeHibernateFailure(error)
+            failure = (message, "\(error)".contains("must be unlocked"))
+            if !quiet {
+                alert = AlertMessage(title: String(localized: "\(name) の休止に失敗しました"), message: message)
             }
-            pauseEpochs[name, default: 0] += 1
-            await refresh()
         }
+        pauseEpochs[name, default: 0] += 1
+        await refresh()
+        return failure
     }
 
     /// The driver's reasons are English; the common one (the Mac locked) gets a sentence.
@@ -76,6 +89,9 @@ extension AppModel {
     /// restore it (the VM changed) or VZ couldn't. Asks whether to boot afresh instead.
     func offerDiscardAfterFailedResume(_ name: String) {
         guard let instance = instance(named: name), SavedState.exists(instanceDir: instance.instanceDir) else { return }
+        // From the group page a while later: don't end an operation that has started since.
+        // (After a failed start, called from its completion, the VM is no longer busy.)
+        if isBusy(name) { return }
         let reason = Self.lastResumeFailure(instanceDir: instance.instanceDir)
         alert = nil
         operations[name] = nil

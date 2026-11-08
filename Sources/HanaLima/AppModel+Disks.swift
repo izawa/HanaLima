@@ -48,20 +48,24 @@ extension AppModel {
     /// A VM whose disk is on a drive that isn't connected can't start; say so instead of letting
     /// Lima fail with a file error. Nor can one that shares another VM's disk: it would write it.
     func refuseIfDiskUnusable(_ name: String, allowPending: Bool = false) -> Bool {
+        guard let reason = diskUnusableReason(name, allowPending: allowPending) else { return false }
+        alert = reason
+        return true
+    }
+
+    /// Why `name` can't start because of its disk or a pending install (nil: it can).
+    func diskUnusableReason(_ name: String, allowPending: Bool = false) -> AlertMessage? {
         if !allowPending, pendingInstall(name) != nil {
-            alert = AlertMessage(title: String(localized: "「\(name)」はまだ OS が入っていません"),
-                                 message: String(localized: "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。"))
-            return true
+            return AlertMessage(title: String(localized: "「\(name)」はまだ OS が入っていません"),
+                                message: String(localized: "インストーラーの ISO から OS を入れるまで起動できません。仮想マシンの画面の「インストーラーを開く」から続けてください。"))
         }
         if let owner = sharedDiskOwners[name] {
-            alert = AlertMessage(title: String(localized: "「\(name)」は「\(owner)」とディスクを共有しています"),
-                                 message: String(localized: "このまま起動すると「\(owner)」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"))
-            return true
+            return AlertMessage(title: String(localized: "「\(name)」は「\(owner)」とディスクを共有しています"),
+                                message: String(localized: "このまま起動すると「\(owner)」のディスクを書き換えてしまいます。「設定」タブの「ディスクを独立させる」で、この仮想マシン専用のディスクを作ってから起動してください。"))
         }
-        guard let inst = instance(named: name), case .missing(let url) = diskPlacement(of: inst) else { return false }
-        alert = AlertMessage(title: String(localized: "「\(name)」のディスクが見つかりません"),
-                             message: String(localized: "ディスクの保存先 \(url.deletingLastPathComponent().path) が見つかりません。外付けドライブを接続してから、もう一度起動してください。"))
-        return true
+        guard let inst = instance(named: name), case .missing(let url) = diskPlacement(of: inst) else { return nil }
+        return AlertMessage(title: String(localized: "「\(name)」のディスクが見つかりません"),
+                            message: String(localized: "ディスクの保存先 \(url.deletingLastPathComponent().path) が見つかりません。外付けドライブを接続してから、もう一度起動してください。"))
     }
 
     /// Moves `name`'s disk to `folder` (`<folder>/HanaLima Disks/<name>/disk`), then starts the VM

@@ -91,6 +91,7 @@ struct ContentView: View {
             CreateInstanceSheet()
         }
         .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source, snapshot: $0.snapshot) }
+        .sheet(item: $model.groupRunRequest) { GroupRunSheet(request: $0) }
         .onChange(of: model.installRequest) { _, request in
             guard let request else { return }
             model.installRequest = nil
@@ -111,6 +112,11 @@ struct ContentView: View {
         .task {
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_CREATE"] != nil { model.createRequested = true }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_SETTINGS"] == "1" { openSettings() }
+            if let action = DebugSnapshot.env["HANALIMA_SNAPSHOT_GROUPRUN"].flatMap(GroupAction.init(rawValue:)),
+               case .group(let group)? = DebugSnapshot.requestedSelection {
+                try? await Task.sleep(for: .seconds(1.5))  // the list must be loaded
+                model.requestGroupRun(action, group: group)
+            }
             if let source = DebugSnapshot.env["HANALIMA_SNAPSHOT_COPY"] {
                 try? await Task.sleep(for: .seconds(1))  // the list must be loaded
                 model.copyRequest = CopyRequest(source: source)

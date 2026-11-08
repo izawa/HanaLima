@@ -10,6 +10,7 @@ import LimaKit
 /// (open the create sheet first), `HANALIMA_SNAPSHOT_TAB=<tab name>` (select a detail tab),
 /// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|group:<name>|<instance>` (sidebar selection),
 /// `HANALIMA_SNAPSHOT_ABOUT=1` (open the About panel),
+/// `HANALIMA_SNAPSHOT_GROUPRUN=start|stop|hibernate` (with `_SELECT=group:<name>`: open that group-wide operation's sheet),
 /// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it),
 /// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it),
 /// `HANALIMA_SNAPSHOT_MOVEDISK=<folder>` (open the move-disk sheet with that destination; use

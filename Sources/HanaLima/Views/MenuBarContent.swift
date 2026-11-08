@@ -13,13 +13,30 @@ struct MenuBarContent: View {
             if model.instances.isEmpty {
                 Text("仮想マシンはありません")
             }
-            ForEach(model.instances) { instance in
+            // Groups as submenus with their group-wide actions (docs/12 4.5), then the other VMs.
+            ForEach(model.sidebarGroups.filter { !$0.members.isEmpty }, id: \.name) { group in
                 Menu {
-                    actions(for: instance)
+                    let active = model.isGroupRunActive(group.name)
+                    ForEach(GroupAction.allCases, id: \.self) { action in
+                        if action != .hibernate || group.members.contains(where: { model.instance(named: $0)?.usesHanaLimaDriver == true }) {
+                            Button(action.label + "…") {
+                                model.requestGroupRun(action, group: group.name)
+                                showMainWindow()
+                            }
+                            .disabled(active)
+                        }
+                    }
+                    Divider()
+                    ForEach(group.members.compactMap { model.instance(named: $0) }) { instance in
+                        vmMenu(instance)
+                    }
                 } label: {
-                    Label("\(instance.name)（\(statusText(instance))）",
-                          systemImage: instance.isRunning ? "circle.fill" : "circle")
+                    let counts = model.groupCounts(group)
+                    Label("\(group.name)（\(counts.running)/\(counts.total)）", systemImage: "folder")
                 }
+            }
+            ForEach(model.ungroupedNames.compactMap { model.instance(named: $0) }) { instance in
+                vmMenu(instance)
             }
         case .checking:
             Text("limactl を確認しています…")
@@ -41,6 +58,15 @@ struct MenuBarContent: View {
         SettingsLink { Text("設定…") }
         Button("HanaLima を終了") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
+    }
+
+    private func vmMenu(_ instance: LimaInstance) -> some View {
+        Menu {
+            actions(for: instance)
+        } label: {
+            Label("\(instance.name)（\(statusText(instance))）",
+                  systemImage: instance.isRunning ? "circle.fill" : "circle")
+        }
     }
 
     @ViewBuilder

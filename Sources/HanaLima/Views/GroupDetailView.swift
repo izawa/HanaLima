@@ -25,6 +25,40 @@ struct GroupDetailView: View {
     @ViewBuilder
     private func content(_ group: AppModel.SidebarGroup) -> some View {
         let counts = model.groupCounts(group)
+        VStack(spacing: 0) {
+            if let run = model.groupRun(of: group.name) {
+                GroupRunPanel(group: group.name, run: run)
+            }
+            members(group)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                let active = model.isGroupRunActive(group.name) || group.members.isEmpty
+                Button { model.requestGroupRun(.start, group: group.name) } label: {
+                    Label("すべて起動", systemImage: "play.fill")
+                }
+                .help("すべて起動（グループの並び順に 1 台ずつ）")
+                .disabled(active)
+                Button { model.requestGroupRun(.stop, group: group.name) } label: {
+                    Label("すべて停止", systemImage: "stop.fill")
+                }
+                .help("すべて停止（並び順の逆に 1 台ずつ）")
+                .disabled(active)
+                if group.members.contains(where: { model.instance(named: $0)?.usesHanaLimaDriver == true }) {
+                    Button { model.requestGroupRun(.hibernate, group: group.name) } label: {
+                        Label("すべて休止", systemImage: "moon.zzz.fill")
+                    }
+                    .help("すべて休止（HanaLima のドライバーで動く仮想マシンを、並び順の逆に 1 台ずつ）")
+                    .disabled(active)
+                }
+            }
+        }
+        .navigationTitle(group.name)
+        .navigationSubtitle(String(localized: "\(counts.total) 台、実行中 \(counts.running) 台"))
+    }
+
+    @ViewBuilder
+    private func members(_ group: AppModel.SidebarGroup) -> some View {
         Group {
             if group.members.isEmpty {
                 ContentUnavailableView {
@@ -68,8 +102,6 @@ struct GroupDetailView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 8)
         }
-        .navigationTitle(group.name)
-        .navigationSubtitle(String(localized: "\(counts.total) 台、実行中 \(counts.running) 台"))
     }
 
     private func dotColor(_ name: String) -> Color {
