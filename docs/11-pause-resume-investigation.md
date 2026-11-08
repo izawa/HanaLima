@@ -233,7 +233,7 @@ B は 2026-11-08 にブランチ `feature/hibernate` で実装した。E2E は `
 - 休止中にメモリを変えると、Start は「the VM's settings changed since it was hibernated」で断られ、保存ファイルは残った。メモリを戻すと、元の状態から再開した。
 - `limactl clone` の複製と、休止中に `limactl rename` した VM は、保存した状態を捨てて普通に起動した。
 
-#### D（ゲストのハイバネーション）を作るなら（未着手）
+#### D（ゲストのハイバネーション）を作るなら（後回し。2026-11-08 ユーザー判断）
 
 - スワップ用の追加ディスクを HanaLima が作って付け、`resume=` をカーネル引数に足す例を用意する。カーネル引数の場所はゲストで違う（Alpine は Limine、Debian・Fedora は GRUB）。
 - ハイバネーションは `limactl shell <名前> sudo hanalima-hibernate`（`echo disk > /sys/power/state` と、戻ってからの IID の手当てを 1 つにしたもの）で行う。電源が切れると Lima は Stopped にするので、HanaLima 以外の手順は要らない。
