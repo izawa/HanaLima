@@ -68,7 +68,7 @@ extension AppModel {
     /// if asked. The VM must be stopped.
     func moveDisk(_ name: String, to folder: URL, thenStart: Bool = false) {
         guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst),
-              pendingInstall(name) == nil else { return }
+              pendingInstall(name) == nil, !isHibernated(name) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         let target = ExternalDisk.target(in: folder, name: name)
         runFileOperation(.moveDisk, name: name) { progress in
@@ -79,7 +79,7 @@ extension AppModel {
     }
 
     func moveDiskBack(_ name: String) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst) else { return }
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !hasDiskSnapshots(inst), !isHibernated(name) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         runFileOperation(.moveDiskBack, name: name) { progress in
             try await ExternalDisk.moveBack(instanceDir: dir, progress: progress)

@@ -29,6 +29,10 @@ public enum DriverControl {
         case pause
         /// Resumes a paused VM.
         case resume
+        /// Hibernates (docs/11, stage 2): saves the guest's RAM and devices next to the disk and
+        /// powers the VM off; the next start resumes from there. Needs the Mac unlocked; takes
+        /// about a second per GiB of memory.
+        case hibernate
     }
 
     /// The pid file of a hosted boot (`lima-driver-hanalima --hosted`: the rescue boot and the

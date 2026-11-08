@@ -13,6 +13,7 @@ extension AppModel {
         if inst.isRunning { return String(localized: "停止してから救出起動してください。") }
         if isBusy(name) { return String(localized: "操作中です。") }
         if pendingInstall(name) != nil { return String(localized: "OS のインストールが終わると使えます。") }
+        if isHibernated(name) { return String(localized: "休止中は救出起動できません。保存した状態を捨ててから使えます。") }
         if let owner = sharedDiskOwners[name] { return String(localized: "「\(owner)」とディスクを共有しているため起動できません。") }
         if case .missing = diskPlacement(of: inst) { return String(localized: "ディスクの保存先が見つかりません。") }
         if let session = rescueSession, session.isRunning, session.name != name {

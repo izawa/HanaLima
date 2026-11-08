@@ -181,7 +181,7 @@ private struct DiskSnapshotContent: View {
     private var selected: DiskSnapshot? { list.first { $0.id == selection } }
     private var busy: Bool { model.isBusy(instance.name) }
     private var shared: Bool { model.sharedDiskOwners[instance.name] != nil }
-    private var canOperate: Bool { !instance.isRunning && !busy && !shared }
+    private var canOperate: Bool { !instance.isRunning && !busy && !shared && !model.isHibernated(instance.name) }
 
     var body: some View {
         if case .missing = model.diskPlacement(of: instance) {

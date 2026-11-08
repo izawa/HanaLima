@@ -112,6 +112,9 @@ struct InstanceDetailView: View {
                         .help(model.pauseBlocker(name) ?? String(localized: "メモリの内容を保ったまま、仮想マシンを止める"))
                         .disabled(model.pauseBlocker(name) != nil)
                 }
+                Button { model.hibernate(name) } label: { Label("休止", systemImage: "moon.zzz.fill") }
+                    .help(model.hibernateBlocker(name) ?? String(localized: "メモリの内容を Mac に保存して電源を切る。次の起動でその状態から再開する"))
+                    .disabled(model.hibernateBlocker(name) != nil)
             }
             Button { model.stop(name) } label: { Label("停止", systemImage: "stop.fill") }
                 .help("停止")
@@ -120,8 +123,10 @@ struct InstanceDetailView: View {
                 .help("再起動")
                 .disabled(busy)
         } else {
-            Button { model.start(name) } label: { Label("起動", systemImage: "play.fill") }
-                .help("起動")
+            Button { model.start(name) } label: {
+                Label(model.isHibernated(name) ? "再開" : "起動", systemImage: "play.fill")
+            }
+                .help(model.isHibernated(name) ? String(localized: "休止したときの状態から再開") : String(localized: "起動"))
                 .disabled(busy || instance == nil)
         }
         Button { model.copyRequest = CopyRequest(source: name) } label: {
@@ -201,7 +206,13 @@ private struct InstanceNoticeBanner: View {
     var body: some View {
         let deleted = model.deletedNetworkSockets(of: instance).map(AppModel.networkName(ofSocket:))
         let changed = (model.restartNeeded[instance.name] ?? []).subtracting(deleted).sorted()
-        if let pending = model.pendingInstall(instance.name) {
+        if model.isHibernated(instance.name) {
+            banner(icon: "moon.zzz.fill", color: .indigo,
+                   text: String(localized: "休止中です。起動すると、休止したときの状態から再開します。")) {
+                Button("保存した状態を捨てる…") { model.confirmDiscardSavedState(instance.name) }
+                    .disabled(model.isBusy(instance.name))
+            }
+        } else if let pending = model.pendingInstall(instance.name) {
             banner(icon: "opticaldisc", color: .orange,
                    text: String(localized: "まだ OS が入っていません。インストーラーの ISO（\(pending.isoURL.lastPathComponent)）から OS を入れると、仮想マシンとして使えるようになります。")) {
                 Button("インストーラーを開く") { model.installRequest = InstallRequest(name: instance.name) }

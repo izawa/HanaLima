@@ -25,6 +25,7 @@ final class VZMachine: @unchecked Sendable {
     /// `serial`: the guest's end of the console socket pair.
     init(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, onStop: @escaping @Sendable (Error?) -> Void) throws {
         let config = try Self.configuration(spec: spec, networkHandles: networkHandles, serial: serial)
+        do { try config.validateSaveRestoreSupport(); saveRestoreUnsupported = nil } catch { saveRestoreUnsupported = "\(error.localizedDescription)" }
         let vm = VZVirtualMachine(configuration: config, queue: queue)
         let delegate = Delegate(onStop: onStop)
         // VZVirtualMachine's properties are confined to its queue.
@@ -91,6 +92,21 @@ final class VZMachine: @unchecked Sendable {
         queue.sync { for (device, _) in saved { device.attachment = nil } }
         try? await Task.sleep(for: .seconds(seconds))
         queue.sync { for (device, attachment) in saved { device.attachment = attachment } }
+    }
+
+    // MARK: - Hibernation (docs/11, stage 2)
+
+    /// nil when this configuration can be saved and restored, else VZ's reason.
+    let saveRestoreUnsupported: String?
+
+    /// VZ's save; the VM must be paused. Needs the Mac unlocked (a Secure Enclave key).
+    func saveState(to url: URL) async throws {
+        try await call { vm, done in vm.saveMachineStateTo(url: url) { done($0) } }
+    }
+
+    /// Instead of start(): the VM must be fresh (stopped); leaves it paused.
+    func restoreState(from url: URL) async throws {
+        try await call { vm, done in vm.restoreMachineStateFrom(url: url) { done($0) } }
     }
 
     private func call(_ body: @escaping (VZVirtualMachine, @escaping (Error?) -> Void) -> Void) async throws {

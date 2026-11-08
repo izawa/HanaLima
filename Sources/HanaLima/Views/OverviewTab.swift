@@ -34,7 +34,7 @@ struct OverviewTab: View {
                 LabeledContent("状態") {
                     HStack(spacing: 6) {
                         StatusDot(color: model.isBusy(instance.name) ? .orange
-                                  : model.isPaused(instance.name) ? .yellow : instance.status.color)
+                                  : model.isPaused(instance.name) ? .yellow : model.isHibernated(instance.name) ? .indigo : instance.status.color)
                         Text(model.statusText(of: instance.name))
                     }
                 }

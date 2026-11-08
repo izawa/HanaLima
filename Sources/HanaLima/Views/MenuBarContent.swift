@@ -59,6 +59,7 @@ struct MenuBarContent: View {
                 } else {
                     Button("一時停止") { model.pause(name) }.disabled(model.pauseBlocker(name) != nil)
                 }
+                Button("休止") { model.hibernate(name) }.disabled(model.hibernateBlocker(name) != nil)
             }
             Button("停止") { model.stop(name) }.disabled(busy)
             Button("再起動") {
@@ -67,7 +68,7 @@ struct MenuBarContent: View {
             }
             .disabled(busy)
         } else {
-            Button("起動") {
+            Button(model.isHibernated(name) ? "再開" : "起動") {
                 model.start(name)
                 showWindowIfConfirming()
             }
@@ -91,13 +92,14 @@ struct MenuBarContent: View {
             return op.kind.progressLabel
         }
         if model.isPaused(instance.name) { return String(localized: "一時停止中") }
+        if model.isHibernated(instance.name) { return String(localized: "休止中") }
         if instance.isRunning && !model.isReady(instance.name) { return String(localized: "起動処理中") }
         return instance.status.label
     }
 
     /// The socket_vmnet + virtual network confirmation is an alert in the main window.
     private func showWindowIfConfirming() {
-        if model.pendingConflictStart != nil || model.pendingDeletedNetworkStart != nil { showMainWindow() }
+        if model.pendingConflictStart != nil || model.pendingDeletedNetworkStart != nil || model.pendingDiscard != nil { showMainWindow() }
     }
 
     private func showMainWindow() {
@@ -121,6 +123,13 @@ struct MenuBarLabel: View {
                     openWindow(id: "main")
                 }
                 await model.bootstrap()
+            }
+            // A hibernated VM that couldn't resume asks what to do in the main window. The start
+            // may have come from the menu with the window closed, and the question comes later.
+            .onChange(of: model.pendingDiscard?.id) { _, id in
+                guard id != nil else { return }
+                openWindow(id: "main")
+                NSApp.activate()
             }
     }
 }

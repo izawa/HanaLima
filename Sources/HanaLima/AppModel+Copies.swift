@@ -45,6 +45,7 @@ extension AppModel {
         if inst.isRunning { return String(localized: "停止すると複製できます。") }
         if isBusy(name) { return String(localized: "処理中は複製できません。") }
         if pendingInstall(name) != nil { return String(localized: "OS のインストールが終わると複製できます。") }
+        if isHibernated(name) { return String(localized: "休止中は複製できません。起動して再開するか、保存した状態を捨ててください。") }
         if case .missing = diskPlacement(of: inst) {
             return String(localized: "ディスクのある外付けドライブを接続すると複製できます。")
         }
@@ -138,7 +139,7 @@ extension AppModel {
 
     private func diskSnapshotOperation(_ kind: Operation.Kind, _ name: String,
                                        _ work: @escaping @Sendable (URL) throws -> Void) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name) else { return }
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !isHibernated(name) else { return }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         runFileOperation(kind, name: name, showsProgress: false) { _ in try work(dir) } completion: { [weak self] _ in
             self?.loadDiskSnapshots(name)

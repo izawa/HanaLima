@@ -83,7 +83,7 @@ private struct SidebarRow: View {
             if model.isBusy(name) {
                 ProgressView().controlSize(.small)
             } else {
-                StatusDot(color: model.isPaused(name) ? .yellow : instance?.status.color ?? .gray)
+                StatusDot(color: model.isPaused(name) ? .yellow : model.isHibernated(name) ? .indigo : instance?.status.color ?? .gray)
             }
         }
         .padding(.vertical, 2)
@@ -97,7 +97,8 @@ private struct SidebarRow: View {
             return op.kind.progressLabel + "…"
         }
         guard let instance else { return String(localized: "作成中…") }
-        var parts = [model.isPaused(name) ? String(localized: "一時停止中") : instance.status.label]
+        var parts = [model.isPaused(name) ? String(localized: "一時停止中")
+                     : model.isHibernated(name) ? String(localized: "休止中") : instance.status.label]
         if model.pendingInstall(instance.name) != nil {
             parts.append(String(localized: "インストール待ち"))
         } else if model.sharedDiskOwners[instance.name] != nil {
@@ -130,11 +131,15 @@ struct InstanceActionsMenu: View {
                 } else {
                     Button("一時停止") { model.pause(name) }.disabled(model.pauseBlocker(name) != nil)
                 }
+                Button("休止") { model.hibernate(name) }.disabled(model.hibernateBlocker(name) != nil)
             }
             Button("停止") { model.stop(name) }.disabled(busy)
             Button("再起動") { model.restart(name) }.disabled(busy)
         } else {
-            Button("起動") { model.start(name) }.disabled(busy || instance == nil)
+            Button(model.isHibernated(name) ? "再開" : "起動") { model.start(name) }.disabled(busy || instance == nil)
+            if model.isHibernated(name) {
+                Button("保存した状態を捨てる…") { model.confirmDiscardSavedState(name) }.disabled(busy)
+            }
         }
         Button("複製…") { model.copyRequest = CopyRequest(source: name) }
             .disabled(model.copyBlocker(name) != nil)

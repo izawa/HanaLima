@@ -42,6 +42,11 @@ actor DriverCore {
         var stopping = false
         /// When the current pause began.
         var pausedAt: Date?
+        /// This run resumed a hibernated state instead of booting (docs/11, stage 2).
+        var restored = false
+        /// A hibernate in progress: a stop waits for it (a resume between the save and the power
+        /// off would let the guest write the disk the saved state no longer matches).
+        var hibernating = false
     }
 
     private var run: Run?
@@ -169,6 +174,8 @@ actor DriverCore {
         guard run == nil, !busy else { throw DriverError("already started") }
         busy = true
         defer { busy = false }
+        // Before anything touches the disks: a hibernated state either matches them or Start fails.
+        let savedState = try savedStateToRestore(spec: spec)
         generation += 1
         var current = Run(generation: generation)
         do {
@@ -221,7 +228,12 @@ actor DriverCore {
             }
             current.machine = vm
             run = current
-            try await vm.start()
+            if let savedState {
+                try await restore(vm: vm, from: savedState, spec: spec)
+                run?.restored = true
+            } else {
+                try await vm.start()
+            }
             log("VM running")
             if let box = vm.displayMachine {
                 // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
@@ -299,7 +311,11 @@ actor DriverCore {
         run?.sshWait = task
         defer { if run?.generation == gen { run?.sshWait = nil } }
         try await task.value
-        if run?.generation == gen { run?.sshSetUp = true }
+        guard run?.generation == gen else { return }
+        run?.sshSetUp = true
+        if run?.restored == true {
+            Task.detached { await Self.handOverInstanceID(spec: spec) }
+        }
     }
 
     /// SSH over vsock (stage 4): a guest with systemd 256+ has sshd on vsock port 22 from early
@@ -403,6 +419,11 @@ actor DriverCore {
         // A start in progress: let it finish (or fail) first.
         let waited = Date()
         while busy, run == nil, Date().timeIntervalSince(waited) < 60 { try? await Task.sleep(for: .milliseconds(200)) }
+        // A hibernate owns the VM until it has saved and powered off (or given up and resumed);
+        // however long the save takes, a stop must not resume the guest in between.
+        while run?.hibernating == true {
+            try? await Task.sleep(for: .milliseconds(200))
+        }
         guard let current = run, let vm = current.machine else { return }
         let gen = current.generation
         run?.stopping = true
@@ -509,6 +530,7 @@ actor DriverCore {
             return DriverControl.Response(ok: true, state: run?.machine?.stateName)
         case .forceStop:
             guard let vm = run?.machine else { return .failure("the VM is not running") }
+            guard run?.hibernating != true else { return .failure("the VM is hibernating") }
             let gen = run?.generation
             Task {
                 do {
@@ -523,6 +545,8 @@ actor DriverCore {
             return await pause()
         case .resume:
             return await resume()
+        case .hibernate:
+            return await hibernate()
         case .screenshot:
             guard let window = run?.window else { return .failure("the VM has no display or is not running") }
             do {
@@ -553,15 +577,18 @@ actor DriverCore {
             log("pause failed: \(error)")
             return .failure("\(error)")
         }
-        // Connections made before the pause would hang; a new bridge refuses until the resume.
-        if let bridge = run?.guestAgentBridge {
-            run?.guestAgentBridge = nil
-            await Task.detached { bridge.close() }.value
-            do { try ensureGuestAgentBridge() } catch { log("guest agent bridge: \(error)") }
-        }
+        await cutGuestAgentConnections()
         run?.pausedAt = Date()
         log("paused")
         return DriverControl.Response(ok: true, state: vm.stateName)
+    }
+
+    /// Connections made before a pause would hang; a new bridge closes them until the resume.
+    private func cutGuestAgentConnections() async {
+        guard let bridge = run?.guestAgentBridge else { return }
+        run?.guestAgentBridge = nil
+        await Task.detached { bridge.close() }.value
+        do { try ensureGuestAgentBridge() } catch { log("guest agent bridge: \(error)") }
     }
 
     /// A pause at least this long ends with a link down and up on every NIC (see resume()).
@@ -591,6 +618,216 @@ actor DriverCore {
             log("relinked the NICs so the guest confirms its DHCP lease")
         }
         return DriverControl.Response(ok: true, state: vm.stateName)
+    }
+
+    // MARK: - Hibernation (docs/11, stage 2)
+
+    /// VZ's state save: pause, write the guest's RAM and devices to `SavedState.stateName`, pull
+    /// the plug. Lima sees an ordinary stop. The next Start restores the state if the VM still
+    /// matches the record written beside it. On any failure before the plug is pulled the VM
+    /// goes on running as before.
+    private func hibernate() async -> DriverControl.Response {
+        guard let spec, let current = run, let vm = current.machine else { return .failure("the VM is not running") }
+        guard !busy, !current.stopping else { return .failure("the VM is starting or stopping") }
+        guard current.sshSetUp else { return .failure("the VM is still booting") }
+        guard vm.state == .running || vm.state == .paused else { return .failure("the VM is \(vm.stateName)") }
+        if let why = vm.saveRestoreUnsupported { return .failure("this VM's configuration can't be saved: \(why)") }
+        // The state file is about as large as the guest's RAM.
+        let values = try? spec.dir.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
+        let free = values?.volumeAvailableCapacityForImportantUsage ?? values?.volumeAvailableCapacity.map(Int64.init)
+        if let free, free < Int64(spec.memoryBytes) + (1 << 30) {
+            return .failure("not enough free space: the saved state needs about \(spec.memoryBytes >> 20) MiB and 1 GiB to spare, \(free >> 20) MiB is free")
+        }
+        let gen = current.generation
+        busy = true
+        run?.hibernating = true
+        defer {
+            busy = false
+            if run?.generation == gen { run?.hibernating = false }
+        }
+        let started = Date()
+        let wasRunning = vm.state == .running
+        if wasRunning {
+            do { try await vm.pause() } catch { return .failure("pause failed: \(error)") }
+            await cutGuestAgentConnections()
+        }
+        let fm = FileManager.default
+        let partial = spec.dir.appending(path: SavedState.partialName)
+        try? fm.removeItem(at: partial)
+        do {
+            try await vm.saveState(to: partial)
+        } catch {
+            try? fm.removeItem(at: partial)
+            if wasRunning { do { try await vm.resume() } catch { log("resume after the failed save failed: \(error)") } }
+            log("hibernate: save failed: \(error)")
+            return .failure(Self.describeSaveError(error))
+        }
+        let saved = Date().timeIntervalSince(started)
+        run?.stopping = true
+        current.sshWait?.cancel()
+        do {
+            try await vm.stop()
+        } catch {
+            // Still running from the saved point on would make the state stale.
+            try? fm.removeItem(at: partial)
+            run?.stopping = false
+            if wasRunning { try? await vm.resume() }
+            log("hibernate: power off failed: \(error)")
+            return .failure("the state was saved but the VM didn't power off: \(error)")
+        }
+        // Stamped once the VM is off and the disks closed. The record goes first: only a state
+        // with a record counts (SavedState.exists).
+        var outcome = DriverControl.Response(ok: true, state: "stopped")
+        do {
+            let size = (try fm.attributesOfItem(atPath: partial.path)[.size] as? NSNumber)?.int64Value ?? 0
+            try SavedState.write(try Self.stateRecord(spec: spec, size: size), instanceDir: spec.dir)
+            try fm.moveItem(at: partial, to: SavedState.stateURL(instanceDir: spec.dir))
+            log(String(format: "hibernated: %d MiB saved in %.2f s", size >> 20, saved))
+        } catch {
+            try? SavedState.discard(instanceDir: spec.dir)
+            log("hibernate: recording the state failed, the VM is off without it: \(error)")
+            outcome = .failure("the VM powered off but its saved state couldn't be recorded: \(error)")
+        }
+        busy = false
+        await guestStopped(generation: gen, error: nil)
+        return outcome
+    }
+
+    /// VZ's save fails with "permission denied" while the Mac's screen is locked: the state is
+    /// encrypted with a Secure Enclave key that can only be used unlocked (docs/11 3.3).
+    private static func describeSaveError(_ error: Error) -> String {
+        let e = error as NSError
+        if e.domain == "VZErrorDomain", e.code == 11 {
+            return "saving the VM's state was denied; the Mac must be unlocked to hibernate (\(e.localizedDescription))"
+        }
+        return "saving the VM's state failed: \(e.localizedDescription)"
+    }
+
+    /// What the restore must find unchanged: the machine identifier (a clone gets a new one),
+    /// the configuration VZ sees, and the disks and EFI variables.
+    private static func stateRecord(spec: InstanceSpec, size: Int64) throws -> SavedState.Record {
+        let identifier = try Data(contentsOf: spec.identifierURL).base64EncodedString()
+        let configuration = [
+            "cpus=\(spec.cpus)", "memory=\(spec.memoryBytes)", "display=\(spec.display)",
+            "mountType=\(spec.mountType)", "rosetta=\(spec.rosetta)", "usernet=\(spec.usernet)",
+            "shared=\(spec.sharedUsernet?.name ?? "")",
+            "mounts=\(spec.mounts.map { "\($0.location):\($0.mountPoint):\($0.writable)" })",
+            "nics=\(spec.nics.map { String(describing: $0) })",
+            "disks=\(spec.disks.map(\.name))",
+        ].joined(separator: "\n")
+        let urls = [spec.diskURL, spec.efiURL] + spec.disks.map(\.image)
+        let files = try urls.map { url in
+            guard let stamp = SavedState.FileStamp(url: url, instanceDir: spec.dir) else { throw DriverError("\(url.lastPathComponent) is missing") }
+            return stamp
+        }
+        return SavedState.Record(machineIdentifier: identifier, configuration: configuration, macAddress: spec.macAddress,
+                                 files: files, savedAt: Date(), size: size)
+    }
+
+    /// The hibernated state Start should restore, nil to boot. Throws if there is one that
+    /// doesn't match the VM any more: booting would throw the guest's RAM away silently, and
+    /// restoring it would pair old memory with changed disks.
+    private func savedStateToRestore(spec: InstanceSpec) throws -> URL? {
+        guard spec.hosted == nil else { return nil }
+        let fm = FileManager.default
+        let dir = spec.dir
+        let state = SavedState.stateURL(instanceDir: dir)
+        let restoring = dir.appending(path: SavedState.restoringName)
+        try? fm.removeItem(at: dir.appending(path: SavedState.partialName))
+        // A restore that never finished (the driver died): the record decides below.
+        if fm.fileExists(atPath: restoring.path), !fm.fileExists(atPath: state.path) {
+            try fm.moveItem(at: restoring, to: state)
+        }
+        guard fm.fileExists(atPath: state.path) else {
+            try? fm.removeItem(at: SavedState.recordURL(instanceDir: dir))
+            return nil
+        }
+        guard let saved = SavedState.record(instanceDir: dir) else {
+            throw DriverError("the hibernated state has no readable record; delete \(state.path) to boot afresh")
+        }
+        let current = try Self.stateRecord(spec: spec, size: saved.size)
+        if saved.machineIdentifier != current.machineIdentifier {
+            log("discarding a hibernated state of another identity (limactl clone and rename make a new vz-identifier, and a rename also a new MAC)")
+            try SavedState.discard(instanceDir: dir)
+            return nil
+        }
+        if let why = SavedState.mismatch(saved: saved, current: current) {
+            throw DriverError("can't resume the hibernated VM: \(why). Discard the saved state to boot afresh (delete \(state.path))")
+        }
+        return state
+    }
+
+    /// Instead of booting: VZ restores the saved state and resumes. The state is used once: it is
+    /// set aside while restoring and deleted once the guest runs, put back if the restore fails.
+    private func restore(vm: VZMachine, from state: URL, spec: InstanceSpec) async throws {
+        let fm = FileManager.default
+        let restoring = spec.dir.appending(path: SavedState.restoringName)
+        try fm.moveItem(at: state, to: restoring)
+        let started = Date()
+        do {
+            try await vm.restoreState(from: restoring)
+        } catch {
+            try? fm.moveItem(at: restoring, to: state)
+            log("restoring the hibernated state failed: \(error)")
+            throw DriverError("restoring the hibernated state failed: \((error as NSError).localizedDescription). Discard the saved state to boot afresh (delete \(state.path))")
+        }
+        do {
+            try await vm.resume()
+        } catch {
+            try? fm.moveItem(at: restoring, to: state)
+            throw DriverError("the restored VM didn't resume: \(error)")
+        }
+        try? SavedState.discard(instanceDir: spec.dir)
+        log(String(format: "resumed the hibernated state in %.2f s", Date().timeIntervalSince(started)))
+        // The guest's DHCP client still holds the lease of the last run, from a usernet that is
+        // gone, and its clocks stood still: a link down and up makes it ask again (docs/11).
+        await vm.relinkNetworks()
+        log("relinked the NICs so the guest confirms its DHCP lease")
+    }
+
+    /// Lima makes a new instance ID at every start and waits until the guest's boot scripts
+    /// write it to /run/lima-ssh-ready; a restored guest still has the old one. Over SSH (with
+    /// Lima's ssh.config, not its control socket) the cidata ISO is mounted afresh and Lima's
+    /// per-boot script run again, as at a boot. Those scripts are written to be rerun.
+    static func handOverInstanceID(spec: InstanceSpec) async {
+        let script = [
+            "umount /mnt/lima-cidata 2>/dev/null || true",
+            // The ISO changed under the same device: no stale blocks from the last run.
+            "blockdev --flushbufs /dev/disk/by-label/cidata 2>/dev/null || true",
+            "sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true",
+            "nohup /var/lib/cloud/scripts/per-boot/00-lima.boot.sh >>/var/log/cloud-init-output.log 2>&1 </dev/null &",
+        ].joined(separator: "; ")
+        let config = spec.dir.appending(path: "ssh.config").path
+        let arguments = ["-F", config, "-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no",
+                         "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "lima-\(spec.name)",
+                         "sudo", "sh", "-c", "'\(script)'"]
+        for attempt in 1...6 {
+            let status = await Task.detached { () -> Int32 in
+                let p = Process()
+                p.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+                p.arguments = arguments
+                p.standardInput = FileHandle.nullDevice
+                p.standardOutput = FileHandle.nullDevice
+                let err = Pipe()
+                p.standardError = err
+                guard (try? p.run()) != nil else { return -1 }
+                let killer = DispatchWorkItem { p.terminate() }
+                DispatchQueue.global().asyncAfter(deadline: .now() + 30, execute: killer)
+                let message = err.fileHandleForReading.readDataToEndOfFile()
+                p.waitUntilExit()
+                killer.cancel()
+                if p.terminationStatus != 0, !message.isEmpty {
+                    log("instance ID hand-over: \(String(decoding: message, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines))")
+                }
+                return p.terminationStatus
+            }.value
+            if status == 0 {
+                log("ran Lima's boot scripts again for the new instance ID (attempt \(attempt))")
+                return
+            }
+            try? await Task.sleep(for: .seconds(5))
+        }
+        log("couldn't run Lima's boot scripts in the restored guest; limactl start will wait for them")
     }
 
     /// The DNS server (netd) of the first guest-only HanaLima network among `networks`.

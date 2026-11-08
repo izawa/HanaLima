@@ -35,6 +35,7 @@ struct ContentView: View {
                             Text(prompt.message)
                         }
                 } detail: {
+                    Group {
                     switch model.selection {
                     case .instance(let name):
                         InstanceDetailView(name: name)
@@ -53,6 +54,19 @@ struct ContentView: View {
                         } actions: {
                             Button("新規仮想マシン…") { showCreate = true }
                         }
+                    }
+                    }
+                    // On its own view: SwiftUI shows only one .alert per view.
+                    .alert(model.pendingDiscard?.thenStart == true ? "保存した状態から再開できません" : "保存した状態を捨てますか？",
+                           isPresented: Binding(get: { model.pendingDiscard != nil },
+                                                set: { if !$0 { model.pendingDiscard = nil } }),
+                           presenting: model.pendingDiscard) { prompt in
+                        Button(prompt.thenStart ? "保存した状態を捨てて起動" : "捨てる", role: .destructive) {
+                            model.discardSavedState(prompt.name, thenStart: prompt.thenStart)
+                        }
+                        Button("キャンセル", role: .cancel) {}
+                    } message: { prompt in
+                        Text(prompt.message)
                     }
                 }
                 // Kept on a different view than the error alert below: SwiftUI shows only one of

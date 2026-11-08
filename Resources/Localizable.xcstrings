@@ -140,6 +140,22 @@
         }
       }
     },
+    "%@ の休止に失敗しました": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t hibernate %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ の休止に失敗しました"
+          }
+        }
+      }
+    },
     "%@ の複製に失敗しました": {
       "localizations": {
         "en": {
@@ -1820,6 +1836,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mac の内蔵ディスクと同じディスクです。移しても空き容量は増えません。外付けドライブなど、別のディスクを選んでください。"
+          }
+        }
+      }
+    },
+    "Mac の画面がロックされている間は休止できません。保存する状態は、この Mac の鍵で暗号化するためです。ロックを解除してから、もう一度休止してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can’t hibernate while the Mac’s screen is locked, because the saved state is encrypted with a key of this Mac. Unlock the Mac and hibernate again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac の画面がロックされている間は休止できません。保存する状態は、この Mac の鍵で暗号化するためです。ロックを解除してから、もう一度休止してください。"
           }
         }
       }
@@ -7550,6 +7582,22 @@
         }
       }
     },
+    "メモリの内容を Mac に保存して電源を切る。次の起動でその状態から再開する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save the memory to this Mac and power off. The next start resumes from there"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモリの内容を Mac に保存して電源を切る。次の起動でその状態から再開する"
+          }
+        }
+      }
+    },
     "メモリの内容を保ったまま、仮想マシンを止める": {
       "localizations": {
         "en": {
@@ -8625,6 +8673,150 @@
         }
       }
     },
+    "休止": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hibernate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止"
+          }
+        }
+      }
+    },
+    "休止したときのメモリの内容（動いていたプログラムなど）は失われます。ディスクはそのままで、次の起動は電源を切ったあとの起動と同じになります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The memory at the time of hibernation (running programs and so on) is lost. The disk stays as it is, and the next start is like a start after a power cut."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止したときのメモリの内容（動いていたプログラムなど）は失われます。ディスクはそのままで、次の起動は電源を切ったあとの起動と同じになります。"
+          }
+        }
+      }
+    },
+    "休止したときの状態から再開": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume from where it hibernated"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止したときの状態から再開"
+          }
+        }
+      }
+    },
+    "休止しています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hibernating"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止しています"
+          }
+        }
+      }
+    },
+    "休止できるのは、HanaLima のドライバーで動く仮想マシンだけです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only virtual machines on HanaLima’s driver can hibernate."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止できるのは、HanaLima のドライバーで動く仮想マシンだけです。"
+          }
+        }
+      }
+    },
+    "休止中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hibernated"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止中"
+          }
+        }
+      }
+    },
+    "休止中です。起動すると、休止したときの状態から再開します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hibernated. Starting it resumes from where it hibernated."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止中です。起動すると、休止したときの状態から再開します。"
+          }
+        }
+      }
+    },
+    "休止中は救出起動できません。保存した状態を捨ててから使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A hibernated VM can’t be rescue-booted. Discard the saved state first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止中は救出起動できません。保存した状態を捨ててから使えます。"
+          }
+        }
+      }
+    },
+    "休止中は複製できません。起動して再開するか、保存した状態を捨ててください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A hibernated VM can’t be copied. Start it to resume, or discard the saved state."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止中は複製できません。起動して再開するか、保存した状態を捨ててください。"
+          }
+        }
+      }
+    },
     "作成": {
       "localizations": {
         "en": {
@@ -8957,6 +9149,102 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存"
+          }
+        }
+      }
+    },
+    "保存した状態から再開できません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t Resume from the Saved State"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態から再開できません"
+          }
+        }
+      }
+    },
+    "保存した状態から再開できませんでした。休止したあとに設定やディスクを変えた場合は、元に戻すと再開できることがあります。保存した状態を捨てて起動すると、休止したときのメモリの内容（動いていたプログラムなど）は失われます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The VM couldn’t resume from its saved state. If you changed its settings or disks after hibernating, changing them back may let it resume. If you discard the saved state and start, the memory at the time of hibernation (running programs and so on) is lost."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態から再開できませんでした。休止したあとに設定やディスクを変えた場合は、元に戻すと再開できることがあります。保存した状態を捨てて起動すると、休止したときのメモリの内容（動いていたプログラムなど）は失われます。"
+          }
+        }
+      }
+    },
+    "保存した状態を削除できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete the saved state"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態を削除できませんでした"
+          }
+        }
+      }
+    },
+    "保存した状態を捨てて起動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard Saved State and Start"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態を捨てて起動"
+          }
+        }
+      }
+    },
+    "保存した状態を捨てますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard the saved state?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態を捨てますか？"
+          }
+        }
+      }
+    },
+    "保存した状態を捨てる…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard Saved State…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存した状態を捨てる…"
           }
         }
       }
@@ -9453,6 +9741,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "処理中は一時停止できません。"
+          }
+        }
+      }
+    },
+    "処理中は休止できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t hibernate while an operation is in progress."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中は休止できません。"
           }
         }
       }
@@ -10592,6 +10896,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "指定した MAC アドレスの NIC に常に同じ IP を割り当てます。VM の一覧には、このネットワークに接続している VM が表示されます。反映には VM の再起動が必要です。"
+          }
+        }
+      }
+    },
+    "捨てる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捨てる"
           }
         }
       }

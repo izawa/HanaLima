@@ -13,6 +13,7 @@ struct Operation: Sendable {
         case install, rescue
         case runScript
         case pause, resume
+        case hibernate
 
         var label: String {
             switch self {
@@ -34,6 +35,7 @@ struct Operation: Sendable {
             case .runScript: String(localized: "スクリプトの実行")
             case .pause: String(localized: "一時停止")
             case .resume: String(localized: "再開")
+            case .hibernate: String(localized: "休止")
             }
         }
 
@@ -59,6 +61,7 @@ struct Operation: Sendable {
             case .runScript: String(localized: "スクリプトを実行中")
             case .pause: String(localized: "一時停止しています")
             case .resume: String(localized: "再開しています")
+            case .hibernate: String(localized: "休止しています")
             }
         }
     }
@@ -137,6 +140,8 @@ final class AppModel {
     var pausedInstances: Set<String> = []
     /// Bumped by each pause or resume, so a status poll that started before one is discarded.
     var pauseEpochs: [String: Int] = [:]
+    /// Stopped VMs with a hibernated state (docs/11, stage 2), from the instance folders.
+    var hibernatedInstances: Set<String> = []
     @ObservationIgnored private var hasListedOnce = false
     @ObservationIgnored private var bootstrapStarted = false
     /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).
@@ -171,6 +176,8 @@ final class AppModel {
     var pendingConflictStart: ConflictPrompt?
     /// A start/restart of an instance whose NIC points at a deleted HanaLima network.
     var pendingDeletedNetworkStart: ConflictPrompt?
+    /// A hibernated VM's saved state waiting for the user to confirm discarding it.
+    var pendingDiscard: DiscardPrompt?
     /// Running instances whose HanaLima network was changed or deleted since they started:
     /// instance name → network names. They keep the old setup until restarted.
     var restartNeeded: [String: Set<String>] = [:]
@@ -188,6 +195,14 @@ final class AppModel {
     /// with the VM that owns it.
     var sharedDiskOwners: [String: String] = [:]
     @ObservationIgnored var volumeObservers: [NSObjectProtocol] = []
+
+    struct DiscardPrompt: Identifiable {
+        let id = UUID()
+        let name: String
+        /// Boot afresh once discarded (the prompt after a failed resume).
+        let thenStart: Bool
+        let message: String
+    }
 
     struct ConflictPrompt: Identifiable {
         let id = UUID()
@@ -321,6 +336,7 @@ final class AppModel {
     func statusText(of name: String) -> String {
         if let op = operations[name], op.isRunning { return op.kind.progressLabel }
         if isPaused(name) { return String(localized: "一時停止中") }
+        if isHibernated(name) { return String(localized: "休止中") }
         return instance(named: name)?.status.label ?? String(localized: "作成中")
     }
 
@@ -352,6 +368,7 @@ final class AppModel {
             reattachHostedBoots()
             applyPendingIsolation()
             await refreshPausedInstances(list)
+            updateHibernatedInstances(list)
             let autostart = Set(list.map(\.name).filter { client.isAutostartEnabled($0) })
             if autostart != autostartInstances { autostartInstances = autostart }
         } catch {
@@ -453,8 +470,10 @@ final class AppModel {
         guard !refuseIfDiskUnusable(name, allowPending: allowPending) else { return }
         guard let client, confirmed || !askIfDeletedNetworks(name, restart: false) else { return }
         guard confirmed || !askIfConflicting(name, restart: false) else { return }
+        let hibernated = isHibernated(name)
         run(.start, on: name, client.start(name)) { [weak self] ok in
             if ok, allowPending { self?.clearPendingInstall(name) }
+            if !ok, hibernated { self?.offerDiscardAfterFailedResume(name) }
         }
     }
 
