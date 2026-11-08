@@ -1840,22 +1840,6 @@
         }
       }
     },
-    "Mac の画面がロックされている間は休止できません。保存する状態は、この Mac の鍵で暗号化するためです。ロックを解除してから、もう一度休止してください。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You can’t hibernate while the Mac’s screen is locked, because the saved state is encrypted with a key of this Mac. Unlock the Mac and hibernate again."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mac の画面がロックされている間は休止できません。保存する状態は、この Mac の鍵で暗号化するためです。ロックを解除してから、もう一度休止してください。"
-          }
-        }
-      }
-    },
     "NAT（外部に接続できる）": {
       "localizations": {
         "en": {
@@ -9309,6 +9293,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存できませんでした（変更前の設定に戻しました）: %@"
+          }
+        }
+      }
+    },
+    "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving was refused. The first time you hibernate on this Mac, its screen must be unlocked so the key for the saved state can be made. Unlock the Mac and hibernate again."
           }
         }
       }

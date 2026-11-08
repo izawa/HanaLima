@@ -693,12 +693,13 @@ actor DriverCore {
         return outcome
     }
 
-    /// VZ's save fails with "permission denied" while the Mac's screen is locked: the state is
-    /// encrypted with a Secure Enclave key that can only be used unlocked (docs/11 3.3).
+    /// VZ's save fails with "permission denied" while the Mac's screen is locked and its Secure
+    /// Enclave key doesn't exist yet: the key can only be made unlocked. Once made, saving and
+    /// restoring work locked too (docs/11 3.3).
     private static func describeSaveError(_ error: Error) -> String {
         let e = error as NSError
         if e.domain == "VZErrorDomain", e.code == 11 {
-            return "saving the VM's state was denied; the Mac must be unlocked to hibernate (\(e.localizedDescription))"
+            return "saving the VM's state was denied; the Mac must be unlocked the first time (the Secure Enclave key is made then) (\(e.localizedDescription))"
         }
         return "saving the VM's state failed: \(e.localizedDescription)"
     }

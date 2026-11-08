@@ -46,7 +46,7 @@ extension AppModel {
     private static func describeHibernateFailure(_ error: Error) -> String {
         let text = "\(error)"
         if text.contains("must be unlocked") {
-            return String(localized: "Mac の画面がロックされている間は休止できません。保存する状態は、この Mac の鍵で暗号化するためです。ロックを解除してから、もう一度休止してください。")
+            return String(localized: "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。")
                 + "\n\n" + text
         }
         return text
