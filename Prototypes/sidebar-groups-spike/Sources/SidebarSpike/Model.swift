@@ -30,7 +30,11 @@ final class Store {
     var ungrouped = ["hanalima-dev", "macOS27", "JAIST-Alumni"]
     var selection: Item?
     var renaming: String?
+    /// The AppKit outline has opened the editor for `renaming`.
+    var renamingStarted = true
     var events: [String] = []
+    /// Set by the ＋ menu; the outline creates the group and opens its name for editing.
+    var requestNewGroup = false
 
     func note(_ s: String) {
         events.append(s)
@@ -57,6 +61,42 @@ final class Store {
         let at = min(index ?? ungrouped.count, ungrouped.count)
         ungrouped.insert(contentsOf: vms, at: at)
         note("move \(vms) -> ungrouped at \(at)")
+    }
+
+    /// Places `vm` at `index` of a group's members (nil: the ungrouped VMs), where `index` counts
+    /// the list as it was before the drag (NSOutlineView's convention).
+    func place(_ vm: String, inGroup name: String?, at index: Int) {
+        var index = index
+        if let name, let g = groups.firstIndex(where: { $0.name == name }) {
+            if let from = groups[g].members.firstIndex(of: vm), from < index { index -= 1 }
+            remove(vm)
+            groups[g].members.insert(vm, at: max(0, min(index, groups[g].members.count)))
+            note("place \(vm) in \(name) at \(index) = \(groups[g].members)")
+        } else {
+            if let from = ungrouped.firstIndex(of: vm), from < index { index -= 1 }
+            remove(vm)
+            ungrouped.insert(vm, at: max(0, min(index, ungrouped.count)))
+            note("place \(vm) ungrouped at \(index) = \(ungrouped)")
+        }
+    }
+
+    /// A new group named 新規グループ (numbered if taken) holding `vms`, after the other groups.
+    func addGroup(with vms: [String]) -> String {
+        var name = "新規グループ"
+        var n = 2
+        while groups.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) { name = "新規グループ \(n)"; n += 1 }
+        for vm in vms { remove(vm) }
+        groups.append(VMGroup(name: name, members: vms))
+        note("new group \(name) with \(vms)")
+        return name
+    }
+
+    func ungroup(_ name: String) {
+        guard let g = groups.firstIndex(where: { $0.name == name }) else { return }
+        ungrouped.insert(contentsOf: groups[g].members, at: 0)
+        groups.remove(at: g)
+        if selection == .group(name) { selection = nil }
+        note("ungroup \(name)")
     }
 
     func insert(_ vms: [String], before target: String) {

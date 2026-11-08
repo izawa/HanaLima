@@ -10,7 +10,7 @@ enum Probe {
     static func startIfRequested(_ store: Store) {
         guard dir != nil else { return }
         Task {
-            if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "2" { await run2(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "3" { await run3(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "4" { await run4(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "5" { await run5(store) } else { await run(store) }
+            if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "A" { await runA(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "B" { await runB(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "2" { await run2(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "3" { await run3(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "4" { await run4(store) } else if ProcessInfo.processInfo.environment["SPIKE_PROBE_SET"] == "5" { await run5(store) } else { await run(store) }
         }
     }
 
@@ -270,6 +270,94 @@ enum Probe {
         report("double-click vm fedora", s)
         await click(point(row: rowIndex("vm:macOS27", s)!, x: x), clicks: 2)
         report("double-click ungrouped vm macOS27", s)
+        print("EVENTS\n" + s.events.joined(separator: "\n"))
+        exit(0)
+    }
+
+    static func runA(_ s: Store) async {
+        try? await Task.sleep(for: .seconds(1.5))
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        try? await Task.sleep(for: .milliseconds(500))
+        let x: CGFloat = 80
+        print("TABLE \(type(of: table)) rows=\(table.numberOfRows) expected=\(s.flattened.count)")
+        func bottom(_ key: String) -> NSPoint {
+            let t = table; let r = t.rect(ofRow: rowIndex(key, s)!)
+            return t.convert(NSPoint(x: x, y: r.maxY - 2), to: nil)
+        }
+        await drag(from: point(row: rowIndex("vm:guest2", s)!, x: x), to: edge(aboveRow: rowIndex("vm:macOS27", s)!, x: x))
+        report("guest2 -> edge above macOS27 (line, ungrouped)", s)
+        await drag(from: point(row: rowIndex("vm:fedora", s)!, x: x), to: bottom("vm:JAIST-Alumni"))
+        report("fedora -> bottom edge of last ungrouped (line, end)", s)
+        let t = table
+        let below = t.convert(NSPoint(x: x, y: t.rect(ofRow: rowIndex("vm:JAIST-Alumni", s)!).maxY + 10), to: nil)
+        await drag(from: point(row: rowIndex("vm:hanalima-dev", s)!, x: x), to: below)
+        report("hanalima-dev -> gap below the last VM (before ストレージ)", s)
+        await drag(from: point(row: rowIndex("vm:gateway", s)!, x: x), to: point(row: rowIndex("group:ディストリ", s)!, x: x))
+        report("gateway -> onto ディストリ (highlight, into)", s)
+        await drag(from: point(row: rowIndex("vm:guest1", s)!, x: x), to: point(row: rowIndex("group:隔離テスト", s)!, x: x))
+        report("guest1 -> onto its own group (nothing)", s)
+        await drag(from: point(row: rowIndex("vm:JAIST-Alumni", s)!, x: x), to: point(row: rowIndex("vm:macOS27", s)!, x: x))
+        report("JAIST-Alumni -> onto macOS27 (plus, new group)", s)
+        s.renaming = nil
+        await key(53, "\u{1b}")
+        await drag(from: point(row: rowIndex("vm:ubuntu-lts", s)!, x: x), to: point(row: rowIndex("vm:guest1", s)!, x: x))
+        report("ubuntu-lts -> onto guest1 inside a group (line before it)", s)
+        await drag(from: point(row: rowIndex("group:ディストリ", s)!, x: x), to: edge(aboveRow: rowIndex("group:隔離テスト", s)!, x: x))
+        report("group ディストリ -> above 隔離テスト", s)
+        s.requestNewGroup = true
+        try? await Task.sleep(for: .milliseconds(800))
+        report("＋ > 新規グループ (expect editor open)", s)
+        await typeText("lab")
+        await key(36, "\r")
+        report("type lab + Return", s)
+        await click(point(row: rowIndex("group:隔離テスト", s)!, x: x), clicks: 2)
+        report("double-click 隔離テスト (expect editor)", s)
+        await key(53, "\u{1b}")
+        if let o = table as? NSOutlineView, let r = rowIndex("group:隔離テスト", s) {
+            let cell = o.frameOfOutlineCell(atRow: r)
+            await click(o.convert(NSPoint(x: cell.midX, y: cell.midY), to: nil))
+            report("triangle 隔離テスト (collapse)", s)
+        }
+        print("EVENTS\n" + s.events.joined(separator: "\n"))
+        exit(0)
+    }
+
+    /// Calls validateDrop/acceptDrop with the (item, index) pairs NSOutlineView proposes for each
+    /// spot, and prints what each decides.
+    static func runB(_ s: Store) async {
+        try? await Task.sleep(for: .seconds(1.5))
+        guard let o = table as? NSOutlineView, let ds = o.dataSource as? OutlineSidebar.Coordinator else { print("no outline"); exit(1) }
+        func item(_ key: String) -> Any? { key == "root" ? nil : (0..<o.numberOfRows).lazy.map { o.item(atRow: $0) }.first { ($0 as? Node)?.key == key } ?? nil }
+        func probe(_ title: String, vm: String? = nil, group: String? = nil, _ key: String, _ index: Int, accept: Bool = true) async {
+            let info = FakeDrag(vm: vm, group: group)
+            let target = item(key)
+            print("CASE \(title)")
+            let op = ds.outlineView(o, validateDrop: info, proposedItem: target, proposedChildIndex: index)
+            if accept, !op.isEmpty {
+                // acceptDrop gets the retargeted item/index in a real drag; use the logged ones.
+                let (fi, fx) = ds.lastTarget
+                _ = ds.outlineView(o, acceptDrop: info, item: fi, childIndex: fx)
+                try? await Task.sleep(for: .milliseconds(300))
+            }
+            print("  groups=" + s.groups.map { "\($0.name)\($0.members)" }.joined(separator: " ") + " ungrouped=\(s.ungrouped)")
+        }
+        let on = NSOutlineViewDropOnItemIndex
+        await probe("guest2 between hanalima-dev and macOS27", vm: "guest2", "section:vm", 4)
+        await probe("fedora after the last ungrouped VM", vm: "fedora", "section:vm", 3 + s.ungrouped.count)
+        await probe("hanalima-dev between the sections (below everything)", vm: "hanalima-dev", "root", 1)
+        await probe("gateway onto group ディストリ", vm: "gateway", "group:ディストリ", on)
+        await probe("guest1 onto its own group", vm: "guest1", "group:隔離テスト", on)
+        await probe("JAIST-Alumni onto ungrouped macOS27 (new group)", vm: "JAIST-Alumni", "vm:macOS27", on)
+        s.renaming = nil
+        await probe("ubuntu-lts onto guest1 inside a group", vm: "ubuntu-lts", "vm:guest1", on)
+        await probe("guest1 between groups 1 and 2 (after expanded 隔離テスト)", vm: "guest1", "section:vm", 1)
+        await probe("macOS27 between groups 0 and 1 at the top", vm: "macOS27", "section:vm", 0)
+        await probe("macOS27 onto ストレージ section", vm: "macOS27", "section:storage", on)
+        await probe("group ディストリ above 隔離テスト", group: "ディストリ", "section:vm", 0)
+        await probe("group 隔離テスト onto group 空", group: "隔離テスト", "group:空", on)
+        await probe("group 空 among the ungrouped VMs", group: "空", "section:vm", s.groups.count + 1)
+        await probe("guest2 onto itself", vm: "guest2", "vm:guest2", on, accept: false)
         print("EVENTS\n" + s.events.joined(separator: "\n"))
         exit(0)
     }

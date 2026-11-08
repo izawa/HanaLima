@@ -24,8 +24,25 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            Sidebar()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+            Group {
+                if useAppKit {
+                    OutlineSidebar(store: store, version: store.events.count * 2 + (store.requestNewGroup ? 1 : 0))
+                        .safeAreaInset(edge: .bottom) {
+                            HStack {
+                                Menu {
+                                    Button("新規仮想マシン") {}.disabled(true)
+                                    Button("新規グループ") { store.requestNewGroup = true }
+                                } label: { Label("追加", systemImage: "plus") }
+                                    .menuStyle(.borderlessButton).fixedSize()
+                                Spacer()
+                            }
+                            .padding(10)
+                        }
+                } else {
+                    Sidebar()
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260)
         } detail: {
             VStack(alignment: .leading, spacing: 8) {
                 Text("selection: \(store.selection?.description ?? "nil")").font(.title3)
@@ -39,6 +56,9 @@ struct ContentView: View {
         }
     }
 }
+
+/// SPIKE_IMPL=swiftui: the SwiftUI List with DisclosureGroup (first spike). Default: AppKit outline.
+let useAppKit = ProcessInfo.processInfo.environment["SPIKE_IMPL"] != "swiftui"
 
 /// Variant via SPIKE_DRAG: "both" (default: onMove + draggable/dropDestination), "move" (onMove only).
 let dragVariant = ProcessInfo.processInfo.environment["SPIKE_DRAG"] ?? "both"

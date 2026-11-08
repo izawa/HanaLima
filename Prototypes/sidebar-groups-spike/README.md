@@ -2,8 +2,13 @@
 
 docs/12 の 4.1 と 4.2 で「試作で確かめる」とした、`List` の中の `DisclosureGroup` の選択・開閉・名前の編集・ドラッグを確かめる。macOS 27.0.1、Xcode 27、2026-11-08。
 
+試作は 2 つある。既定は AppKit 版（`OutlineSidebar.swift`、サイドバー全体を 1 つの `NSOutlineView` で作る）。`SPIKE_IMPL=swiftui` で最初の SwiftUI 版（`List` と `DisclosureGroup`）になる。
+
 ```bash
-swift run                                        # 手で触る
+swift run                                        # 手で触る（AppKit 版）
+SPIKE_IMPL=swiftui swift run                     # SwiftUI 版
+SPIKE_PROBE=<dir> SPIKE_PROBE_SET=B swift run    # AppKit 版のドロップの判定（偽のドラッグ情報で validateDrop・acceptDrop を呼ぶ）
+SPIKE_PROBE=<dir> SPIKE_PROBE_SET=A swift run    # AppKit 版を合成イベントで操作（ドラッグは始まらない回がある）
 SPIKE_PROBE=<dir> SPIKE_PROBE_SET=1 swift run    # 合成イベントで自動操作（1〜5）
 ```
 
@@ -11,7 +16,7 @@ SPIKE_PROBE=<dir> SPIKE_PROBE_SET=1 swift run    # 合成イベントで自動�
 
 自動操作は、アプリが自分のウインドウに `NSApp.postEvent` でマウスとキーのイベントを送る。アクセシビリティの許可は要らない。手順ごとにモデルの状態、表の行数、最初のレスポンダーを標準出力に書き、画像を `<dir>/step-NN.png` に保存する。サイドバーは Liquid Glass のため画像では空白に写るので、判定は標準出力で行う。
 
-## 結果
+## SwiftUI 版の結果
 
 SwiftUI の `List` は `SwiftUIOutlineListView`（`NSOutlineView` の派生）で、セクションの見出しが level 0、グループが level 1、グループの中の VM が level 2、どのグループにも入っていない VM が level 1 の行になる。モデルから作った行の並びと、表の行数・順番は一致した。
 
@@ -35,3 +40,27 @@ SwiftUI の `List` は `SwiftUIOutlineListView`（`NSOutlineView` の派生）�
 起動直後に一度、`WARNING: Application performed a reentrant operation in its NSTableView delegate.` が出た。SwiftUI の内部の警告で、動作には影響しなかった。
 
 合成イベントでは、ドラッグ中の見た目（挿入位置の線、ドロップ先の強調）は確かめられない。手で触って確かめる。
+
+## AppKit 版にした理由と結果
+
+SwiftUI 版を手で触ると、同じグループの中の並べ替え（`onMove`）では挿入線が出るのに、別のグループやグループの外へのドラッグ（行の `dropDestination`）では線が出ず、VM の行に重ねると緑の十字（コピー）が出た（2026-11-08 ユーザーの確認）。挿入位置を受け取る `ForEach.dropDestination` は働かず、行の `dropDestination` はカーソルを選べないので、SwiftUI のままでは直せない。Finder やメールと同じく `NSOutlineView` を直接使うと、`validateDrop` で、ドロップの位置の付け替え（`setDropItem(_:dropChildIndex:)`）と、操作（`.move` は線か強調、`.copy` は緑の十字、空は不可）を決められる。
+
+ドロップの規則と、セット B で確かめた判定:
+
+| ドラッグ | ドロップ先 | 判定 | 結果 |
+|---|---|---|---|
+| VM | 行と行のあいだ（どの階層でも） | move（線） | その位置へ |
+| VM | グループに入っていない VM の末尾、セクションのあいだ（いちばん下） | move（線。末尾へ付け替え） | 末尾へ |
+| VM | グループの行の上 | move（グループの強調） | そのグループの末尾へ |
+| VM | 自分のいるグループの行の上 | 不可 | 何も起きない |
+| VM | グループの中の VM の行の上 | move（その VM の前の線へ付け替え） | その VM の前へ |
+| VM | グループに入っていない VM の行の上 | copy（緑の十字） | 2 台で新しいグループを作り、名前の編集欄を開く |
+| VM | グループとグループのあいだ | move（開いたグループのあとならその末尾、ほかはグループに入っていない VM の先頭へ付け替え） | その位置へ |
+| VM | 自分の上、ストレージのセクション | 不可 | 何も起きない |
+| グループ | グループとグループのあいだ | move（線） | 並べ替え |
+| グループ | ほかのグループの行の上 | 不可（入れ子は作らない） | 何も起きない |
+| グループ | グループに入っていない VM のあいだ | move（グループの末尾へ付け替え） | 最後のグループへ |
+
+ほかに確かめたこと（セット A）: グループの名前のクリックで選択、開閉三角で開閉（選択は変わらない）、ダブルクリックで名前の編集欄が開く（`doubleAction` の中で編集を始めるとすぐ閉じるので、次のループで始める）、「＋」の「新規グループ」で「新規グループ」（重なれば番号付き）を作って編集欄を開き、入力して Return で確定。VM の行は `NSHostingView` で SwiftUI の行を載せている。
+
+合成イベントでは `NSOutlineView` のドラッグが始まらない回がある（本物のマウスボタンの状態を見ているとみられる）。始まった回では、マウスの位置に応じて「グループの先頭へ挿入」と「グループの上」の判定が切り替わり、規則どおりの付け替えになった。線・強調・カーソルの見た目と、サイドバーの Liquid Glass の見た目は手で確かめる。
