@@ -1,0 +1,224 @@
+diff --git a/Driver/Sources/lima-driver-hanalima/DriverCore.swift b/Driver/Sources/lima-driver-hanalima/DriverCore.swift
+index 99e8a04..7383d98 100644
+--- a/Driver/Sources/lima-driver-hanalima/DriverCore.swift
++++ b/Driver/Sources/lima-driver-hanalima/DriverCore.swift
+@@ -36,6 +36,8 @@ actor DriverCore {
+         var sshBridge: UnixSocketBridge?
+         /// AdditionalSetupForSSH in progress; Stop cancels it.
+         var sshWait: Task<Void, Error>?
++        /// SPIKE (docs/11): paused by HanaLima; no guest agent connection meanwhile.
++        var paused = false
+     }
+ 
+     private var run: Run?
+@@ -215,7 +217,24 @@ actor DriverCore {
+             }
+             current.machine = vm
+             run = current
+-            try await vm.start()
++            // SPIKE (docs/11): a state saved by `suspend` replaces the boot.
++            let saved = (ProcessInfo.processInfo.environment["HANALIMA_SPIKE_SAVE_DIR"].map { URL(fileURLWithPath: $0) } ?? spec.dir).appendingPathComponent(Self.savedStateName)
++            if spec.hosted == nil, FileManager.default.fileExists(atPath: saved.path) {
++                let t0 = Date()
++                do {
++                    try await vm.restoreState(from: saved)
++                    let t1 = Date()
++                    try await vm.resume()
++                    log(String(format: "SPIKE: restored the saved state in %.2f s, resumed in %.2f s", t1.timeIntervalSince(t0), Date().timeIntervalSince(t1)))
++                } catch {
++                    log("SPIKE: restore failed: \(error)")
++                    try? FileManager.default.removeItem(at: saved)
++                    throw error
++                }
++                try? FileManager.default.removeItem(at: saved)
++            } else {
++                try await vm.start()
++            }
+             log("VM running")
+             if let box = vm.displayMachine {
+                 // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
+@@ -245,6 +264,7 @@ actor DriverCore {
+         let spec = try requireSpec()
+         guard let current = run, let vm = current.machine else { throw DriverError("not started") }
+         if current.guestAgentBridge != nil { return }
++        if current.paused { throw DriverError("the VM is paused") }
+         let bridge = try UnixSocketBridge(path: spec.guestAgentSocket) {
+             try vm.connectVsock(port: InstanceSpec.guestAgentVsockPort)
+         }
+@@ -462,6 +482,67 @@ actor DriverCore {
+         }.value
+     }
+ 
++    // MARK: - SPIKE: pause, resume, suspend (docs/11)
++
++    static let savedStateName = "hanalima-state.vzsave"
++
++    private func spikeControl(_ op: DriverControl.Op) async -> DriverControl.Response {
++        guard let vm = run?.machine, let spec else { return .failure("the VM is not running") }
++        let t0 = Date()
++        func done(_ text: String) -> DriverControl.Response {
++            var r = DriverControl.Response(ok: true, state: vm.stateName)
++            r.message = String(format: "%@ (%.2f s)", text, Date().timeIntervalSince(t0))
++            log("SPIKE: \(r.message!)")
++            return r
++        }
++        do {
++            switch op {
++            case .probeSave:
++                return done(vm.saveRestoreSupport.map { "save/restore NOT supported: \($0)" } ?? "save/restore supported")
++            case .trim:
++                return done(vm.setBalloonTarget(256 << 20))
++            case .untrim:
++                return done(vm.setBalloonTarget(nil))
++            case .pause:
++                try await vm.pause()
++                run?.paused = true
++                // Lima's host agent has no deadline on guest agent calls: cut them so they fail
++                // now instead of hanging (a hung call blocks `limactl stop`).
++                var cut = false
++                if ProcessInfo.processInfo.environment["HANALIMA_SPIKE_KEEP_GA"] == nil, let bridge = run?.guestAgentBridge {
++                    run?.guestAgentBridge = nil
++                    await Task.detached { bridge.close() }.value
++                    cut = true
++                }
++                return done(cut ? "paused, guest agent bridge closed" : "paused")
++            case .resume:
++                try await vm.resume()
++                run?.paused = false
++                let reopen = run?.guestAgentBridge == nil
++                if reopen { try ensureGuestAgentBridge() }
++                return done(reopen ? "resumed, guest agent bridge reopened" : "resumed")
++            case .suspend:
++                let env = ProcessInfo.processInfo.environment
++                let url = (env["HANALIMA_SPIKE_SAVE_DIR"].map { URL(fileURLWithPath: $0) } ?? spec.dir).appendingPathComponent(Self.savedStateName)
++                if env["HANALIMA_SPIKE_PRECREATE"] != nil { FileManager.default.createFile(atPath: url.path, contents: nil) }
++                log("SPIKE: saving to \(url.path)")
++                if vm.state == .running { try await vm.pause() }
++                let paused = Date().timeIntervalSince(t0)
++                try await vm.saveState(to: url)
++                let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? -1
++                let gen = run?.generation
++                try await vm.stop()
++                if let gen { await guestStopped(generation: gen, error: nil) }
++                return done(String(format: "suspended: paused in %.2f s, saved %d MB", paused, size / 1_000_000))
++            default:
++                return .failure("not a spike op")
++            }
++        } catch {
++            log("SPIKE: \(op.rawValue) failed: \(error)")
++            return .failure("\(op.rawValue): \(error)")
++        }
++    }
++
+     // MARK: - HanaLima's control socket
+ 
+     /// `DriverControl` requests (what Lima's interface has no call for): the VM's state, its
+@@ -496,6 +577,8 @@ actor DriverCore {
+                 }
+             }
+             return DriverControl.Response(ok: true, state: vm.stateName)
++        case .pause, .resume, .suspend, .probeSave, .trim, .untrim:
++            return await spikeControl(request.op)
+         case .screenshot:
+             guard let window = run?.window else { return .failure("the VM has no display or is not running") }
+             do {
+diff --git a/Driver/Sources/lima-driver-hanalima/VZMachine.swift b/Driver/Sources/lima-driver-hanalima/VZMachine.swift
+index 39cd768..d477128 100644
+--- a/Driver/Sources/lima-driver-hanalima/VZMachine.swift
++++ b/Driver/Sources/lima-driver-hanalima/VZMachine.swift
+@@ -25,6 +25,9 @@ final class VZMachine: @unchecked Sendable {
+     /// `serial`: the guest's end of the console socket pair.
+     init(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, onStop: @escaping @Sendable (Error?) -> Void) throws {
+         let config = try Self.configuration(spec: spec, networkHandles: networkHandles, serial: serial)
++        // SPIKE (pause/resume): whether VZ can save this configuration's state at all.
++        do { try config.validateSaveRestoreSupport(); saveRestoreSupport = nil } catch { saveRestoreSupport = "\(error)" }
++        memorySize = config.memorySize
+         let vm = VZVirtualMachine(configuration: config, queue: queue)
+         let delegate = Delegate(onStop: onStop)
+         // VZVirtualMachine's properties are confined to its queue.
+@@ -36,6 +39,56 @@ final class VZMachine: @unchecked Sendable {
+ 
+     var state: VZVirtualMachine.State { queue.sync { machine.state } }
+ 
++    // MARK: - SPIKE: pause, resume, save and restore (docs/11)
++
++    /// nil when `validateSaveRestoreSupport()` passed, else its error.
++    let saveRestoreSupport: String?
++    let memorySize: UInt64
++
++    private func call(_ body: @escaping (VZVirtualMachine, @escaping (Error?) -> Void) -> Void) async throws {
++        try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
++            queue.async {
++                body(self.machine) { error in
++                    if let error { c.resume(throwing: error) } else { c.resume() }
++                }
++            }
++        }
++    }
++
++    func pause() async throws {
++        try await call { vm, done in
++            guard vm.canPause else { done(DriverError("can't pause in state \(vm.state.rawValue)")); return }
++            vm.pause { r in if case .failure(let e) = r { done(e) } else { done(nil) } }
++        }
++    }
++
++    func resume() async throws {
++        try await call { vm, done in
++            guard vm.canResume else { done(DriverError("can't resume in state \(vm.state.rawValue)")); return }
++            vm.resume { r in if case .failure(let e) = r { done(e) } else { done(nil) } }
++        }
++    }
++
++    /// SPIKE: the balloon's target (bytes); nil to go back to the configured memory size.
++    func setBalloonTarget(_ bytes: UInt64?) -> String {
++        queue.sync {
++            guard let balloon = machine.memoryBalloonDevices.first as? VZVirtioTraditionalMemoryBalloonDevice else { return "no balloon" }
++            let full = memorySize
++            balloon.targetVirtualMachineMemorySize = bytes ?? full
++            return "balloon target \(balloon.targetVirtualMachineMemorySize >> 20) MiB of \(full >> 20) MiB"
++        }
++    }
++
++    /// The VM must be paused.
++    func saveState(to url: URL) async throws {
++        try await call { vm, done in vm.saveMachineStateTo(url: url) { done($0) } }
++    }
++
++    /// Instead of start(): the VM must be stopped (fresh); leaves it paused.
++    func restoreState(from url: URL) async throws {
++        try await call { vm, done in vm.restoreMachineStateFrom(url: url) { done($0) } }
++    }
++
+     var stateName: String {
+         switch state {
+         case .stopped: "stopped"
+diff --git a/Sources/LimaKit/DriverControl.swift b/Sources/LimaKit/DriverControl.swift
+index 8871f22..729d5b7 100644
+--- a/Sources/LimaKit/DriverControl.swift
++++ b/Sources/LimaKit/DriverControl.swift
+@@ -24,6 +24,15 @@ public enum DriverControl {
+         case stop
+         /// Pulls the plug now.
+         case forceStop
++        /// SPIKE (docs/11): VZ pause/resume in memory.
++        case pause, resume
++        /// SPIKE: pause, save the machine state to `hanalima-state.vzsave`, power off; the next
++        /// Start restores it instead of booting.
++        case suspend
++        /// SPIKE: whether this VM's configuration supports save/restore (`message`).
++        case probeSave
++        /// SPIKE: balloon target to 256 MiB (trim) or back to the configured size (untrim).
++        case trim, untrim
+     }
+ 
+     /// The pid file of a hosted boot (`lima-driver-hanalima --hosted`: the rescue boot and the
+@@ -70,6 +79,8 @@ public enum DriverControl {
+         /// Whether the window is on screen now.
+         public var screenShown: Bool?
+         public var png: Data?
++        /// SPIKE: free text (timings, validation errors).
++        public var message: String?
+ 
+         public init(ok: Bool, error: String? = nil, state: String? = nil, display: Bool? = nil,
+                     screenShown: Bool? = nil, png: Data? = nil) {
