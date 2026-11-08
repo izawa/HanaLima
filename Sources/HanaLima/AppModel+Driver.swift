@@ -27,7 +27,7 @@ extension AppModel {
         Task {
             do {
                 let response = try await Task.detached { try DriverControl.send(DriverControl.Request(op: op), instanceDir: dir) }.value
-                if response.state == "paused" { pausedInstances.insert(name) } else { pausedInstances.remove(name) }
+                if ["paused", "pausing"].contains(response.state) { pausedInstances.insert(name) } else { pausedInstances.remove(name) }
             } catch {
                 alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"), message: "\(error)")
             }
@@ -48,7 +48,8 @@ extension AppModel {
                     group.addTask {
                         // nil: no answer (a timeout, the driver restarting); keeps what we knew.
                         let state = try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 2).state
-                        return (name, state.map { $0 == "paused" })
+                        // Pausing and resuming last milliseconds; neither answers the guest.
+                        return (name, state.map { ["paused", "pausing", "resuming"].contains($0) })
                     }
                 }
                 var answers: [String: Bool?] = [:]

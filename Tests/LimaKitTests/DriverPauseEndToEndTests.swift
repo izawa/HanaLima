@@ -34,11 +34,16 @@ struct DriverPauseEndToEndTests {
         #expect(!bootID.isEmpty)
 
         // Pause for 30 s.
+        let haLog = dir.appending(path: "ha.stderr.log")
+        let refusalsBefore = count("Failed to get guest agent connection", in: haLog)
         #expect(try control(.pause, dir).state == "paused")
         #expect(try control(.status, dir).state == "paused")
         #expect(try await client.list().first { $0.name == vm }?.status == .running, "Lima doesn't know about the pause")
         #expect(throws: DriverControl.Failure.self) { try control(.pause, dir) }
         try await Task.sleep(for: .seconds(30))
+        // The driver closes guest agent connections rather than refusing GuestAgentConn, which
+        // Lima would log as an error every 2 s or so.
+        #expect(count("Failed to get guest agent connection", in: haLog) == refusalsBefore)
         #expect(try control(.resume, dir).state == "running")
 
         // Same boot; the clock (30 s behind) is corrected by Lima's time sync within ~20 s.
@@ -70,6 +75,10 @@ struct DriverPauseEndToEndTests {
     @discardableResult
     private func control(_ op: DriverControl.Op, _ dir: URL) throws -> DriverControl.Response {
         try DriverControl.send(DriverControl.Request(op: op), instanceDir: dir)
+    }
+
+    private func count(_ text: String, in file: URL) -> Int {
+        ((try? String(contentsOf: file, encoding: .utf8)) ?? "").components(separatedBy: text).count - 1
     }
 
     private func sh(_ script: String) async throws -> String {

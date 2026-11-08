@@ -249,11 +249,13 @@ actor DriverCore {
         let spec = try requireSpec()
         guard let current = run, let vm = current.machine else { throw DriverError("not started") }
         if current.guestAgentBridge != nil { return }
-        // Paused (docs/11): the host agent's guest agent calls have no deadline, so a bridge
-        // to a paused guest would hang them, and `limactl stop` with them. Refuse until resumed.
-        if [.paused, .pausing].contains(vm.state) { throw DriverError("the VM is paused") }
         let bridge = try UnixSocketBridge(path: spec.guestAgentSocket) {
-            try vm.connectVsock(port: InstanceSpec.guestAgentVsockPort)
+            // Paused (docs/11): the host agent's guest agent calls have no deadline, and one
+            // hanging on a paused guest blocks `limactl stop`. The connection is closed at once
+            // instead, so the call fails now. (Refusing GuestAgentConn itself would do too, but
+            // Lima logs an error for each refusal, every 2 s or so.)
+            guard vm.state == .running else { throw DriverError("the VM is paused") }
+            return try vm.connectVsock(port: InstanceSpec.guestAgentVsockPort)
         }
         run?.guestAgentBridge = bridge
         log("guest agent: \(spec.guestAgentSocket) -> vsock \(InstanceSpec.guestAgentVsockPort)")
@@ -533,9 +535,9 @@ actor DriverCore {
     // MARK: - Pause (docs/11, stage 1)
 
     /// VZ's pause. Only once SSH is set up (Lima's start retries SSH a limited number of times,
-    /// so a pause mid-boot could fail `limactl start`) and not while stopping. The bridge to the
-    /// guest agent is closed, and refused until the resume: the host agent's calls to the guest
-    /// agent have no deadline, and one hanging on a paused guest blocks `limactl stop`.
+    /// so a pause mid-boot could fail `limactl start`) and not while stopping. Connections to the
+    /// guest agent are cut and new ones closed until the resume: the host agent's calls to the
+    /// guest agent have no deadline, and one hanging on a paused guest blocks `limactl stop`.
     private func pause() async -> DriverControl.Response {
         guard let current = run, let vm = current.machine else { return .failure("the VM is not running") }
         guard !busy, !current.stopping else { return .failure("the VM is starting or stopping") }
@@ -549,9 +551,11 @@ actor DriverCore {
             log("pause failed: \(error)")
             return .failure("\(error)")
         }
+        // Connections made before the pause would hang; a new bridge refuses until the resume.
         if let bridge = run?.guestAgentBridge {
             run?.guestAgentBridge = nil
             await Task.detached { bridge.close() }.value
+            do { try ensureGuestAgentBridge() } catch { log("guest agent bridge: \(error)") }
         }
         log("paused")
         return DriverControl.Response(ok: true, state: vm.stateName)
@@ -570,8 +574,6 @@ actor DriverCore {
             return .failure("\(error)")
         }
         log("resumed")
-        // The host agent asks again on its own; reopening now saves it a retry.
-        try? ensureGuestAgentBridge()
         return DriverControl.Response(ok: true, state: vm.stateName)
     }
 
