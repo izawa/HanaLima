@@ -43,6 +43,10 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     public var pendingIsolation: Bool?
     /// The playbook last chosen for this VM (docs/08). Lives outside the VM's folder, so only its path.
     public var ansible: AnsibleRecord?
+    /// The sidebar group the VM is in, by name (docs/12). The name rather than an id so the
+    /// groups can be rebuilt from the records if `groups.json` is lost; it follows the folder
+    /// through `limactl rename`, and a copy stays in its source's group.
+    public var group: String?
 
     public struct AnsibleRecord: Codable, Equatable, Sendable {
         public var playbook: String
@@ -136,6 +140,7 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
                 // copy of a renamed VM: a copy of the VM that holds the id.
                 meta = InstanceMetadata(instanceDir: entry.dir, createdAt: .now,
                                         parent: Parent(id: old.id, name: original, copiedAt: .now))
+                meta.group = old.group  // a copy stays in its source's group
             } else if var old = entry.meta {
                 // Renamed (or its original is gone): keep the id.
                 old.instanceDir = entry.dir.path(percentEncoded: false)

@@ -79,6 +79,8 @@ struct Operation: Sendable {
 /// What the sidebar can select.
 enum SidebarItem: Hashable {
     case instance(String)
+    /// A VM group, by name (docs/12).
+    case group(String)
     case disks
     case storage
     case networks
@@ -191,6 +193,13 @@ final class AppModel {
     var diskPlacements: [String: DiskPlacement] = [:]
     /// HanaLima's record of each VM (id, parent, note), by name. See `InstanceMetadata`.
     var metadata: [String: InstanceMetadata] = [:]
+    /// The order of groups and VMs in the sidebar and which groups are expanded (`groups.json`,
+    /// docs/12). Membership comes from `metadata`.
+    var groupLayout = VMGroupLayout()
+    /// A group whose name the sidebar should open for editing (a new group); the sidebar clears it.
+    var renamingGroup: String?
+    /// VMs being created or copied, by the group they go into, until their record has it.
+    var pendingGroups: [String: String] = [:]
     /// VMs whose disk link points to another VM's moved disk (a `limactl clone` copies the link),
     /// with the VM that owns it.
     var sharedDiskOwners: [String: String] = [:]
@@ -236,6 +245,7 @@ final class AppModel {
         guard !bootstrapStarted else { return }
         bootstrapStarted = true
         observeVolumes()
+        loadGroupLayout()
         availability = .checking
         guard let url = LimaClient.locate() else {
             availability = .missing
@@ -365,6 +375,7 @@ final class AppModel {
             }
             updateDiskPlacements()
             updateMetadata(list)
+            updateGroupLayout()
             reattachHostedBoots()
             applyPendingIsolation()
             await refreshPausedInstances(list)
@@ -435,8 +446,9 @@ final class AppModel {
     /// With `installISO`, the VM gets a blank disk (`options` carry the placeholder image) and is
     /// marked "install pending"; `startAfterCreate` then opens the installer instead.
     func create(_ options: CreateOptions, startAfterCreate: Bool, diskFolder: URL? = nil, installISO: URL? = nil,
-                isolateAfterFirstBoot: Bool = false) {
+                isolateAfterFirstBoot: Bool = false, group: String? = nil) {
         guard let client else { return }
+        pendingGroups[options.name] = group
         if installISO != nil {
             do { try InstallSupport.ensurePlaceholderImage() } catch {
                 alert = AlertMessage(title: String(localized: "作成の準備ができませんでした"), message: error.localizedDescription)
@@ -445,7 +457,8 @@ final class AppModel {
         }
         selection = .instance(options.name)
         run(.create, on: options.name, client.create(options)) { [weak self] ok in
-            guard let self, ok else { return }
+            guard let self else { return }
+            guard ok else { self.pendingGroups[options.name] = nil; return }
             if let installISO {
                 self.recordCreation(of: options.name, template: "iso:\(installISO.lastPathComponent)", pendingISO: installISO)
                 if startAfterCreate { self.installRequest = InstallRequest(name: options.name) }

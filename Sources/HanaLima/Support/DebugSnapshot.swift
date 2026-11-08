@@ -8,7 +8,7 @@ import LimaKit
 ///
 /// Optional: `HANALIMA_SNAPSHOT_DELAY` (seconds, default 4), `HANALIMA_SNAPSHOT_CREATE=1`
 /// (open the create sheet first), `HANALIMA_SNAPSHOT_TAB=<tab name>` (select a detail tab),
-/// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|<instance>` (sidebar selection),
+/// `HANALIMA_SNAPSHOT_SELECT=disks|storage|networks|group:<name>|<instance>` (sidebar selection),
 /// `HANALIMA_SNAPSHOT_ABOUT=1` (open the About panel),
 /// `HANALIMA_SNAPSHOT_START=<instance>` (press Start; only use when a confirmation will stop it),
 /// `HANALIMA_SNAPSHOT_DOWNLOAD=<instance>` (show a made-up download in progress for it),
@@ -30,6 +30,7 @@ enum DebugSnapshot {
         case "disks": return .disks
         case "storage": return .storage
         case "networks": return .networks
+        case let g where g.hasPrefix("group:"): return .group(String(g.dropFirst("group:".count)))
         default: return .instance(s)
         }
     }
@@ -86,6 +87,15 @@ enum DebugSnapshot {
         guard let view else { return }
         if let table = view as? NSTableView {
             print("table rows=\(table.numberOfRows) frame=\(table.frame) visible=\(table.visibleRect)")
+        }
+        // The sidebar's rows are hosted SwiftUI views without text fields: print its items.
+        if let outline = view as? SidebarOutlineView {
+            for row in 0..<outline.numberOfRows {
+                guard let node = outline.item(atRow: row) as? SidebarNode else { continue }
+                let indent = String(repeating: "  ", count: outline.level(forRow: row))
+                let expanded = node.kind == .group ? (outline.isItemExpanded(node) ? " ▾" : " ▸") : ""
+                print("  sidebar: \(indent)\(node.key)\(expanded)\(outline.selectedRow == row ? "  [selected]" : "")")
+            }
         }
         if let text = view as? NSTextField, !text.stringValue.isEmpty {
             print("  text: \(text.stringValue)")

@@ -607,6 +607,22 @@
         }
       }
     },
+    "%lld 台、実行中 %lld 台": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld 台、実行中 %2$lld 台"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld VMs, %2$lld running"
+          }
+        }
+      }
+    },
     "%lld 秒で終了": {
       "localizations": {
         "en": {
@@ -635,6 +651,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 秒経過"
+          }
+        }
+      }
+    },
+    "%lld/%lld": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld/%2$lld"
           }
         }
       }
@@ -851,6 +877,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apptainer（rootful）"
+          }
+        }
+      }
+    },
+    "CPU": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU"
           }
         }
       }
@@ -3172,6 +3208,22 @@
         }
       }
     },
+    "「%@」という名前のグループがすでにあります。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」という名前のグループがすでにあります。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A group named “%@” already exists."
+          }
+        }
+      }
+    },
     "「%@」とディスクを共有しているため起動できません。": {
       "localizations": {
         "en": {
@@ -4858,6 +4910,166 @@
         }
       }
     },
+    "グループ": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group"
+          }
+        }
+      }
+    },
+    "グループから外す": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループから外す"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from Group"
+          }
+        }
+      }
+    },
+    "グループが見つかりません": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループが見つかりません"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group Not Found"
+          }
+        }
+      }
+    },
+    "グループの並びを保存できませんでした": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループの並びを保存できませんでした"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Save the Group Order"
+          }
+        }
+      }
+    },
+    "グループの名前を入力してください。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループの名前を入力してください。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a name for the group."
+          }
+        }
+      }
+    },
+    "グループの名前を変更できませんでした": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループの名前を変更できませんでした"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Rename the Group"
+          }
+        }
+      }
+    },
+    "グループへ移動": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループへ移動"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Group"
+          }
+        }
+      }
+    },
+    "グループへ移動できませんでした": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループへ移動できませんでした"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Move to the Group"
+          }
+        }
+      }
+    },
+    "グループを解除": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを解除"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungroup"
+          }
+        }
+      }
+    },
+    "グループを解除できませんでした": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを解除できませんでした"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Ungroup"
+          }
+        }
+      }
+    },
     "ゲスト": {
       "localizations": {
         "en": {
@@ -5351,6 +5563,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "サイズ変更"
+          }
+        }
+      }
+    },
+    "サイドバー": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバー"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidebar"
+          }
+        }
+      }
+    },
+    "サイドバーで仮想マシンをこのグループへドラッグするか、仮想マシンのメニューの「グループへ移動」で入れます。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバーで仮想マシンをこのグループへドラッグするか、仮想マシンのメニューの「グループへ移動」で入れます。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag virtual machines onto this group in the sidebar, or choose Move to Group from a virtual machine’s menu."
           }
         }
       }
@@ -7982,6 +8226,22 @@
         }
       }
     },
+    "並び順は、サイドバーでドラッグして変えられます。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "並び順は、サイドバーでドラッグして変えられます。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag in the sidebar to change the order."
+          }
+        }
+      }
+    },
     "中止": {
       "localizations": {
         "en": {
@@ -9299,16 +9559,16 @@
     },
     "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Saving was refused. The first time you hibernate on this Mac, its screen must be unlocked so the key for the saved state can be made. Unlock the Mac and hibernate again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存を断られました。この Mac で初めて休止するときは、保存に使う鍵を作るため、Mac の画面のロックを解除しておく必要があります。ロックを解除してから、もう一度休止してください。"
           }
         }
       }
@@ -10161,6 +10421,22 @@
         }
       }
     },
+    "名前を変更": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        }
+      }
+    },
     "固定 IP はありません": {
       "localizations": {
         "en": {
@@ -10656,6 +10932,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "実行中の「%@」を強制停止して削除しますか？"
+          }
+        }
+      }
+    },
+    "実行中の台数／全体の台数": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中の台数／全体の台数"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running / total"
           }
         }
       }
@@ -11164,6 +11456,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しい仮想マシン…"
+          }
+        }
+      }
+    },
+    "新規グループ": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規グループ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Group"
+          }
+        }
+      }
+    },
+    "新規グループ…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規グループ…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Group…"
           }
         }
       }
@@ -13086,6 +13410,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "電源を切る（要求）"
+          }
+        }
+      }
+    },
+    "順": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "順"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "#"
           }
         }
       }

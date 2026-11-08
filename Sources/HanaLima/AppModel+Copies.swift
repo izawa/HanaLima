@@ -24,6 +24,7 @@ extension AppModel {
         meta.template = template
         meta.pendingInstall = pendingISO.map { InstanceMetadata.PendingInstall(iso: $0) }
         meta.pendingIsolation = pendingIsolation ? true : nil
+        if let group = pendingGroups.removeValue(forKey: name) { meta.group = group }
         try? meta.save()
         metadata[name] = meta
     }
@@ -61,15 +62,22 @@ extension AppModel {
         let sourceRecord = metadata[source]
         let copyDir = sourceDir.deletingLastPathComponent().appending(path: name, directoryHint: .isDirectory)
         selection = .instance(name)
+        pendingGroups[name] = sourceRecord?.group  // shown in the source's group while it copies
         run(.clone, on: name, client.clone(source, as: name, set: InstanceCopy.cloneExpressions(sourceConfig: config)),
             keepBusy: true) { [weak self] ok in
-            guard let self, ok else { return }
+            guard let self else { return }
+            guard ok else { self.pendingGroups[name] = nil; return }
             Task {
                 do {
-                    let record = try await InstanceCopy.finish(copyDir: copyDir, name: name, source: sourceRecord,
+                    var record = try await InstanceCopy.finish(copyDir: copyDir, name: name, source: sourceRecord,
                                                                sourceName: source, snapshot: snapshot?.label,
                                                                note: note) { fraction in
                         Task { @MainActor in self.operations[name]?.fraction = fraction }
+                    }
+                    // The source's group as it is now: it may have moved while the disk was copied.
+                    if let group = self.metadata[source]?.group {
+                        record.group = group
+                        try record.save()
                     }
                     self.metadata[name] = record
                     switch snapshot {
@@ -87,6 +95,7 @@ extension AppModel {
                     self.alert = AlertMessage(title: String(localized: "\(name) の複製に失敗しました"),
                                               message: error.localizedDescription)
                 }
+                self.pendingGroups[name] = nil
                 await self.refresh()
                 if self.operations[name] == nil, thenStart { self.start(name) }
             }

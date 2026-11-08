@@ -40,6 +40,9 @@ struct ContentView: View {
                     case .instance(let name):
                         InstanceDetailView(name: name)
                             .id(name)
+                    case .group(let name):
+                        GroupDetailView(name: name)
+                            .id(name)
                     case .disks:
                         DiskListView()
                     case .storage:

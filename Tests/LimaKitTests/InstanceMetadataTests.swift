@@ -43,6 +43,25 @@ import Testing
         #expect(InstanceLineage(records).parentName(of: "b") == "a")
     }
 
+    /// A copy stays in its source's group (docs/12 3.3); a rename keeps the group.
+    @Test func groupFollowsCopiesAndRenames() throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = try vm(root, "a"), b = try vm(root, "b")
+        var original = InstanceMetadata(instanceDir: a.dir)
+        original.group = "lab"
+        try original.save()
+        try FileManager.default.copyItem(at: InstanceMetadata.url(instanceDir: a.dir), to: InstanceMetadata.url(instanceDir: b.dir))
+        let records = InstanceMetadata.reconcile([a, b])
+        #expect(records["b"]?.parent?.id == original.id)
+        #expect(records["b"]?.group == "lab")
+        let renamed = root.appending(path: "renamed", directoryHint: .isDirectory)
+        try FileManager.default.moveItem(at: a.dir, to: renamed)
+        let after = InstanceMetadata.reconcile([("renamed", renamed), b])
+        #expect(after["renamed"]?.id == original.id)
+        #expect(after["renamed"]?.group == "lab")
+    }
+
     @Test func renameKeepsTheIDAndLineage() throws {
         let root = try temp()
         defer { try? FileManager.default.removeItem(at: root) }

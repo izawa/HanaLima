@@ -52,6 +52,8 @@ struct CreateInstanceSheet: View {
     }
     @State private var rosetta = false
     @State private var startAfterCreate = true
+    /// The group the new VM goes into (docs/12); "" for none.
+    @State private var group = ""
     @State private var shareHome = true
     @State private var workFolder: URL?
     @State private var workFolderWritable = true
@@ -65,6 +67,12 @@ struct CreateInstanceSheet: View {
                     TextField("名前", text: $name, prompt: Text(suggestedName))
                     if let nameError {
                         Text(nameError).font(.caption).foregroundStyle(.red)
+                    }
+                    if !model.groupLayout.groups.isEmpty {
+                        Picker("グループ", selection: $group) {
+                            Text("なし").tag("")
+                            ForEach(model.groupLayout.groups.map(\.name), id: \.self) { Text($0).tag($0) }
+                        }
                     }
                     Picker("作成元", selection: $source) {
                         Text("テンプレート").tag(Source.template)
@@ -273,7 +281,8 @@ struct CreateInstanceSheet: View {
                     model.create(options, startAfterCreate: startAfterCreate,
                                  diskFolder: diskOnOtherDrive ? diskFolder : nil,
                                  installISO: source == .iso ? isoURL : nil,
-                                 isolateAfterFirstBoot: isolationPreset && prepareFirstBoot)
+                                 isolateAfterFirstBoot: isolationPreset && prepareFirstBoot,
+                                 group: group.isEmpty ? nil : group)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -288,7 +297,15 @@ struct CreateInstanceSheet: View {
             if new != .hanalima { isolated = false; isolationPreset = false }
             if new != .vz, new != .hanalima { rosetta = false }
         }
-        .onAppear { if Self.initialIsolationPreset { isolationPreset = true } }
+        .onAppear {
+            if Self.initialIsolationPreset { isolationPreset = true }
+            // The selected group, or the selected VM's group.
+            switch model.selection {
+            case .group(let g): group = model.groupLayout.index(ofGroup: g).map { model.groupLayout.groups[$0].name } ?? ""
+            case .instance(let vm): group = model.groupName(of: vm) ?? ""
+            default: break
+            }
+        }
         .onChange(of: isolationPreset) { _, on in
             if on {
                 vmType = .hanalima
