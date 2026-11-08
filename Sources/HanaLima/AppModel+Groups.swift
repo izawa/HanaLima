@@ -223,10 +223,15 @@ extension AppModel {
         return true
     }
 
-    /// Running VMs and all VMs in a group, for the group row's "2/5".
+    /// Running VMs and all VMs in a group, for the group row's "2/5". One still starting (or
+    /// stopping) isn't counted: Lima lists it as Running before it is ready, while its own row
+    /// says 起動中.
     func groupCounts(_ group: SidebarGroup) -> (running: Int, total: Int) {
         let running = group.members.filter { name in
-            instance(named: name)?.isRunning == true && !isPaused(name)
+            guard instance(named: name)?.isRunning == true, !isPaused(name) else { return false }
+            // A script or playbook running in it leaves it running; only a start or stop doesn't.
+            guard let op = operations[name], op.isRunning else { return true }
+            return ![.start, .restart, .stop, .hibernate, .create, .install].contains(op.kind)
         }.count
         return (running, group.members.count)
     }

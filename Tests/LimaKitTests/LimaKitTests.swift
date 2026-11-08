@@ -246,6 +246,17 @@ import Testing
         _ = await task.result
         #expect(Date().timeIntervalSince(start) < 5)
     }
+
+    /// A cancelled `run` throws rather than returning the output so far as a success: a
+    /// cancelled `limactl list` once came back as an empty list, and the app took every VM for
+    /// gone (docs/12, stage 2).
+    @Test func cancelledRunThrows() async throws {
+        let runner = ProcessRunner(executableURL: URL(fileURLWithPath: "/bin/sh"), environment: [:])
+        let task = Task { try await runner.run(["-c", "sleep 30; echo late"]) }
+        try await Task.sleep(for: .milliseconds(300))
+        task.cancel()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
 }
 
 @Suite struct ExitStatusTests {

@@ -58,6 +58,9 @@ public struct ProcessRunner: Sendable {
             case .stderr(let d): stderr += String(decoding: d, as: UTF8.self)
             }
         }
+        // Cancelling stops the process and ends the stream without an error; the output so far
+        // must not pass for the command's (a cancelled `limactl list` read as "no VMs").
+        try Task.checkCancellation()
         return CommandOutput(status: 0, stdout: stdout, stderr: stderr)
     }
 

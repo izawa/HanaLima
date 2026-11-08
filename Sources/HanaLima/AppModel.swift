@@ -393,12 +393,14 @@ final class AppModel {
     }
 
     /// Coalesces bursts of watch events into a single `limactl list`.
+    /// Only the wait is cancelled by a newer call: a refresh that has begun runs to its end (its
+    /// own task), so a burst of watch events can't cut a `limactl list` short.
     private func scheduleRefresh() {
         refreshTask?.cancel()
         refreshTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            await refresh()
+            await Task { await self.refresh() }.value
         }
     }
 
@@ -736,3 +738,4 @@ final class AppModel {
         if overflow > 0 { operations[name]!.log.removeFirst(overflow) }
     }
 }
+

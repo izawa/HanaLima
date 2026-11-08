@@ -80,7 +80,17 @@ struct GroupRunSheet: View {
             }
             .padding()
         }
-        .frame(width: 520, height: 520)
+        .frame(width: 520, height: sheetHeight)
+    }
+
+    /// Tall enough for the rows, within limits (a fixed height left half the sheet empty).
+    private var sheetHeight: CGFloat {
+        let confirmations = plan.steps.reduce(0) { $0 + $1.confirmations.count }
+        var height = 150 + 46 * CGFloat(max(plan.steps.count, 1)) + 52 * CGFloat(confirmations)
+        if confirmations > 0 { height += 30 }
+        if !plan.skipped.isEmpty { height += 50 + 46 * CGFloat(plan.skipped.count) }
+        if resourceNote != nil { height += 90 }
+        return min(max(height, 260), 640)
     }
 
     private var stepsHeader: String {
