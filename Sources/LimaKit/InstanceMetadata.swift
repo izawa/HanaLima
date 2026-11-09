@@ -118,8 +118,12 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     ///   which gets a new id with that VM as its parent;
     /// - a record written for another folder that no VM has any more: a rename; the folder is
     ///   updated and the id kept.
+    /// VMs named in `busy` (a command is working on them) are read but not repaired or returned:
+    /// a record in its own folder still holds its id, so a CLI clone of a VM that is starting
+    /// becomes its copy instead of taking the id as a rename.
     /// Returns the records by instance name.
-    public static func reconcile(_ instances: [(name: String, dir: URL)]) -> [String: InstanceMetadata] {
+    public static func reconcile(_ instances: [(name: String, dir: URL)],
+                                 busy: Set<String> = []) -> [String: InstanceMetadata] {
         let loaded = instances.map { (name: $0.name, dir: $0.dir, meta: load(instanceDir: $0.dir)) }
         func isHome(_ meta: InstanceMetadata, _ dir: URL) -> Bool {
             ExternalDisk.samePath(URL(filePath: meta.instanceDir, directoryHint: .isDirectory), dir)
@@ -130,10 +134,10 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
         for entry in loaded {
             if let meta = entry.meta, isHome(meta, entry.dir), holder[meta.id] == nil {
                 holder[meta.id] = entry.name
-                result[entry.name] = meta
+                if !busy.contains(entry.name) { result[entry.name] = meta }
             }
         }
-        for entry in loaded where result[entry.name] == nil {
+        for entry in loaded where result[entry.name] == nil && !busy.contains(entry.name) {
             var meta: InstanceMetadata
             if let old = entry.meta, let original = holder[old.id] {
                 // Copied by limactl clone (the original still holds the id), or another stray

@@ -43,6 +43,29 @@ import Testing
         #expect(InstanceLineage(records).parentName(of: "b") == "a")
     }
 
+    /// A CLI clone of a VM that a command is working on (starting, say): the busy VM's record is
+    /// read, not rewritten, but still holds the id, so the clone becomes its copy; it must not
+    /// take the id as if it were a rename (the snapshots and lineage would move to the clone).
+    @Test func cliCloneOfABusyVMBecomesACopy() throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = try vm(root, "a"), b = try vm(root, "b")
+        var original = InstanceMetadata(instanceDir: a.dir, note: "base")
+        original.group = "lab"
+        try original.save()
+        try FileManager.default.copyItem(at: InstanceMetadata.url(instanceDir: a.dir), to: InstanceMetadata.url(instanceDir: b.dir))
+        let records = InstanceMetadata.reconcile([b, a], busy: ["a"])
+        #expect(records["a"] == nil, "a busy VM's record is the caller's to keep")
+        #expect(records["b"]?.id != original.id)
+        #expect(records["b"]?.parent?.id == original.id)
+        #expect(records["b"]?.group == "lab")
+        #expect(InstanceMetadata.load(instanceDir: a.dir) == original, "the busy VM's file is left alone")
+        // Once the command is done, a keeps its id and b stays its copy (b sorts first).
+        let after = InstanceMetadata.reconcile([b, a])
+        #expect(after["a"] == original)
+        #expect(after["b"] == records["b"])
+    }
+
     /// A copy stays in its source's group (docs/12 3.3); a rename keeps the group.
     @Test func groupFollowsCopiesAndRenames() throws {
         let root = try temp()

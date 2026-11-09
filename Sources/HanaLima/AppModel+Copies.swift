@@ -6,10 +6,12 @@ extension AppModel {
     var lineage: InstanceLineage { InstanceLineage(metadata) }
 
     /// Reads (and repairs) the records of VMs that no command is working on; a VM mid-copy is
-    /// left to `copy`, which writes its record when done.
+    /// left to `copy`, which writes its record when done. Busy VMs are still passed in, read
+    /// only: one being started holds its id against a CLI clone made meanwhile.
     func updateMetadata(_ list: [LimaInstance]) {
-        let idle = list.filter { !isBusy($0.name) }
-        var records = InstanceMetadata.reconcile(idle.map { ($0.name, URL(filePath: $0.dir, directoryHint: .isDirectory)) })
+        let busy = Set(list.map(\.name).filter { isBusy($0) })
+        var records = InstanceMetadata.reconcile(list.map { ($0.name, URL(filePath: $0.dir, directoryHint: .isDirectory)) },
+                                                 busy: busy)
         for inst in list where isBusy(inst.name) {
             records[inst.name] = metadata[inst.name]
         }
