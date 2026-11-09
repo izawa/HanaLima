@@ -4,7 +4,7 @@
 
 # HanaLima
 
-A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root.
+A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once.
 
 **Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
 

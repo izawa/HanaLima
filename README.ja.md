@@ -4,7 +4,7 @@
 
 # HanaLima
 
-[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。
+[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。
 
 **Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
 
