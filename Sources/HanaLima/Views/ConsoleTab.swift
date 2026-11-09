@@ -254,10 +254,13 @@ private struct TerminalHost: NSViewRepresentable {
     }
 
     func updateNSView(_ container: NSView, context: Context) {
-        if terminal.superview !== container { attach(to: container) }
+        // The same container hosts the shell and the serial terminal in turn: switching back
+        // finds the other one still on top, so check that this terminal is the only subview.
+        if container.subviews != [terminal] { attach(to: container) }
     }
 
     private func attach(to container: NSView) {
+        for view in container.subviews where view !== terminal { view.removeFromSuperview() }
         terminal.removeFromSuperview()
         terminal.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(terminal)
