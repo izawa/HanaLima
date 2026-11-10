@@ -165,7 +165,7 @@ E2E テストは `hanalima-e2e-*` という名前の VM と一時的なネット
 
 Mac の再起動後に `metal` が見つからずビルドに失敗する場合は、`swift package clean` を実行してからビルドし直します。
 
-`scripts/release.sh` は、リリース用に公証した DMG を作ります（管理者向け。キーチェーンに Developer ID の証明書と notarytool の認証情報が要ります。`--no-notarize` を付けると署名までで止まります）。GitHub Releases への公開は手で行います。
+`scripts/release.sh` は、リリース用に公証した DMG を作ります（管理者向け。キーチェーンに Developer ID の証明書と notarytool の認証情報が要ります。`--no-notarize` を付けると署名までで止まります）。GitHub Releases への公開までの手順は [docs/13](docs/13-release.md) にまとめてあります。
 
 ### 多言語対応
 

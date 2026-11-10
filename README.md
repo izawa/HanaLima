@@ -165,7 +165,7 @@ End-to-end tests create VMs named `hanalima-e2e-*` and temporary networks, and r
 
 If the build fails because `metal` cannot be found after a restart, run `swift package clean` and build again.
 
-`scripts/release.sh` builds the notarized DMG for a release (maintainers only: it needs the Developer ID certificate and notarytool credentials in the keychain; `--no-notarize` stops after signing). Publishing it on GitHub Releases is done by hand.
+`scripts/release.sh` builds the notarized DMG for a release (maintainers only: it needs the Developer ID certificate and notarytool credentials in the keychain; `--no-notarize` stops after signing). The whole release procedure, up to GitHub Releases, is in [docs/13](docs/13-release.md) (in Japanese).
 
 ### Localization
 
