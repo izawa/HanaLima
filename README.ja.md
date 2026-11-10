@@ -14,7 +14,7 @@
 > **HanaLima は非公式の個人プロジェクトです。** Lima プロジェクトおよび Cloud Native Computing Foundation (CNCF) とは関係がなく、公認も支援も受けていません。「Lima」という名前はアプリが何を扱うかを説明するためだけに使っています。HanaLima の問題の報告先はこのリポジトリです。Lima プロジェクトへの報告は避けてください。
 
 > [!WARNING]
-> HanaLima はまだ開発の初期段階で、署名・公証済みのリリースはありません。ソースからビルドして使ってください。
+> HanaLima はまだ開発の初期段階です。Developer ID で署名し、Apple の公証を通したものを [Releases](https://github.com/izawa/HanaLima/releases/latest) で配布しています。ソースからビルドすることもできます。
 
 ## 機能
 
@@ -70,13 +70,21 @@
    brew install lima lima-additional-guestagents
    ```
 
-2. Xcode の Metal Toolchain がまだ入っていなければ入れます。
+2. [Releases](https://github.com/izawa/HanaLima/releases/latest) から `HanaLima-<版>.dmg` をダウンロードして開き、**HanaLima** を **アプリケーション** へドラッグして起動します。Developer ID で署名し、公証を通してあるので、警告なしに開けます。自分でビルドする場合は「[ソースからビルドする](#ソースからビルドする)」を見てください。
+
+3. サイドバー下の **＋ 新規仮想マシン** を押し、VM を作ります。テンプレートは最初から Ubuntu LTS（`ubuntu-lts`）になっていて、`alpine` などほかのものも選べます。新規 VM のドライバーは既定で HanaLima です。最初の起動時に OS イメージがダウンロードされます。
+
+固定 IP やブリッジを使う場合は、サイドバーの **ネットワーク** の **＋** からネットワークを作ります。VM の **設定** タブを開き、ネットワーク欄の **NIC を追加** で作成したネットワークを選びます。
+
+### ソースからビルドする
+
+1. Xcode の Metal Toolchain がまだ入っていなければ入れます。
 
    ```bash
    xcodebuild -downloadComponent MetalToolchain
    ```
 
-3. クローンしてビルド。スクリプトが `build/HanaLima.app` を作り、この Mac 用に ad-hoc 署名します。
+2. クローンしてビルド。スクリプトが `build/HanaLima.app` を作り、この Mac 用に ad-hoc 署名します。
 
    ```bash
    git clone https://github.com/izawa/HanaLima.git
@@ -84,7 +92,7 @@
    scripts/build-app.sh release
    ```
 
-4. 起動します。
+3. 起動します。
 
    ```bash
    open build/HanaLima.app
@@ -96,16 +104,12 @@
    scripts/make-app.sh --install --open
    ```
 
-5. サイドバー下の **＋ 新規仮想マシン** を押し、VM を作ります。テンプレートは最初から Ubuntu LTS（`ubuntu-lts`）になっていて、`alpine` などほかのものも選べます。新規 VM のドライバーは既定で HanaLima です。最初の起動時に OS イメージがダウンロードされます。
-
-固定 IP やブリッジを使う場合は、サイドバーの **ネットワーク** の **＋** からネットワークを作ります。VM の **設定** タブを開き、ネットワーク欄の **NIC を追加** で作成したネットワークを選びます。
-
 ### 表示言語
 
 優先する言語が日本語なら日本語、それ以外は英語で表示します。HanaLima だけ言語を変える場合は、システム設定 → 一般 → 言語と地域 → アプリケーション で選ぶか、次のように起動します。
 
 ```bash
-open build/HanaLima.app --args -AppleLanguages '(en)'
+open -a HanaLima --args -AppleLanguages '(en)'
 ```
 
 ## 仕組み
@@ -160,6 +164,8 @@ HANALIMA_E2E=1 swift test --filter <スイート名>        # 実際の VM を�
 E2E テストは `hanalima-e2e-*` という名前の VM と一時的なネットワークを作り、終了時に削除します。ネットワークのテストには entitlement 付きのヘルパーが必要です。先に `scripts/build-app.sh` を実行しておきます。`BridgeEndToEndTests` はホストのインターフェースをブリッジに入れるため、`HANALIMA_E2E_BRIDGE=en0` のようにインターフェースを指定したときだけ動きます。
 
 Mac の再起動後に `metal` が見つからずビルドに失敗する場合は、`swift package clean` を実行してからビルドし直します。
+
+`scripts/release.sh` は、リリース用に公証した DMG を作ります（管理者向け。キーチェーンに Developer ID の証明書と notarytool の認証情報が要ります。`--no-notarize` を付けると署名までで止まります）。GitHub Releases への公開は手で行います。
 
 ### 多言語対応
 

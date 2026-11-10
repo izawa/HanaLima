@@ -14,7 +14,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 > **HanaLima is an unofficial, independent project.** It is not affiliated with, endorsed by, or supported by the Lima project or the Cloud Native Computing Foundation (CNCF). "Lima" is used only to describe what this app works with. Please report HanaLima problems here, not to the Lima project.
 
 > [!WARNING]
-> HanaLima is in early development. There are no signed or notarized releases yet; build it from source.
+> HanaLima is in early development. Builds signed with Developer ID and notarized by Apple are on the [Releases](https://github.com/izawa/HanaLima/releases/latest) page; you can also build it from source.
 
 ## Features
 
@@ -70,13 +70,21 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    brew install lima lima-additional-guestagents
    ```
 
-2. Install the Metal Toolchain for Xcode, if you haven't already:
+2. Download `HanaLima-<version>.dmg` from [Releases](https://github.com/izawa/HanaLima/releases/latest), open it, drag **HanaLima** into **Applications**, and launch it. It is signed with Developer ID and notarized, so it opens without a warning. To build it yourself instead, see [Building from source](#building-from-source).
+
+3. Click **＋ New VM** at the bottom of the sidebar and create a VM. The template is preset to Ubuntu LTS (`ubuntu-lts`); you can pick another, such as `alpine`. New VMs run on HanaLima's driver by default. The first start downloads the OS image.
+
+To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab.
+
+### Building from source
+
+1. Install the Metal Toolchain for Xcode, if you haven't already:
 
    ```bash
    xcodebuild -downloadComponent MetalToolchain
    ```
 
-3. Clone and build. The script builds `build/HanaLima.app` and signs it ad hoc for your Mac:
+2. Clone and build. The script builds `build/HanaLima.app` and signs it ad hoc for your Mac:
 
    ```bash
    git clone https://github.com/izawa/HanaLima.git
@@ -84,7 +92,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    scripts/build-app.sh release
    ```
 
-4. Launch it:
+3. Launch it:
 
    ```bash
    open build/HanaLima.app
@@ -96,16 +104,12 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
    scripts/make-app.sh --install --open
    ```
 
-5. Click **＋ New VM** at the bottom of the sidebar and create a VM. The template is preset to Ubuntu LTS (`ubuntu-lts`); you can pick another, such as `alpine`. New VMs run on HanaLima's driver by default. The first start downloads the OS image.
-
-To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab.
-
 ### Language
 
 HanaLima shows its UI in Japanese when Japanese is your preferred language, and in English otherwise. To use a different language for HanaLima only, choose it under System Settings → General → Language & Region → Applications, or launch it once with:
 
 ```bash
-open build/HanaLima.app --args -AppleLanguages '(en)'
+open -a HanaLima --args -AppleLanguages '(en)'
 ```
 
 ## How it works
@@ -160,6 +164,8 @@ HANALIMA_E2E=1 swift test --filter <Suite>            # end-to-end tests with re
 End-to-end tests create VMs named `hanalima-e2e-*` and temporary networks, and remove them afterwards. Run `scripts/build-app.sh` first for the network tests (they need the entitlement-signed helper). `BridgeEndToEndTests` puts a host interface into a bridge, so it only runs when you name the interface: `HANALIMA_E2E_BRIDGE=en0`.
 
 If the build fails because `metal` cannot be found after a restart, run `swift package clean` and build again.
+
+`scripts/release.sh` builds the notarized DMG for a release (maintainers only: it needs the Developer ID certificate and notarytool credentials in the keychain; `--no-notarize` stops after signing). Publishing it on GitHub Releases is done by hand.
 
 ### Localization
 
