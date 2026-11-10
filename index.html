@@ -72,7 +72,7 @@
         <span class="ja">HanaLima は Lima の VM を GUI で操作する SwiftUI のネイティブアプリです。CPU・メモリ・ディスクを割り当て、NAT・ホストオンリー・<strong>ブリッジ</strong>のネットワークと固定 IP を設定して、そのままコンソールで作業できます。root も socket_vmnet も sudoers も不要です。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。</span>
       </p>
       <div class="hero-cta">
-        <a class="btn primary" href="#quickstart"><span class="en">Build from source</span><span class="ja">ソースからビルド</span> →</a>
+        <a class="btn primary" href="https://github.com/izawa/HanaLima/releases/latest"><span class="en">Download</span><span class="ja">ダウンロード</span> →</a>
         <a class="btn" href="#how"><span class="en">How is that possible?</span><span class="ja">どう実現しているか</span></a>
       </div>
       <div class="badges">
@@ -539,8 +539,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
-        <h3><span class="en">Signed releases</span><span class="ja">署名済みのリリース</span></h3>
-        <p><span class="en">Developer ID signing, notarization and auto-update — once enough people use HanaLima. Until then, one command builds it and installs it into <code>/Applications</code>.</span><span class="ja">Developer ID の署名、公証、自動アップデートは、使う人が増えたら取り組みます。それまではコマンド 1 つでビルドして <code>/Applications</code> に入れられます。</span></p>
+        <h3><span class="en">Auto-update</span><span class="ja">自動アップデート</span></h3>
+        <p><span class="en">Releases are signed with Developer ID and notarized; auto-update comes once enough people use HanaLima. Until then, download the new DMG from Releases to update.</span><span class="ja">リリースは Developer ID で署名し、公証を通してあります。自動アップデートは、使う人が増えたら取り組みます。それまでは、Releases から新しい DMG をダウンロードして更新してください。</span></p>
       </div>
     </div>
   </div>
@@ -640,12 +640,12 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
 <section id="quickstart">
   <div class="wrap">
     <div class="kicker">// quick start</div>
-    <h2><span class="en">From zero to a VM on your LAN</span><span class="ja">ビルドして LAN に参加する VM を作る</span></h2>
-    <p class="section-lead"><span class="en">No signed release yet — build from source. You need macOS 26+, Xcode 26+ with the Metal Toolchain, and Homebrew.</span><span class="ja">署名済みのリリースはまだないので、ソースからビルドします。必要なものは macOS 26 以降、Metal Toolchain を入れた Xcode 26 以降、Homebrew です。</span></p>
+    <h2><span class="en">From zero to a VM on your LAN</span><span class="ja">インストールから、LAN に参加する VM まで</span></h2>
+    <p class="section-lead"><span class="en">Download the notarized app, or build it from source. You need macOS 26+ and Homebrew; building also needs Xcode 26+ with the Metal Toolchain.</span><span class="ja">公証済みのアプリをダウンロードするか、ソースからビルドします。必要なものは macOS 26 以降と Homebrew です。ビルドする場合は、Metal Toolchain を入れた Xcode 26 以降も要ります。</span></p>
     <div class="qs">
       <ol class="steps">
         <li><div><strong><span class="en">Install Lima</span><span class="ja">Lima を入れる</span></strong><p><span class="en">Plus the extra guest agents for non-native architectures.</span><span class="ja">別アーキテクチャ用の追加ゲストエージェントも一緒に入れます。</span></p></div></li>
-        <li><div><strong><span class="en">Build the app</span><span class="ja">アプリをビルド</span></strong><p><span class="en">The script builds a release, signs the network helper with the virtualization entitlement, signs the app ad hoc for your Mac, installs it into <code>/Applications</code> and opens it. Run it again to update.</span><span class="ja">スクリプトでリリースビルドを作り、ネットワークのヘルパーに仮想化の entitlement を付けて署名します。アプリもこの Mac 用に ad-hoc 署名して <code>/Applications</code> に入れて起動します。更新するときも同じコマンドです。</span></p></div></li>
+        <li><div><strong><span class="en">Install the app</span><span class="ja">アプリを入れる</span></strong><p><span class="en">Download <code>HanaLima-&lt;version&gt;.dmg</code> from <a href="https://github.com/izawa/HanaLima/releases/latest">Releases</a>, open it and drag HanaLima into Applications. It's signed with Developer ID and notarized, so it opens without a warning. To build it yourself, use the commands shown with these steps: the script signs the app ad hoc for your Mac, installs it into <code>/Applications</code> and opens it.</span><span class="ja"><a href="https://github.com/izawa/HanaLima/releases/latest">Releases</a> から <code>HanaLima-&lt;版&gt;.dmg</code> をダウンロードして開き、HanaLima をアプリケーションへドラッグします。Developer ID で署名し、公証を通してあるので、警告なしに開けます。自分でビルドする場合は、この手順に添えたコマンドを使います。スクリプトがこの Mac 用に ad-hoc 署名して <code>/Applications</code> に入れ、起動します。</span></p></div></li>
         <li><div><strong><span class="en">Create a VM</span><span class="ja">VM を作る</span></strong><p><span class="en">＋ New VM in the sidebar → Create. The template is preset to Ubuntu LTS (26.04 today); you can pick another. New VMs use HanaLima's driver by default. The first start downloads the image.</span><span class="ja">サイドバーの ＋ 新規仮想マシン → 作成。テンプレートは最初から Ubuntu LTS（いまは 26.04）になっていて、ほかのものも選べます。新しい VM は既定で HanaLima のドライバーを使います。最初の起動でイメージをダウンロードします。</span></p></div></li>
         <li><div><strong><span class="en">Add a bridged network</span><span class="ja">ブリッジのネットワークを追加</span></strong><p><span class="en">Networks → ＋ → Bridge → en0. Then Add NIC in the VM's Settings tab. No password prompt.</span><span class="ja">ネットワーク → ＋ → ブリッジ → en0。VM の設定タブの「NIC を追加」で選びます。パスワードは聞かれません。</span></p></div></li>
       </ol>
@@ -653,10 +653,9 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
 <pre class="code" id="qs-code"><span class="c"># 1. Lima</span>
 brew install lima lima-additional-guestagents
 
-<span class="c"># Metal Toolchain (needed by SwiftTerm), once</span>
+<span class="c"># 2. HanaLima: download the DMG from Releases,</span>
+<span class="c">#    or build it from source:</span>
 xcodebuild -downloadComponent MetalToolchain
-
-<span class="c"># 2. HanaLima</span>
 git clone https://github.com/izawa/HanaLima.git
 cd HanaLima
 scripts/make-app.sh --install --open</pre>
@@ -700,9 +699,9 @@ scripts/make-app.sh --install --open</pre>
       <div class="milestone done"><div class="bar"></div><h3>v0.13</h3>
         <ul><li><span class="en">A router for guest-only networks</span><span class="ja">ゲスト専用ネットワークのルーター</span></li><li><span class="en">Allow-list gateway example</span><span class="ja">出口を絞るゲートウェイの例</span></li><li><span class="en">Lima 2.3</span><span class="ja">Lima 2.3 に対応</span></li><li><span class="en">Pause and hibernate</span><span class="ja">一時停止と休止</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.14</h3>
-        <ul><li><span class="en">VM groups in the sidebar</span><span class="ja">サイドバーの VM グループ</span></li><li><span class="en">Start, stop, hibernate a group</span><span class="ja">グループの一括起動・停止・休止</span></li><li><span class="en">Group submenus in the menu bar</span><span class="ja">メニューバーのグループ</span></li></ul></div>
+        <ul><li><span class="en">VM groups in the sidebar</span><span class="ja">サイドバーの VM グループ</span></li><li><span class="en">Start, stop, hibernate a group</span><span class="ja">グループの一括起動・停止・休止</span></li><li><span class="en">Group submenus in the menu bar</span><span class="ja">メニューバーのグループ</span></li><li><span class="en">Notarized DMG on Releases</span><span class="ja">公証済みの DMG を配布</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
-        <ul><li><span class="en">Developer ID + notarization</span><span class="ja">Developer ID と公証</span></li><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
+        <ul><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
   </div>
 </section>
