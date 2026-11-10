@@ -7,6 +7,16 @@ CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Ad hoc by default (this Mac only). With SIGN_IDENTITY set (scripts/release.sh does this), sign with
+# that Developer ID; notarization needs the hardened runtime and a secure timestamp.
+sign() {
+    if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+        codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$@" >/dev/null
+    else
+        codesign --force --sign - "$@" >/dev/null
+    fi
+}
+
 swift build -c "$CONFIG" --product HanaLima
 swift build -c "$CONFIG" --product hanalima-netd
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
@@ -33,20 +43,17 @@ done
 
 # The network helper needs com.apple.security.virtualization for the vmnet_network APIs.
 cp "$BIN_DIR/hanalima-netd" "$APP/Contents/Helpers/hanalima-netd"
-codesign --force --sign - --entitlements "$ROOT/Resources/hanalima-netd.entitlements" \
-    "$APP/Contents/Helpers/hanalima-netd" >/dev/null
+sign --entitlements "$ROOT/Resources/hanalima-netd.entitlements" "$APP/Contents/Helpers/hanalima-netd"
 
 # Lima's external VM driver (Driver/, its own package): signed with the virtualization
 # entitlement, found by limactl through LIMA_DRIVERS_PATH=Contents/Helpers (docs/09).
 (cd "$ROOT/Driver" && swift build -c "$CONFIG" --product lima-driver-hanalima)
 DRIVER_BIN="$(cd "$ROOT/Driver" && swift build -c "$CONFIG" --show-bin-path)/lima-driver-hanalima"
 cp "$DRIVER_BIN" "$APP/Contents/Helpers/lima-driver-hanalima"
-codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" \
-    "$APP/Contents/Helpers/lima-driver-hanalima" >/dev/null
+sign --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP/Contents/Helpers/lima-driver-hanalima"
 
-# Ad-hoc signature so macOS runs it locally. Real signing/notarization comes with distribution.
-# (Not --deep: that would re-sign the helper without its entitlements.) The app keeps
+# Sign the app last, after everything inside it. (Not --deep: that would re-sign the helper without its entitlements.) The app keeps
 # com.apple.security.virtualization for now, although the ISO installer and the rescue boot
 # run in the driver's hosted mode, not in the app (docs/09, item 10).
-codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
+sign --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP"
 echo "Built $APP"

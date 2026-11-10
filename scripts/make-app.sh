@@ -7,7 +7,8 @@
 # Assembly and signing are done by scripts/build-app.sh: the network helper must be signed with
 # its own entitlements (com.apple.security.virtualization), which `codesign --deep` would strip.
 # Info.plist (bundle ID, icon, copyright) comes from Resources/Info.plist; this script only stamps
-# the build number. The signature is ad hoc, for this Mac only.
+# the build number. The signature is ad hoc, for this Mac only, unless SIGN_IDENTITY names a
+# Developer ID (scripts/release.sh builds the notarized DMG that way).
 set -euo pipefail
 
 APP_NAME="HanaLima"
@@ -36,7 +37,12 @@ BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
 printf "APPL????" > "$APP/Contents/PkgInfo"
 # Info.plist changed, so sign the app again (not --deep: the helper keeps its own signature).
-codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
+        --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
+else
+    codesign --force --sign - --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP" >/dev/null
+fi
 
 echo "▶ 署名を確認"
 codesign --verify --strict "$APP"
