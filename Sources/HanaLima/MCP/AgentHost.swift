@@ -28,6 +28,8 @@ final class AgentHost {
 
     /// At launch: points `mcp.json` at this app's helper and starts listening if the setting is on.
     func launch() {
+        // Screenshot runs (DebugSnapshot) leave the user's mcp.json alone.
+        guard ProcessInfo.processInfo.environment["HANALIMA_SNAPSHOT"] == nil else { return }
         writeConfigFile()
         update()
     }
