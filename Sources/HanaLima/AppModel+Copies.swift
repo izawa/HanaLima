@@ -163,6 +163,10 @@ extension AppModel {
         guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !isHibernated(name) else {
             return String(localized: "停止していて、ほかの処理をしていない仮想マシンだけです。")
         }
+        // A copy that still shares its disk would snapshot or roll back the owner's disk too.
+        if let owner = sharedDiskOwners[name] {
+            return String(localized: "「\(owner)」とディスクを共有しています。先にディスクを独立させてください。")
+        }
         let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
         operations[name] = Operation(kind: kind)
         let failure = await Task.detached { () -> String? in

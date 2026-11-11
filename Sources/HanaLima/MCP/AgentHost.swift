@@ -66,6 +66,7 @@ final class AgentHost {
     }
 
     private func stop() {
+        vmJobs.cancelAll()
         server?.stop()
         server = nil
         lock?.release()

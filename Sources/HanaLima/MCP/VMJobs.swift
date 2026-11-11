@@ -35,6 +35,9 @@ final class VMJobs {
         let steps: [GroupPlan.Step]
         let skipped: [GroupPlan.Skip]
         let tag: String?
+        /// snapshot_restore: the snapshot each VM was planned to go back to, by id (one made
+        /// again under the same name while waiting for approval is not the one approved).
+        var snapshotIDs: [String: UUID] = [:]
     }
 
     enum Failure: Error { case invalid(String) }
@@ -81,7 +84,8 @@ final class VMJobs {
         let draft = makePlan(action: action, names: names, tag: tag, summary: summary)
         // Nothing to do (all already running, say): no approval to ask for, just the reasons.
         let (job, _) = try store.submit(key: key, tool: "vm", input: arguments, summary: summary, needsApproval: !draft.steps.isEmpty)
-        let plan = Plan(jobID: job.id, action: action, summary: summary, steps: draft.steps, skipped: draft.skipped, tag: tag)
+        var plan = draft
+        plan.jobID = job.id
         if plan.steps.isEmpty {
             recordSkips(plan)
             store.finish(job.id)
@@ -138,6 +142,13 @@ final class VMJobs {
         }
     }
 
+    /// The person turned AI operations off: deny what waits, stop running jobs after their
+    /// current step.
+    func cancelAll() {
+        for job in store.jobs where !job.state.isFinished { _ = try? store.cancel(job.id) }
+        awaitingApproval.removeAll()
+    }
+
     private func dropApproval(_ id: String) {
         awaitingApproval.removeAll { $0.jobID == id }
     }
@@ -169,19 +180,23 @@ final class VMJobs {
         // The same checks as just before each step, so the sheet asks only about what can run.
         var steps: [GroupPlan.Step] = []
         var skipped: [GroupPlan.Skip] = []
+        var snapshotIDs: [String: UUID] = [:]
         for name in names {
             guard let id = model.metadata[name]?.id else {
                 skipped.append(GroupPlan.Skip(name: name, reason: .refused("no HanaLima record yet; open the app once")))
                 continue
             }
             let step = GroupPlan.Step(name: name, id: id, memory: model.instance(named: name)?.memory ?? 0, confirmations: [:], resumes: false)
-            if let reason = recheck(step, action: action) {
+            if let reason = recheck(step, action: action, tag: tag) {
                 skipped.append(GroupPlan.Skip(name: name, reason: .refused(reason)))
             } else {
                 steps.append(step)
+                if action == .snapshotRestore, let inst = model.instance(named: name) {
+                    snapshotIDs[name] = DiskSnapshot.list(instanceDir: inst.instanceDir).first { $0.name == tag }?.id
+                }
             }
         }
-        return Plan(jobID: "", action: action, summary: summary, steps: steps, skipped: skipped, tag: tag)
+        return Plan(jobID: "", action: action, summary: summary, steps: steps, skipped: skipped, tag: tag, snapshotIDs: snapshotIDs)
     }
 
     private func recordSkips(_ plan: Plan) {
@@ -196,7 +211,7 @@ final class VMJobs {
         _ = await GroupRunner.run(
             plan.steps, approved: confirmations,
             isCancelled: { await MainActor.run { self.store.job(id)?.cancelRequested ?? true } },
-            recheck: { step in await self.recheck(step, action: plan.action) },
+            recheck: { step in await self.recheck(step, action: plan.action, tag: plan.tag) },
             perform: { step, approvals in
                 await MainActor.run { self.store.setCurrent(id, step.name) }
                 return await self.perform(step, plan, approvals: approvals)
@@ -208,7 +223,7 @@ final class VMJobs {
         store.finish(id)
     }
 
-    private func recheck(_ step: GroupPlan.Step, action: Action) -> String? {
+    private func recheck(_ step: GroupPlan.Step, action: Action, tag: String?) -> String? {
         if let group = action.groupAction { return model.recheck(step, action: group) }
         guard let name = model.currentName(of: step), let inst = model.instance(named: name) else {
             return "not found (deleted or made again)"
@@ -221,6 +236,11 @@ final class VMJobs {
         case .snapshotCreate, .snapshotRestore:
             if inst.isRunning { return "stop the VM first" }
             if model.isHibernated(name) { return "hibernated; start or discard the saved state first" }
+            if let owner = model.sharedDiskOwners[name] { return "shares its disk with \(owner); make it independent in the app first" }
+            if action == .snapshotRestore, let tag {
+                let matches = DiskSnapshot.list(instanceDir: inst.instanceDir).filter { $0.name == tag }
+                if matches.count != 1 { return matches.isEmpty ? "no snapshot named \(tag)" : "\(matches.count) snapshots are named \(tag); restore one in the app" }
+            }
             return inst.usesVirtualization ? nil : "only vz and hanalima VMs (QEMU snapshots are made in the app)"
         case .start, .stop, .hibernate: return nil
         }
@@ -238,9 +258,9 @@ final class VMJobs {
             let tag = plan.tag ?? ""
             error = await model.performDiskSnapshot(.snapshotCreate, name) { dir in _ = try DiskSnapshot.create(instanceDir: dir, name: tag) }
         case .snapshotRestore:
-            guard let inst = model.instance(named: name),
-                  let snapshot = DiskSnapshot.list(instanceDir: inst.instanceDir).first(where: { $0.name == plan.tag }) else {
-                return .failed("no snapshot named \(plan.tag ?? "")")
+            guard let inst = model.instance(named: name), let id = plan.snapshotIDs[step.name],
+                  let snapshot = DiskSnapshot.list(instanceDir: inst.instanceDir).first(where: { $0.id == id }) else {
+                return .failed("the snapshot approved is gone")
             }
             error = await model.performDiskSnapshot(.snapshotApply, name) { dir in try DiskSnapshot.restore(snapshot, of: dir, into: dir) }
         case .start, .stop, .hibernate: error = nil

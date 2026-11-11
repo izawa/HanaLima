@@ -3362,6 +3362,22 @@
         }
       }
     },
+    "「%@」とディスクを共有しています。先にディスクを独立させてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It shares its disk with “%@”. Make the disk independent first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」とディスクを共有しています。先にディスクを独立させてください。"
+          }
+        }
+      }
+    },
     "「%@」とディスクを共有しているため起動できません。": {
       "localizations": {
         "en": {
