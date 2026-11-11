@@ -37,7 +37,6 @@ final class BuildJobs {
 
     private(set) var awaitingApproval: [ApprovalRequest] = []
     @ObservationIgnored private var plans: [String: StoredPlan] = [:]
-    @ObservationIgnored private var nextPlanID = 1
     @ObservationIgnored private unowned let model: AppModel
     @ObservationIgnored private let state: AgentState
 
@@ -65,12 +64,17 @@ final class BuildJobs {
             return (["plan -\tblocked"] + problems.map(Self.problemLine)).joined(separator: "\n")
         }
         let plan = TopologyPlanner.plan(spec, facts: facts())
-        let id = "p\(nextPlanID)"
-        nextPlanID += 1
+        // Unique across launches: a counter starting again at p1 made an `apply` retried with an
+        // old key and "p1" look like that old request, which then answered with its old job.
+        let id = Self.newPlanID()
         let stored = StoredPlan(id: id, spec: spec, plan: plan, expires: Date.now.addingTimeInterval(Self.planLifetime))
         plans = plans.filter { $0.value.expires > .now }
         plans[id] = stored
         return plan.text(planID: id, expires: stored.expires)
+    }
+
+    static func newPlanID() -> String {
+        "p" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8).lowercased()
     }
 
     private static func problemLine(_ p: PlanProblem) -> String {
