@@ -66,9 +66,10 @@ final class BuildJobs {
         let plan = TopologyPlanner.plan(spec, facts: facts())
         // Unique across launches: a counter starting again at p1 made an `apply` retried with an
         // old key and "p1" look like that old request, which then answered with its old job.
-        let id = Self.newPlanID()
-        let stored = StoredPlan(id: id, spec: spec, plan: plan, expires: Date.now.addingTimeInterval(Self.planLifetime))
         plans = plans.filter { $0.value.expires > .now }
+        var id = Self.newPlanID()
+        while plans[id] != nil { id = Self.newPlanID() }  // short for the client; never two alike
+        let stored = StoredPlan(id: id, spec: spec, plan: plan, expires: Date.now.addingTimeInterval(Self.planLifetime))
         plans[id] = stored
         return plan.text(planID: id, expires: stored.expires)
     }
