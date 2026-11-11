@@ -199,7 +199,7 @@ struct InspectTool {
                 if let group = meta.group { lines.append("group\t\(group)") }
                 if let parent = meta.parent { lines.append("parent\t\(parent.name)") }
                 if meta.pendingInstall != nil { lines.append("pending\tinstall from ISO (start it from the app)") }
-                if meta.pendingIsolation == true { lines.append("pending\tNIC 0 is removed after the first stop") }
+                if meta.pendingIsolation == true { lines.append("pending\tNIC 0 is removed when the VM stops after its first boot has finished") }
             }
             if let changed = model.restartNeeded[name], !changed.isEmpty {
                 lines.append("restart_needed\tnetworks changed: \(changed.sorted().joined(separator: ","))")

@@ -220,7 +220,7 @@ private struct InstanceNoticeBanner: View {
             }
         } else if model.metadata[instance.name]?.pendingIsolation == true {
             banner(icon: "lock.shield", color: .orange,
-                   text: String(localized: "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。")) {
+                   text: String(localized: "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けます。最初の起動が終わったあとに停止すると自動で外れ、次の起動から隔離されます。")) {
                 EmptyView()
             }
         } else if let owner = model.sharedDiskOwners[instance.name] {

@@ -14305,18 +14305,18 @@
         }
       }
     },
-    "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。": {
+    "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けます。最初の起動が終わったあとに停止すると自動で外れ、次の起動から隔離されます。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preparing isolation: NIC 0 (Lima's user-mode NAT) is attached for this first boot only. It comes off automatically once the VM stops, and the next start is isolated."
+            "value": "Preparing isolation: NIC 0 (Lima's user-mode NAT) is attached for the first boot only. It comes off automatically when the VM stops after that boot has finished, and the next start is isolated."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けています。停止すると自動で外れ、次の起動から隔離されます。"
+            "value": "隔離の準備中: 最初の起動だけ NIC 0（Lima のユーザーモード NAT）を付けます。最初の起動が終わったあとに停止すると自動で外れ、次の起動から隔離されます。"
           }
         }
       }

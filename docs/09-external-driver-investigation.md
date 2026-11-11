@@ -175,7 +175,7 @@ Lima の vz を写した。`VZMachine` が `vmOpts.vz.rosetta.enabled` のとき
 
 ## 残件 9（2026-11-05）: 隔離のプリセット
 
-作成画面の「隔離した仮想マシンとして作る」は、ドライバー・NIC 0 なし（`usernet: false`）・ホームの共有なし・NIC 1 の候補はゲスト専用ネットワークだけ、をまとめて設定するトグル。Alpine や古い systemd のゲストは残件 6 の socat に網が要るので、「最初の 1 回だけ NIC 0 を付けて起動する」（`prepareFirstBoot`）を選ぶと usernet 付きで作り、記録（`hanalima-vm.json`）の `pendingIsolation` を見て、最初の停止のあとに HanaLima が `usernet = false` を書く（`applyPendingIsolation`）。この 1 回の起動でプロビジョニング（apt・dnf・apk）も済ませられる。docs/06 §9 も参照。
+作成画面の「隔離した仮想マシンとして作る」は、ドライバー・NIC 0 なし（`usernet: false`）・ホームの共有なし・NIC 1 の候補はゲスト専用ネットワークだけ、をまとめて設定するトグル。Alpine や古い systemd のゲストは残件 6 の socat に網が要るので、「最初の 1 回だけ NIC 0 を付けて起動する」（`prepareFirstBoot`）を選ぶと usernet 付きで作り、記録（`hanalima-vm.json`）の `pendingIsolation` を見て、起動を終えて停止したら HanaLima が `usernet = false` を書く（`applyPendingIsolation`）。起動を終えたかは `ha.stdout.log` の `running` のイベントで見るので、作成しただけで起動していない VM は外さない。この 1 回の起動でプロビジョニング（apt・dnf・apk）も済ませられる。docs/06 §9 も参照。
 
 ## 検証済みのゲストと E2E（2026-11-06）
 

@@ -97,3 +97,15 @@ public struct WatchEvent: Decodable, Sendable, Hashable {
             || s.cloudInitProgress?.completed == true
     }
 }
+
+extension WatchEvent {
+    /// Whether the VM's last start finished booting (Lima's "running", which comes after the
+    /// boot scripts). The host agent writes a start's events to `ha.stdout.log`, emptied by
+    /// each start and left after the stop, so this holds after the app was closed too.
+    public static func lastStartFinishedBooting(instanceDir: URL) -> Bool {
+        guard let text = try? String(contentsOf: instanceDir.appending(path: "ha.stdout.log"), encoding: .utf8) else { return false }
+        return text.split(whereSeparator: \.isNewline).contains {
+            (try? JSONDecoder().decode(Event.self, from: Data($0.utf8)))?.status.running == true
+        }
+    }
+}

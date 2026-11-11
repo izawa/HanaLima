@@ -95,6 +95,21 @@ import Testing
         #expect(!ev.affectsStatus)
         #expect(ev.summary == "forwarding tcp 0.0.0.0:80 to 127.0.0.1:8080")
     }
+
+    /// The isolation preset removes usernet only after a start that finished booting.
+    @Test func lastStartFinishedBooting() throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "hanalima-ha-\(UUID())", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(!WatchEvent.lastStartFinishedBooting(instanceDir: dir))  // created, never started
+        let log = dir.appending(path: "ha.stdout.log")
+        let booting = #"{"time":"2026-11-09T14:37:44+09:00","status":{"sshLocalPort":57292}}"# + "\n"
+        try (booting + #"{"time":"2026-11-09T14:40:00+09:00","status":{"exiting":true}}"# + "\n").write(to: log, atomically: true, encoding: .utf8)
+        #expect(!WatchEvent.lastStartFinishedBooting(instanceDir: dir))  // stopped mid-boot
+        try (booting + #"{"time":"2026-11-09T14:37:47+09:00","status":{"running":true,"sshLocalPort":57292}}"# + "\n")
+            .write(to: log, atomically: true, encoding: .utf8)
+        #expect(WatchEvent.lastStartFinishedBooting(instanceDir: dir))
+    }
 }
 
 @Suite struct LogEntryTests {

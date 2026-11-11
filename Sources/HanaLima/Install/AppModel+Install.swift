@@ -3,10 +3,12 @@ import LimaKit
 
 extension AppModel {
     /// The isolation preset's second step: a VM created with usernet for its first boot (so the
-    /// guest could install the vsock SSH relay) has stopped, so usernet comes off now and the
-    /// next start is isolated.
+    /// guest could install the vsock SSH relay) has finished booting and stopped, so usernet
+    /// comes off now and the next start is isolated. One created without starting, or whose
+    /// start failed, keeps usernet; a hibernated one too, as its saved state needs the same devices.
     func applyPendingIsolation() {
-        for inst in instances where metadata[inst.name]?.pendingIsolation == true && inst.status == .stopped && !isBusy(inst.name) {
+        for inst in instances where metadata[inst.name]?.pendingIsolation == true && inst.status == .stopped && !isBusy(inst.name)
+            && !SavedState.exists(instanceDir: inst.instanceDir) && WatchEvent.lastStartFinishedBooting(instanceDir: inst.instanceDir) {
             let name = inst.name
             edit(name, set: [".vmOpts.hanalima.usernet = false"]) { [weak self] ok in
                 guard let self, ok, var meta = self.metadata[name] else { return }
