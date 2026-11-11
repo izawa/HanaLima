@@ -30,7 +30,7 @@ struct GroupRunSheet: View {
                             ForEach(GroupConfirmation.allCases.filter { step.confirmations[$0] != nil }, id: \.self) { kind in
                                 Toggle(isOn: binding(step.name, kind)) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(confirmationTitle(kind, detail: step.confirmations[kind] ?? ""))
+                                        Text(kind.title(detail: step.confirmations[kind] ?? ""))
                                         if kind == .allowNetworkConflict {
                                             Text(step.confirmations[kind] ?? "").font(.caption).foregroundStyle(.secondary)
                                         }
@@ -106,13 +106,6 @@ struct GroupRunSheet: View {
                 set: { on in
                     if on { approved[name, default: []].insert(kind) } else { approved[name]?.remove(kind) }
                 })
-    }
-
-    private func confirmationTitle(_ kind: GroupConfirmation, detail: String) -> String {
-        switch kind {
-        case .removeDeletedNICs: String(localized: "削除したネットワーク（\(detail)）の NIC を外して起動する")
-        case .allowNetworkConflict: String(localized: "socket_vmnet と HanaLima の仮想ネットワークを同時に使って起動する")
-        }
     }
 
     /// Memory for a start; free space for a hibernation (docs/12 5.3). Notes, not blockers:
@@ -233,6 +226,16 @@ struct GroupRunPanel: View {
         case .failed(let why)?: why
         case .notRun?: String(localized: "行いませんでした。")
         case nil: nil
+        }
+    }
+}
+
+extension GroupConfirmation {
+    /// The checkbox's text, shared by the group sheet and the AI approval sheet.
+    func title(detail: String) -> String {
+        switch self {
+        case .removeDeletedNICs: String(localized: "削除したネットワーク（\(detail)）の NIC を外して起動する")
+        case .allowNetworkConflict: String(localized: "socket_vmnet と HanaLima の仮想ネットワークを同時に使って起動する")
         }
     }
 }

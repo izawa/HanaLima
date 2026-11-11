@@ -540,6 +540,17 @@ final class AppModel {
         run(.restart, on: name, client.restart(name))
     }
 
+    /// Restarts `name` and waits; returns the error, or nil. The checks the app asks about
+    /// (deleted-network NICs, the socket_vmnet mix) refuse here instead: the person decides
+    /// those in the app.
+    func restartNow(_ name: String) async -> String? {
+        guard let client, let inst = instance(named: name) else { return "not found" }
+        if let reason = diskUnusableReason(name) { return reason.title }
+        if !deletedNetworkSockets(of: inst).isEmpty { return "it has NICs on deleted networks; restart it in the app" }
+        if networkConflict(starting: name) != nil { return "it would mix socket_vmnet and HanaLima networks; restart it in the app" }
+        return await perform(.restart, on: name, client.restart(name))
+    }
+
     /// Selects `name` and asks its detail view to show the console.
     func openConsole(_ name: String) {
         selection = .instance(name)

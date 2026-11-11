@@ -145,13 +145,20 @@ struct MenuBarLabel: View {
                 // If the app last quit with its window closed, window restoration brings back
                 // "no window" (and .defaultLaunchBehavior doesn't override that), leaving only
                 // this icon. Open the main window on launch in that case.
-                if !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
+                if AppSettings.opensWindowAtLaunch,
+                   !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
                     openWindow(id: "main")
                 }
                 await model.bootstrap()
             }
             // A hibernated VM that couldn't resume asks what to do in the main window. The start
             // may have come from the menu with the window closed, and the question comes later.
+            // AI asks for an approval, which only the main window can give.
+            .onChange(of: model.agentHost.vmJobs.awaitingApproval.first?.jobID) { _, id in
+                guard id != nil else { return }
+                openWindow(id: "main")
+                NSApp.activate()
+            }
             .onChange(of: model.pendingDiscard?.id) { _, id in
                 guard id != nil else { return }
                 openWindow(id: "main")

@@ -92,6 +92,11 @@ struct ContentView: View {
         }
         .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source, snapshot: $0.snapshot) }
         .sheet(item: $model.groupRunRequest) { GroupRunSheet(request: $0) }
+        .sheet(isPresented: Binding(get: { !model.agentHost.vmJobs.awaitingApproval.isEmpty }, set: { _ in })) {
+            if let plan = model.agentHost.vmJobs.awaitingApproval.first {
+                AgentApprovalSheet(plan: plan).id(plan.jobID)
+            }
+        }
         .onChange(of: model.installRequest) { _, request in
             guard let request else { return }
             model.installRequest = nil

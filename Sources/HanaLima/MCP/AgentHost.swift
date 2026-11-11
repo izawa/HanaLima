@@ -21,9 +21,12 @@ final class AgentHost {
     @ObservationIgnored private var server: UnixSocketServer?
     @ObservationIgnored private var lock: ListenerLock?
     @ObservationIgnored private let paths = MCPPaths.current()
+    /// The `vm` and `job` tools' jobs and the approvals they wait for.
+    let vmJobs: VMJobs
 
     init(model: AppModel) {
         self.model = model
+        vmJobs = VMJobs(model: model)
     }
 
     /// At launch: points `mcp.json` at this app's helper and starts listening if the setting is on.
@@ -47,7 +50,7 @@ final class AgentHost {
                 state = .otherInstance
                 return
             }
-            let server = UnixSocketServer(path: paths.socket.path) { [weak self] line, peer in
+            let server = UnixSocketServer(path: paths.socket.path, maxConnections: VMJobs.maxWaits * 2) { [weak self] line, peer in
                 await self?.handle(line, peer: peer) ?? Self.encode(AgentResponse(text: "HanaLima is shutting down.", isError: true))
             }
             try server.start()
@@ -115,17 +118,21 @@ final class AgentHost {
             default: return AgentResponse(text: "HanaLima is still loading; try again in a few seconds.", isError: true)
             }
         }
-        switch request.tool {
-        case ToolCatalog.inspect.name:
-            do {
-                return AgentResponse(text: try InspectTool(model: model).run(request.arguments), isError: false)
-            } catch InspectTool.Failure.invalid(let message) {
-                return AgentResponse(text: message, isError: true)
-            } catch {
-                return AgentResponse(text: "\(error)", isError: true)
+        do {
+            let text: String
+            switch request.tool {
+            case ToolCatalog.inspect.name: text = try InspectTool(model: model).run(request.arguments)
+            case ToolCatalog.vm.name: text = try vmJobs.submit(request.arguments)
+            case ToolCatalog.job.name: text = try await vmJobs.job(request.arguments)
+            default: return AgentResponse(text: "Not available in this version: \(request.tool)", isError: true)
             }
-        default:
-            return AgentResponse(text: "Not available in this version: \(request.tool)", isError: true)
+            return AgentResponse(text: text, isError: false)
+        } catch InspectTool.Failure.invalid(let message) {
+            return AgentResponse(text: message, isError: true)
+        } catch VMJobs.Failure.invalid(let message) {
+            return AgentResponse(text: message, isError: true)
+        } catch {
+            return AgentResponse(text: "\(error)", isError: true)
         }
     }
 

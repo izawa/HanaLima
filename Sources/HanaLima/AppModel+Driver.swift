@@ -16,25 +16,33 @@ extension AppModel {
         return nil
     }
 
-    func pause(_ name: String) { sendPauseOp(.pause, kind: .pause, to: name) }
-    func resume(_ name: String) { sendPauseOp(.resume, kind: .resume, to: name) }
+    func pause(_ name: String) { Task { await sendPauseOpShowingErrors(.pause, kind: .pause, to: name) } }
+    func resume(_ name: String) { Task { await sendPauseOpShowingErrors(.resume, kind: .resume, to: name) } }
 
-    private func sendPauseOp(_ op: DriverControl.Op, kind: Operation.Kind, to name: String) {
-        guard let instance = instance(named: name), instance.usesHanaLimaDriver, !isBusy(name) else { return }
+    private func sendPauseOpShowingErrors(_ op: DriverControl.Op, kind: Operation.Kind, to name: String) async {
+        if let error = await sendPauseOp(op, kind: kind, to: name) {
+            alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"), message: error)
+        }
+    }
+
+    /// Asks the driver to pause or resume; returns the error, or nil.
+    func sendPauseOp(_ op: DriverControl.Op, kind: Operation.Kind, to name: String) async -> String? {
+        guard let instance = instance(named: name), instance.usesHanaLimaDriver else { return "not a hanalima VM" }
+        guard !isBusy(name) else { return "busy with another operation" }
         let dir = instance.instanceDir
         operations[name] = Operation(kind: kind)
         pauseEpochs[name, default: 0] += 1
-        Task {
-            do {
-                let response = try await Task.detached { try DriverControl.send(DriverControl.Request(op: op), instanceDir: dir) }.value
-                if ["paused", "pausing"].contains(response.state) { pausedInstances.insert(name) } else { pausedInstances.remove(name) }
-            } catch {
-                alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"), message: "\(error)")
-            }
-            // Pause and resume take milliseconds; nothing to keep on screen.
-            operations[name] = nil
-            pauseEpochs[name, default: 0] += 1
+        var failure: String?
+        do {
+            let response = try await Task.detached { try DriverControl.send(DriverControl.Request(op: op), instanceDir: dir) }.value
+            if ["paused", "pausing"].contains(response.state) { pausedInstances.insert(name) } else { pausedInstances.remove(name) }
+        } catch {
+            failure = "\(error)"
         }
+        // Pause and resume take milliseconds; nothing to keep on screen.
+        operations[name] = nil
+        pauseEpochs[name, default: 0] += 1
+        return failure
     }
 
     /// Asks each running `hanalima` VM's driver whether it's paused (also after a relaunch:

@@ -66,9 +66,15 @@ extension AppModel {
         groupRunRequest = GroupRunRequest(group: name, plan: plan, runningMemory: runningMemory, freeSpace: free)
     }
 
-    /// What the planner needs to know about each member, in group order.
-    private func memberFacts(_ members: [String], for action: GroupAction, group: String) -> [GroupMemberFacts] {
-        let others = groupRuns.filter { $0.key != runKey(group) }.values.reduce(into: Set<UUID>()) { $0.formUnion($1.pending) }
+    /// The VM names of `group`, in sidebar order (nil: no such group).
+    func groupMembers(_ group: String) -> [String]? {
+        sidebarGroups.first { $0.name.caseInsensitiveCompare(group) == .orderedSame }?.members
+    }
+
+    /// What the planner needs to know about each member, in group order. `group`: the group
+    /// being run, whose own pending steps don't count as another run's (nil: all runs count).
+    func memberFacts(_ members: [String], for action: GroupAction, group: String? = nil) -> [GroupMemberFacts] {
+        let others = groupRuns.filter { $0.key != group.map(runKey) }.values.reduce(into: Set<UUID>()) { $0.formUnion($1.pending) }
         // A start checks the socket_vmnet mix against the running VMs and the ones it starts first.
         var startingFirst: [String] = instances.filter(\.isRunning).map(\.name)
         return members.compactMap { name -> GroupMemberFacts? in
@@ -121,13 +127,13 @@ extension AppModel {
 
     /// The current name of the VM a step was planned for: it may have been renamed since, and a
     /// VM deleted and made again under the same name is another VM (docs/12 5.3).
-    private func currentName(of step: GroupPlan.Step) -> String? {
+    func currentName(of step: GroupPlan.Step) -> String? {
         if metadata[step.name]?.id == step.id { return step.name }
         return metadata.first { $0.value.id == step.id }?.key
     }
 
     /// Why a step can no longer run as planned, checked just before it (nil: go ahead).
-    private func recheck(_ step: GroupPlan.Step, action: GroupAction) -> String? {
+    func recheck(_ step: GroupPlan.Step, action: GroupAction) -> String? {
         guard let name = currentName(of: step), let inst = instance(named: name) else {
             return String(localized: "見つかりません（削除されたか、作り直されました）。")
         }
@@ -143,7 +149,7 @@ extension AppModel {
         }
     }
 
-    private func performStep(_ step: GroupPlan.Step, action: GroupAction,
+    func performStep(_ step: GroupPlan.Step, action: GroupAction,
                              approvals: Set<GroupConfirmation>) async -> GroupStepReport {
         guard let client, let name = currentName(of: step) else { return .failed(String(localized: "見つかりません。")) }
         switch action {

@@ -150,11 +150,33 @@ extension AppModel {
 
     private func diskSnapshotOperation(_ kind: Operation.Kind, _ name: String,
                                        _ work: @escaping @Sendable (URL) throws -> Void) {
-        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !isHibernated(name) else { return }
-        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
-        runFileOperation(kind, name: name, showsProgress: false) { _ in try work(dir) } completion: { [weak self] _ in
-            self?.loadDiskSnapshots(name)
+        Task {
+            if let error = await performDiskSnapshot(kind, name, work) {
+                alert = AlertMessage(title: String(localized: "\(name) の\(kind.label)に失敗しました"), message: error)
+            }
         }
+    }
+
+    /// A VZ snapshot operation on a stopped VM; returns the error, or nil.
+    func performDiskSnapshot(_ kind: Operation.Kind, _ name: String,
+                             _ work: @escaping @Sendable (URL) throws -> Void) async -> String? {
+        guard let inst = instance(named: name), !inst.isRunning, !isBusy(name), !isHibernated(name) else {
+            return String(localized: "停止していて、ほかの処理をしていない仮想マシンだけです。")
+        }
+        let dir = URL(filePath: inst.dir, directoryHint: .isDirectory)
+        operations[name] = Operation(kind: kind)
+        let failure = await Task.detached { () -> String? in
+            do { try work(dir); return nil } catch { return error.localizedDescription }
+        }.value
+        if let failure {
+            operations[name]?.error = failure
+            operations[name]?.isRunning = false
+        } else {
+            operations[name] = nil
+        }
+        loadDiskSnapshots(name)
+        await refresh()
+        return failure
     }
 
     func createDiskSnapshot(_ name: String, title: String) {

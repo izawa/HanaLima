@@ -168,9 +168,21 @@ public enum GroupRunner {
         perform: @Sendable (GroupPlan.Step, Set<GroupConfirmation>) async -> GroupStepReport,
         progress: @Sendable (GroupStepResult) async -> Void
     ) async -> [GroupStepResult] {
+        await run(plan.steps, approved: approved, isCancelled: isCancelled, recheck: recheck, perform: perform, progress: progress)
+    }
+
+    /// The same for steps of any operation (the MCP `vm` tool runs actions groups don't have).
+    public static func run(
+        _ steps: [GroupPlan.Step],
+        approved: [String: Set<GroupConfirmation>],
+        isCancelled: @Sendable () async -> Bool,
+        recheck: @Sendable (GroupPlan.Step) async -> String?,
+        perform: @Sendable (GroupPlan.Step, Set<GroupConfirmation>) async -> GroupStepReport,
+        progress: @Sendable (GroupStepResult) async -> Void
+    ) async -> [GroupStepResult] {
         var results: [GroupStepResult] = []
         var stopped = false
-        for step in plan.steps {
+        for step in steps {
             let outcome: GroupStepOutcome
             if !stopped { stopped = await isCancelled() }
             if stopped {

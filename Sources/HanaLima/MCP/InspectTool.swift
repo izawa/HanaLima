@@ -306,11 +306,13 @@ struct InspectTool {
         return out.joined(separator: "\n")
     }
 
-    /// Stage 1 has no MCP jobs yet; this lists what the app is doing now.
+    /// The MCP jobs, newest first (in memory: they end with the app).
     private func jobs() -> String {
-        let running = model.operations.filter(\.value.isRunning).sorted { $0.key < $1.key }
-        var lines = ["# jobs \(running.count)", "vm\toperation"]
-        lines += running.map { "\($0.key)\t\($0.value.kind)" }
+        let store = model.agentHost.vmJobs.store
+        store.expireStale()
+        let jobs = store.jobs
+        let lines = ["# jobs \(jobs.count) (kept in memory; quitting HanaLima drops them)"]
+            + jobs.prefix(20).map { "\($0.id)\t\($0.state.rawValue)\t\($0.summary)" }
         return lines.joined(separator: "\n")
     }
 

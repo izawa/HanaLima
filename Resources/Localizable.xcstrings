@@ -843,6 +843,22 @@
         }
       }
     },
+    "AI が仮想マシンの操作を求めています: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI is asking to operate virtual machines: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI が仮想マシンの操作を求めています: %@"
+          }
+        }
+      }
+    },
     "AI（MCP）": {
       "localizations": {
         "en": {
@@ -1881,6 +1897,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "MAC: %@"
+          }
+        }
+      }
+    },
+    "MCP クライアントからの依頼です。許可した操作だけを、この順に実行します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This request comes from an MCP client. Only what you allow runs, in this order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP クライアントからの依頼です。許可した操作だけを、この順に実行します。"
           }
         }
       }
@@ -6265,6 +6297,38 @@
         }
       }
     },
+    "スナップショット「%@」に戻す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore snapshot “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショット「%@」に戻す"
+          }
+        }
+      }
+    },
+    "スナップショット「%@」の作成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create snapshot “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショット「%@」の作成"
+          }
+        }
+      }
+    },
     "スナップショット「%@」を作成できませんでした": {
       "localizations": {
         "en": {
@@ -10111,6 +10175,22 @@
         }
       }
     },
+    "停止していて、ほかの処理をしていない仮想マシンだけです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only for a stopped virtual machine that isn’t busy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止していて、ほかの処理をしていない仮想マシンだけです。"
+          }
+        }
+      }
+    },
     "停止しています。": {
       "localizations": {
         "en": {
@@ -13570,6 +13650,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定変更中"
+          }
+        }
+      }
+    },
+    "許可しない": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don’t Allow"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可しない"
+          }
+        }
+      }
+    },
+    "許可する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可する"
           }
         }
       }

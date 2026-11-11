@@ -22,6 +22,8 @@ struct HanaLimaApp: App {
                 .task { await model.bootstrap() }
         }
         .defaultSize(width: 1100, height: 720)
+        .defaultLaunchBehavior(AppSettings.opensWindowAtLaunch ? .automatic : .suppressed)
+        .restorationBehavior(AppSettings.launchedByMCP ? .disabled : .automatic)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("新規仮想マシン…") { model.createRequested = true }
@@ -39,6 +41,7 @@ struct HanaLimaApp: App {
             InstallerWindowView()
                 .environment(model)
         }
+        .restorationBehavior(AppSettings.launchedByMCP ? .disabled : .automatic)
         .windowResizability(.contentSize)
 
         // The rescue boot's screen (the VM run by HanaLima, see RescueSession).
@@ -46,6 +49,7 @@ struct HanaLimaApp: App {
             RescueWindowView()
                 .environment(model)
         }
+        .restorationBehavior(AppSettings.launchedByMCP ? .disabled : .automatic)
         .windowResizability(.contentSize)
 
         MenuBarExtra(isInserted: $showMenuBarExtra) {
@@ -92,6 +96,11 @@ enum AppSettings {
 
     /// Set by `hanalima-mcp` when it launches the app (`open -g --env`): stay in the background.
     static var launchedByMCP: Bool { ProcessInfo.processInfo.environment["HANALIMA_MCP_LAUNCH"] == "1" }
+
+    /// A launch by the MCP helper stays out of sight, but only while the menu bar item is shown:
+    /// that item is what opens the window later (for an approval), and without it the user
+    /// would have no way in.
+    static var opensWindowAtLaunch: Bool { !(launchedByMCP && isMenuBarExtraShown) }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
