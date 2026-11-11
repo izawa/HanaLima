@@ -2,16 +2,18 @@ import Foundation
 
 public enum JobState: String, Sendable, Codable {
     case awaitingApproval, running, succeeded, partial, failed, cancelled, denied, expired
+    /// Running or waiting when the app quit: nothing resumes it; plan again to finish.
+    case interrupted
 
     public var isFinished: Bool {
         switch self {
         case .awaitingApproval, .running: false
-        case .succeeded, .partial, .failed, .cancelled, .denied, .expired: true
+        case .succeeded, .partial, .failed, .cancelled, .denied, .expired, .interrupted: true
         }
     }
 }
 
-public struct JobTargetResult: Sendable, Equatable {
+public struct JobTargetResult: Sendable, Equatable, Codable {
     public var target: String
     public var outcome: String
     public var message: String?
@@ -23,7 +25,7 @@ public struct JobTargetResult: Sendable, Equatable {
     }
 }
 
-public struct Job: Sendable, Equatable {
+public struct Job: Sendable, Equatable, Codable {
     public let id: String
     public let key: String
     public let tool: String
@@ -50,7 +52,7 @@ public final class JobStore {
     private let now: @MainActor () -> Date
     private let approvalTimeout: TimeInterval
     private let keep: Int
-    private var nextID = 1
+    public private(set) var nextID = 1
     private var stored: [Job] = []
 
     private struct Waiter {
@@ -68,6 +70,17 @@ public final class JobStore {
         self.now = now
         self.approvalTimeout = approvalTimeout
         self.keep = max(0, keep)
+    }
+
+    /// The jobs saved at the last quit (AgentState): unfinished ones become interrupted.
+    public convenience init(restoring jobs: [Job], nextID: Int) {
+        self.init()
+        stored = jobs.map { job in
+            var job = job
+            if !job.state.isFinished { job.state = .interrupted; job.current = nil }
+            return job
+        }
+        self.nextID = max(nextID, 1)
     }
 
     /// The job already filed under `key` for the same request (nil: none), or keyConflict. The

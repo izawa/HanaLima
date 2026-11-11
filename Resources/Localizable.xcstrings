@@ -859,6 +859,22 @@
         }
       }
     },
+    "AI が削除を求めています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI is asking to delete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI が削除を求めています"
+          }
+        }
+      }
+    },
     "AI（MCP）": {
       "localizations": {
         "en": {
@@ -1897,6 +1913,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "MAC: %@"
+          }
+        }
+      }
+    },
+    "MCP で作った仮想マシンとネットワークです。仮想マシンはディスクとスナップショットも消え、元に戻せません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These virtual machines and networks were made through MCP. Deleting a virtual machine removes its disk and snapshots too, and can’t be undone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP で作った仮想マシンとネットワークです。仮想マシンはディスクとスナップショットも消え、元に戻せません。"
           }
         }
       }
@@ -10827,6 +10859,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "削除した仮想マシン「%@」の外付けのディスク"
+          }
+        }
+      }
+    },
+    "削除する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除する"
           }
         }
       }

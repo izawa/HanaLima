@@ -610,12 +610,28 @@ final class AppModel {
 
     func delete(_ name: String, force: Bool = false) {
         guard let client else { return }
+        let cleanUp = deletionCleanUp(name)
+        run(.delete, on: name, client.delete(name, force: force)) { ok in if ok { cleanUp() } }
+    }
+
+    /// Deletes `name` (stopping it first) and waits; returns the error, or nil.
+    func deleteNow(_ name: String) async -> String? {
+        guard let client else { return "HanaLima has no limactl" }
+        let cleanUp = deletionCleanUp(name)
+        if let error = await perform(.delete, on: name, client.delete(name, force: true)) { return error }
+        cleanUp()
+        return nil
+    }
+
+    /// What deleting `name` leaves for HanaLima to remove (its snapshots, a moved disk), read
+    /// before the delete while the VM is still listed.
+    private func deletionCleanUp(_ name: String) -> @MainActor () -> Void {
         let placement = instance(named: name).map { diskPlacement(of: $0) } ?? .local
         let dir = instance(named: name).map { URL(filePath: $0.dir, directoryHint: .isDirectory) }
         let shared = sharedDiskOwners[name] != nil
         let recordID = metadata[name]?.id
-        run(.delete, on: name, client.delete(name, force: force)) { [weak self] ok in
-            guard let self, ok else { return }
+        return { [weak self] in
+            guard let self else { return }
             if let recordID, let dir {
                 DiskSnapshot.removeLocalSnapshots(limaHome: dir.deletingLastPathComponent(), id: recordID)
             }
@@ -624,6 +640,19 @@ final class AppModel {
             self.events[name] = nil
             if self.selection == .instance(name) { self.selection = self.instances.first.map { .instance($0.name) } }
         }
+    }
+
+    /// Creates a VM and waits (no start); returns the error, or nil. The record is written as by
+    /// the create sheet.
+    func createNow(_ options: CreateOptions, template: String, group: String?) async -> String? {
+        guard let client else { return "HanaLima has no limactl" }
+        pendingGroups[options.name] = group
+        if let error = await perform(.create, on: options.name, client.create(options)) {
+            pendingGroups[options.name] = nil
+            return error
+        }
+        recordCreation(of: options.name, template: template)
+        return nil
     }
 
     /// Applies `limactl edit --set` expressions. `completion` gets whether it succeeded.

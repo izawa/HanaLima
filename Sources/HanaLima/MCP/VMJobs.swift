@@ -42,7 +42,8 @@ final class VMJobs {
 
     enum Failure: Error { case invalid(String) }
 
-    let store = JobStore()
+    let store: JobStore
+    @ObservationIgnored private let state: AgentState
     /// Plans of the jobs waiting for approval, oldest first; the sheet shows the first.
     private(set) var awaitingApproval: [Plan] = []
     /// Waits hold a socket connection each; past this many, a wait answers at once so that
@@ -51,10 +52,12 @@ final class VMJobs {
     @ObservationIgnored private var activeWaits = 0
     @ObservationIgnored private unowned let model: AppModel
 
-    init(model: AppModel) {
+    init(model: AppModel, state: AgentState) {
         self.model = model
+        self.state = state
+        store = state.jobs
         // An approval that expired or was cancelled by the client leaves the sheet.
-        store.onChange = { [weak self] in self?.pruneApprovals() }
+        state.observe { [weak self] in self?.pruneApprovals() }
     }
 
     // MARK: - Tools
@@ -83,14 +86,18 @@ final class VMJobs {
         let summary = "\(action.rawValue) \(names.joined(separator: ", "))" + (tag.map { " (\($0))" } ?? "")
         let draft = makePlan(action: action, names: names, tag: tag, summary: summary)
         // Nothing to do (all already running, say): no approval to ask for, just the reasons.
-        let (job, _) = try store.submit(key: key, tool: "vm", input: arguments, summary: summary, needsApproval: !draft.steps.isEmpty)
+        // VMs MCP made need no approval either (docs/14 §6.1).
+        let needsApproval = draft.steps.contains { !state.ownsVM($0.id) }
+        let (job, _) = try store.submit(key: key, tool: "vm", input: arguments, summary: summary, needsApproval: needsApproval)
         var plan = draft
         plan.jobID = job.id
         if plan.steps.isEmpty {
             recordSkips(plan)
             store.finish(job.id)
-        } else {
+        } else if needsApproval {
             awaitingApproval.append(plan)
+        } else {
+            Task { await run(plan, confirmations: [:]) }
         }
         return JobStore.text(store.job(job.id) ?? job, detail: true)
     }

@@ -21,12 +21,20 @@ final class AgentHost {
     @ObservationIgnored private var server: UnixSocketServer?
     @ObservationIgnored private var lock: ListenerLock?
     @ObservationIgnored private let paths = MCPPaths.current()
+    /// Jobs and the ledger of what MCP made, kept across launches.
+    @ObservationIgnored let agentState: AgentState
     /// The `vm` and `job` tools' jobs and the approvals they wait for.
     let vmJobs: VMJobs
+    /// `plan`, `apply` and `delete`.
+    let buildJobs: BuildJobs
 
     init(model: AppModel) {
         self.model = model
-        vmJobs = VMJobs(model: model)
+        let paths = MCPPaths.current()
+        try? paths.ensureHome()
+        agentState = AgentState(url: paths.home.appendingPathComponent("agent-state.json"))
+        vmJobs = VMJobs(model: model, state: agentState)
+        buildJobs = BuildJobs(model: model, state: agentState)
     }
 
     /// At launch: points `mcp.json` at this app's helper and starts listening if the setting is on.
@@ -67,6 +75,7 @@ final class AgentHost {
 
     private func stop() {
         vmJobs.cancelAll()
+        buildJobs.cancelAll()
         server?.stop()
         server = nil
         lock?.release()
@@ -125,12 +134,17 @@ final class AgentHost {
             case ToolCatalog.inspect.name: text = try InspectTool(model: model).run(request.arguments)
             case ToolCatalog.vm.name: text = try vmJobs.submit(request.arguments)
             case ToolCatalog.job.name: text = try await vmJobs.job(request.arguments)
+            case ToolCatalog.plan.name: text = try buildJobs.plan(request.arguments)
+            case ToolCatalog.apply.name: text = try buildJobs.apply(request.arguments)
+            case ToolCatalog.delete.name: text = try buildJobs.delete(request.arguments)
             default: return AgentResponse(text: "Not available in this version: \(request.tool)", isError: true)
             }
             return AgentResponse(text: text, isError: false)
         } catch InspectTool.Failure.invalid(let message) {
             return AgentResponse(text: message, isError: true)
         } catch VMJobs.Failure.invalid(let message) {
+            return AgentResponse(text: message, isError: true)
+        } catch BuildJobs.Failure.invalid(let message) {
             return AgentResponse(text: message, isError: true)
         } catch {
             return AgentResponse(text: "\(error)", isError: true)

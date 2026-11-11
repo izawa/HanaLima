@@ -153,19 +153,26 @@ extension AppModel {
     }
 
     func deleteVirtualNetwork(_ name: String) async {
+        if let error = await deleteVirtualNetworkNow(name) {
+            alert = AlertMessage(title: String(localized: "ネットワーク「\(name)」を削除できませんでした"), message: error)
+        }
+    }
+
+    /// Deletes the network; returns the error, or nil.
+    func deleteVirtualNetworkNow(_ name: String) async -> String? {
         if let network = virtualNetworks.first(where: { $0.name == name }) { markRestartNeeded(using: network) }
         await markRestartNeededForStaleHelpers()
         let remaining = virtualNetworks.filter { $0.name != name }
         do {
             try NetworkStore.save(remaining)
         } catch {
-            alert = AlertMessage(title: String(localized: "ネットワーク「\(name)」を削除できませんでした"), message: error.localizedDescription)
-            return
+            return error.localizedDescription
         }
         await Task.detached { LaunchAgentManager().uninstall(name) }.value
         virtualNetworks = remaining
         networkStates[name] = nil
         networkStatuses[name] = nil
+        return nil
     }
 
     // MARK: - After a network changes
