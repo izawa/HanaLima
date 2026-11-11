@@ -97,8 +97,8 @@ struct ContentView: View {
                 AgentApprovalSheet(plan: plan).id(plan.jobID)
             }
         }
-        .sheet(item: Binding(get: { model.agentHost.buildJobs.awaitingDelete.first }, set: { _ in })) {
-            DeleteApprovalSheet(request: $0)
+        .sheet(item: Binding(get: { model.agentHost.buildJobs.awaitingApproval.first }, set: { _ in })) {
+            BuildApprovalSheet(request: $0)
         }
         .onChange(of: model.installRequest) { _, request in
             guard let request else { return }

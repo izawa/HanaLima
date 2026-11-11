@@ -159,7 +159,7 @@ struct MenuBarLabel: View {
                 openWindow(id: "main")
                 NSApp.activate()
             }
-            .onChange(of: model.agentHost.buildJobs.awaitingDelete.first?.jobID) { _, id in
+            .onChange(of: model.agentHost.buildJobs.awaitingApproval.first?.jobID) { _, id in
                 guard id != nil else { return }
                 openWindow(id: "main")
                 NSApp.activate()

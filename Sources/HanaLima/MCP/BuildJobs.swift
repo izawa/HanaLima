@@ -19,20 +19,23 @@ final class BuildJobs {
         let expires: Date
     }
 
-    /// A delete waiting for the person (deletes always need approval, docs/14 §6.1).
-    struct DeleteRequest: Identifiable {
+    /// A job waiting for the person (docs/14 §6.1): every delete, and a build that needs it
+    /// (more memory than the Mac has, say).
+    struct ApprovalRequest: Identifiable {
+        enum Kind {
+            /// The record id each VM had when the person was asked: a VM made again under the
+            /// same name since is not the one approved.
+            case delete(vms: [String], vmIDs: [String: UUID], networks: [String])
+            case build(spec: TopologySpec, plan: TopologyPlan)
+        }
         let jobID: String
-        let vms: [String]
-        /// The record id each VM had when the person was asked: a VM made again under the
-        /// same name since is not the one approved.
-        let vmIDs: [String: UUID]
-        let networks: [String]
+        let kind: Kind
         var id: String { jobID }
     }
 
     static let planLifetime: TimeInterval = 600
 
-    private(set) var awaitingDelete: [DeleteRequest] = []
+    private(set) var awaitingApproval: [ApprovalRequest] = []
     @ObservationIgnored private var plans: [String: StoredPlan] = [:]
     @ObservationIgnored private var nextPlanID = 1
     @ObservationIgnored private unowned let model: AppModel
@@ -108,12 +111,14 @@ final class BuildJobs {
         if state.jobs.jobs.contains(where: { $0.tool == "apply" && !$0.state.isFinished }) {
             throw Failure.invalid("another build is running; wait for it with job, then plan again")
         }
-        guard now.approvals.isEmpty else {
-            throw Failure.invalid("this plan needs approval (\(now.approvals.joined(separator: "; "))), which stage 2 doesn't ask for yet; make it smaller")
-        }
         let summary = "build " + ([stored.plan.group].compactMap { $0 } + stored.plan.vms.map(\.name)).joined(separator: " ")
-        let (job, _) = try state.jobs.submit(key: key, tool: "apply", input: arguments, summary: summary, needsApproval: false)
-        Task { await run(now, jobID: job.id) }
+        let needsApproval = !now.approvals.isEmpty
+        let (job, _) = try state.jobs.submit(key: key, tool: "apply", input: arguments, summary: summary, needsApproval: needsApproval)
+        if needsApproval {
+            enqueue(ApprovalRequest(jobID: job.id, kind: .build(spec: stored.spec, plan: now)))
+        } else {
+            Task { await run(now, jobID: job.id) }
+        }
         return JobStore.text(job, detail: false)
     }
 
@@ -276,18 +281,38 @@ final class BuildJobs {
         }
         let summary = "delete " + (vms + networks).joined(separator: " ")
         let (job, _) = try state.jobs.submit(key: key, tool: "delete", input: arguments, summary: summary, needsApproval: true)
-        awaitingDelete.append(DeleteRequest(jobID: job.id, vms: vms, vmIDs: vmIDs, networks: networks))
+        enqueue(ApprovalRequest(jobID: job.id, kind: .delete(vms: vms, vmIDs: vmIDs, networks: networks)))
         return JobStore.text(job, detail: false)
     }
 
-    func approve(_ request: DeleteRequest) {
-        awaitingDelete.removeAll { $0.jobID == request.jobID }
-        guard (try? state.jobs.approve(request.jobID)) != nil else { return }
-        Task { await runDelete(request) }
+    /// Queues `request` for the sheet; a debug build run with HANALIMA_MCP_AUTO_APPROVE=1 (the
+    /// MCP E2E test) allows it at once instead.
+    private func enqueue(_ request: ApprovalRequest) {
+        awaitingApproval.append(request)
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["HANALIMA_MCP_AUTO_APPROVE"] == "1" { approve(request) }
+        #endif
     }
 
-    func deny(_ request: DeleteRequest) {
-        awaitingDelete.removeAll { $0.jobID == request.jobID }
+    func approve(_ request: ApprovalRequest) {
+        awaitingApproval.removeAll { $0.jobID == request.jobID }
+        guard (try? state.jobs.approve(request.jobID)) != nil else { return }
+        switch request.kind {
+        case .delete(let vms, let vmIDs, let networks):
+            Task { await runDelete(jobID: request.jobID, vms: vms, vmIDs: vmIDs, networks: networks) }
+        case .build(let spec, let plan):
+            // The Mac may have changed while the person decided.
+            let now = TopologyPlanner.plan(spec, facts: facts())
+            guard now.fingerprint == plan.fingerprint, now.problems.isEmpty else {
+                state.jobs.record(request.jobID, JobTargetResult(target: "plan", outcome: "failed", message: "PLAN_STALE: the Mac changed; plan again"))
+                return finish(request.jobID)
+            }
+            Task { await run(now, jobID: request.jobID) }
+        }
+    }
+
+    func deny(_ request: ApprovalRequest) {
+        awaitingApproval.removeAll { $0.jobID == request.jobID }
         try? state.jobs.deny(request.jobID)
     }
 
@@ -296,23 +321,22 @@ final class BuildJobs {
         for job in state.jobs.jobs where !job.state.isFinished && ["apply", "delete"].contains(job.tool) {
             _ = try? state.jobs.cancel(job.id)
         }
-        awaitingDelete.removeAll()
+        awaitingApproval.removeAll()
     }
 
     private func pruneDeletes() {
-        if awaitingDelete.contains(where: { state.jobs.job($0.jobID)?.state != .awaitingApproval }) {
-            awaitingDelete.removeAll { state.jobs.job($0.jobID)?.state != .awaitingApproval }
+        if awaitingApproval.contains(where: { state.jobs.job($0.jobID)?.state != .awaitingApproval }) {
+            awaitingApproval.removeAll { state.jobs.job($0.jobID)?.state != .awaitingApproval }
         }
     }
 
-    private func runDelete(_ request: DeleteRequest) async {
-        let id = request.jobID
+    private func runDelete(jobID id: String, vms: [String], vmIDs: [String: UUID], networks: [String]) async {
         func stopped() -> Bool { state.jobs.job(id)?.cancelRequested == true }
-        for name in request.vms {
+        for name in vms {
             if stopped() { return finish(id) }
             state.jobs.setCurrent(id, name)
             let error: String?
-            if let approved = request.vmIDs[name], model.metadata[name]?.id == approved, state.ownsVM(approved) {
+            if let approved = vmIDs[name], model.metadata[name]?.id == approved, state.ownsVM(approved) {
                 error = await model.deleteNow(name)
             } else {
                 error = "not the VM that was approved (renamed or made again); left alone"
@@ -325,7 +349,7 @@ final class BuildJobs {
             state.forgetGroup(group)
             state.jobs.record(id, JobTargetResult(target: "group \(group)", outcome: "done"))
         }
-        for name in request.networks {
+        for name in networks {
             if stopped() { return finish(id) }
             state.jobs.setCurrent(id, name)
             var error: String?

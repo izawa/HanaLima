@@ -148,6 +148,10 @@ final class VMJobs {
             store.finish(job.id)
         } else if needsApproval {
             awaitingApproval.append(plan)
+            #if DEBUG
+            // The MCP E2E test: a debug build run with HANALIMA_MCP_AUTO_APPROVE=1 allows at once.
+            if ProcessInfo.processInfo.environment["HANALIMA_MCP_AUTO_APPROVE"] == "1" { approve(plan, confirmations: [:]) }
+            #endif
         } else {
             Task { await run(plan, confirmations: [:]) }
         }
