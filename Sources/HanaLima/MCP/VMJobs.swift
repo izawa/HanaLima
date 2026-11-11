@@ -370,7 +370,9 @@ final class VMJobs {
             error = await model.performDiskSnapshot(.snapshotApply, name) { dir in try DiskSnapshot.restore(snapshot, of: dir, into: dir) }
         case .exec:
             guard let exec = plan.exec else { return .failed("no script") }
-            let result = await model.runGuestScript(name, script: exec.script, timeout: exec.timeout, keepBytes: exec.keepBytes)
+            let id = plan.jobID
+            let result = await model.runGuestScript(name, script: exec.script, timeout: exec.timeout, keepBytes: exec.keepBytes,
+                                                    stop: { [weak self] in self?.store.job(id)?.cancelRequested ?? true })
             outputs[plan.jobID, default: [:]][step.name] = result.output
             if let failure = result.error { error = failure }
             else if let exit = result.exit, exit != 0 { error = "exit \(exit)" }

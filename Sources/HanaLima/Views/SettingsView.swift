@@ -59,7 +59,7 @@ struct SettingsView: View {
             } header: {
                 Text("AI（MCP）")
             } footer: {
-                Text("MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具を使えます。今は状態を読むことだけができます。")
+                Text("MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具で VM とネットワークを作り、操作できます（試験的）。AI が作ったものではない VM の操作と、削除は、ここで許可してから実行します。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

@@ -332,6 +332,16 @@ struct InspectTool {
             server (the network's DHCP server address) answers only `lima-<vm>` names and refuses the rest, so the \
             resolver moves on to the router; busybox `nslookup` doesn't move on and fails, which is expected.
             """,
+            "exec": """
+            exec runs a POSIX sh script in each target as the login user (sudo works without a password), \
+            one VM after another. Pass wait to get the exit codes and the end of the output in the same answer. \
+            A timeout or a cancel stops the local limactl; the script may still be running in the guest.
+            """,
+            "verify": """
+            After apply, each client checks inside the guest that its default route is the router, that it \
+            reaches the router and one peer by name (lima-<vm>), and, with verifyOutside, the outside by HTTP. \
+            A check that doesn't pass is unverified, not proof of no connectivity (ICMP may be filtered).
+            """,
             "gateway": """
             The gateway example makes a router VM do NAT and DNS for a guestOnly network and pass only hosts \
             in /etc/hanalima/gateway.conf (host names, addresses, CIDRs, or *). Host names are matched by \

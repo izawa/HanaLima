@@ -114,6 +114,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
     }
 
+    /// An MCP job still running would be cut short (it can't resume; docs/14 §7.1): ask first.
+    /// The limactl it started may run on to its end; the job is marked interrupted.
+    @MainActor
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let jobs = AgentHost.current?.unfinishedJobs, !jobs.isEmpty else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "AI のジョブが実行中です")
+        alert.informativeText = String(localized: "終了すると、次のジョブは中断されます: \(jobs.map(\.summary).joined(separator: "、"))。途中の作業（起動中の仮想マシンなど）は続くことがありますが、ジョブとしては再開しません。")
+        alert.addButton(withTitle: String(localized: "終了しない"))
+        alert.addButton(withTitle: String(localized: "終了する"))
+        return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         ProcessRunner.terminateBackgroundProcesses()
     }

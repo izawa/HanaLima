@@ -875,6 +875,38 @@
         }
       }
     },
+    "AI が構築を求めています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI Is Asking to Build"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI が構築を求めています"
+          }
+        }
+      }
+    },
+    "AI のジョブが実行中です": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI Jobs Are Running"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI のジョブが実行中です"
+          }
+        }
+      }
+    },
     "AI（MCP）": {
       "localizations": {
         "en": {
@@ -1949,7 +1981,24 @@
         }
       }
     },
+    "MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具で VM とネットワークを作り、操作できます（試験的）。AI が作ったものではない VM の操作と、削除は、ここで許可してから実行します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load ~/.hanalima/mcp.json in your MCP client to let AI build and run VMs and networks with HanaLima’s tools (experimental). Operations on VMs the AI didn’t make, and deletions, run only after you allow them here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具で VM とネットワークを作り、操作できます（試験的）。AI が作ったものではない VM の操作と、削除は、ここで許可してから実行します。"
+          }
+        }
+      }
+    },
     "MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具を使えます。今は状態を読むことだけができます。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12633,6 +12682,22 @@
         }
       }
     },
+    "構築する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "構築する"
+          }
+        }
+      }
+    },
     "標準": {
       "localizations": {
         "en": {
@@ -13003,6 +13068,22 @@
         }
       }
     },
+    "確認が要る理由": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why It Needs Your OK"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認が要る理由"
+          }
+        }
+      }
+    },
     "確認にチェックが無いので飛ばしました。": {
       "localizations": {
         "en": {
@@ -13234,6 +13315,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "終わりました（失敗 %lld 台）"
+          }
+        }
+      }
+    },
+    "終了しない": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don’t Quit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了しない"
+          }
+        }
+      }
+    },
+    "終了する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了する"
+          }
+        }
+      }
+    },
+    "終了すると、次のジョブは中断されます: %@。途中の作業（起動中の仮想マシンなど）は続くことがありますが、ジョブとしては再開しません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitting interrupts these jobs: %@. Work already under way (a virtual machine starting, say) may carry on, but the jobs won’t resume."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了すると、次のジョブは中断されます: %@。途中の作業（起動中の仮想マシンなど）は続くことがありますが、ジョブとしては再開しません。"
           }
         }
       }

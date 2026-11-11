@@ -28,6 +28,12 @@ final class AgentHost {
     /// `plan`, `apply` and `delete`.
     let buildJobs: BuildJobs
 
+    /// The app's host, for the app delegate's quit check (it has no model of its own).
+    @ObservationIgnored static weak var current: AgentHost?
+
+    /// MCP jobs that quitting would interrupt (docs/14 §7.1).
+    var unfinishedJobs: [Job] { agentState.jobs.jobs.filter { $0.state == .running } }
+
     init(model: AppModel) {
         self.model = model
         let paths = MCPPaths.current()
@@ -35,6 +41,7 @@ final class AgentHost {
         agentState = AgentState(url: paths.home.appendingPathComponent("agent-state.json"))
         vmJobs = VMJobs(model: model, state: agentState)
         buildJobs = BuildJobs(model: model, state: agentState)
+        Self.current = self
     }
 
     /// At launch: points `mcp.json` at this app's helper and starts listening if the setting is on.

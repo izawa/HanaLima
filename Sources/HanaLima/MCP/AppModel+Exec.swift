@@ -18,7 +18,9 @@ extension AppModel {
     /// meanwhile so it doesn't overlap a start or stop. A busy VM is refused, not queued.
     /// On timeout the local `limactl` is terminated; whether the guest's processes ended is
     /// unknown (docs/14 §7).
-    func runGuestScript(_ name: String, script: String, timeout: Duration, keepBytes: Int) async -> GuestScriptResult {
+    /// `stop` is asked twice a second: true (the job was cancelled) ends the run like a timeout.
+    func runGuestScript(_ name: String, script: String, timeout: Duration, keepBytes: Int,
+                        stop: @escaping @MainActor () -> Bool = { false }) async -> GuestScriptResult {
         guard let client else { return GuestScriptResult(output: "", error: "HanaLima has no limactl") }
         guard let inst = instance(named: name), inst.isRunning else { return GuestScriptResult(output: "", error: "not running") }
         guard !isBusy(name) else { return GuestScriptResult(output: "", error: "busy with another operation") }
@@ -39,15 +41,21 @@ extension AppModel {
                 return GuestScriptResult(output: tail.text, error: Task.isCancelled ? nil : error.localizedDescription)
             }
         }
+        var stopped = false
         let timer = Task {
-            try? await Task.sleep(for: timeout)
+            let deadline = ContinuousClock.now + timeout
+            while ContinuousClock.now < deadline, !Task.isCancelled {
+                if stop() { stopped = true; break }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
             if !Task.isCancelled { work.cancel() }
         }
         var result = await work.value
         timer.cancel()
         if result.exit == nil && result.error == nil {
-            result.timedOut = true
-            result.error = "timed out after \(timeout.components.seconds) s; whether the guest's processes ended is unknown"
+            result.timedOut = !stopped
+            result.error = (stopped ? "cancelled" : "timed out after \(timeout.components.seconds) s")
+                + "; whether the guest's processes ended is unknown"
         }
         return result
     }
