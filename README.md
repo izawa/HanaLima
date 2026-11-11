@@ -4,7 +4,7 @@
 
 # HanaLima
 
-A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once.
+A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once. As an experiment, an AI client can now drive HanaLima through MCP: describe a lab in a sentence or a sketch, and it builds the networks and VMs and checks the traffic.
 
 **Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
 
@@ -54,6 +54,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 - **Logs**: the host agent log and serial consoles, followed live, with search.
 - **Provisioning**: edit the scripts and data files Lima applies on every boot. **Run now** runs an entry or an example in the running VM without saving and shows the output. **Run only once** turns a script into a one-shot: it leaves a stamp on success and later starts skip it (a failure retries at the next start; “Run Again” resets it).
 - **Ansible from your Mac**: pick a playbook for a VM and run it from the Settings tab; the output streams into a sheet. HanaLima writes an inventory that sends ssh through Lima's `ssh.config` (group `[hanalima]`, host `lima-<name>`) and runs your `ansible-playbook` (`brew install ansible` or `pip install ansible`) in the playbook's folder, so roles and `ansible.cfg` next to it apply. `become` works without setup (Lima gives you passwordless sudo). The same inventory works from the terminal: `ansible-playbook -i ~/Library/Application\ Support/HanaLima/ansible/inventory.ini …`.
+- **AI through MCP** (experimental, on the main branch, not yet in a release): HanaLima offers its operations to AI as seven MCP tools (`inspect`, `plan`, `apply`, `vm`, `exec`, `job`, `delete`). Turn on *Accept Operations from AI* in Settings, load `~/.hanalima/mcp.json` (HanaLima writes it at every launch) in your MCP client, and ask for a lab in a sentence or a sketch. The AI keeps what you wrote, decides what you didn't (an OS, sizes, names, a free subnet) and lists those choices, and asks you when something can't be built, with a way that can. `plan` checks the declaration and changes nothing; `apply` creates guest-only networks and new VMs, starts them in order, and checks inside the guests that the default route, the router, the neighbours by name and (if you name a host) the outside answer. HanaLima calls no AI and holds no API key. VMs the AI made it may run on its own; your VMs, and every delete or snapshot restore, wait until you allow them in the app. No sudo, and no bridges from AI. Design in [docs/14](docs/14-mcp-design.md) (in Japanese).
 - **English and Japanese UI**: follows your macOS language.
 
 ## Requirements
@@ -148,7 +149,7 @@ Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/
 In the app, first switch any VMs on HanaLima's driver to VZ in the Settings tab (they can't start without the driver) and delete the HanaLima networks (this unregisters their LaunchAgents), then remove the app, its data and the driver copy (`/opt/homebrew/lib/lima/` with Homebrew):
 
 ```bash
-rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima /opt/homebrew/lib/lima/lima-driver-hanalima
+rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima ~/.hanalima /opt/homebrew/lib/lima/lima-driver-hanalima
 ```
 
 If a network's LaunchAgent is still registered, unload it with `launchctl bootout gui/$(id -u)/org.izawa.HanaLima.net.<name>` and delete its plist from `~/Library/LaunchAgents`. Your Lima VMs in `~/.lima` are not touched.

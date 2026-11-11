@@ -4,7 +4,7 @@
 
 # HanaLima
 
-[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。
+[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。試験的な機能として、AI のクライアントから MCP で HanaLima を操作できるようになりました。構成を文章か図で伝えると、ネットワークと VM を作り、疎通まで確かめます。
 
 **Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
 
@@ -54,6 +54,7 @@
 - **ログ**: ホストエージェントのログとシリアルコンソールをリアルタイムに表示。検索しながら確認できます。
 - **プロビジョニング**: Lima が起動のたびに適用するスクリプトとファイルの編集。**今すぐ実行**では項目や例を保存せずに実行中の VM で走らせ、出力を表示します。**一度だけ実行する**を選ぶと、成功した印を残して以後の起動では実行を飛ばします。失敗した場合は次の起動で再試行。「もう一度実行」で印を新しくします。
 - **Mac から Ansible**: VM 用の Playbook を選び、設定タブから実行します。出力はシートに表示。HanaLima が Lima の `ssh.config` を使う ssh のインベントリを書きます。グループは `[hanalima]`、ホストは `lima-<名前>` です。`brew install ansible` か `pip install ansible` で入れた手元の `ansible-playbook` を Playbook のフォルダで起動するので、隣にある roles や `ansible.cfg` がそのまま使えます。Lima がパスワードなしの sudo を用意するため、`become` も設定不要です。同じインベントリはターミナルからも使えます: `ansible-playbook -i ~/Library/Application\ Support/HanaLima/ansible/inventory.ini …`。
+- **MCP で AI から操作**（試験的。main ブランチにあり、リリースにはまだ入っていません）: HanaLima の操作を、7 つの MCP の道具（`inspect`、`plan`、`apply`、`vm`、`exec`、`job`、`delete`）として AI に渡します。設定で「AI からの操作を受け付ける」をオンにし、MCP クライアントに `~/.hanalima/mcp.json` を読ませて（HanaLima が起動のたびに書きます）、構成を文章か図で頼みます。AI は、書いたことはそのまま守り、書いていないこと（OS、大きさ、名前、空いているサブネットなど）は自分で決めて報告し、作れないことは作れる案と一緒に尋ねます。`plan` は宣言を確かめるだけで何も変えません。`apply` はゲスト専用ネットワークと新しい VM を作って順に起動し、ゲストの中から、既定の経路、ルーター、隣の VM の名前、指定した外の宛先に届くかを確かめます。HanaLima 自身は AI を呼ばず、API キーも持ちません。AI が作った VM は AI がそのまま操作できます。あなたの VM の操作と、削除やスナップショットの復元は、アプリで許可するまで実行しません。sudo は使わず、ブリッジは AI からは作れません。設計は [docs/14](docs/14-mcp-design.md)。
 - **英語と日本語の UI**: macOS の言語設定に合わせて表示します。
 
 ## 動作環境
@@ -148,7 +149,7 @@ Lima 自身のファイルは `limactl` が管理します。VM の `~/.lima`、
 HanaLima のドライバーを使う VM があれば、まずアプリの設定タブで VZ に切り替えておきます。ドライバーを削除すると起動できなくなるためです。次にアプリで HanaLima のネットワークを削除し、LaunchAgent の登録を外します。その後、アプリとデータ、コピーしたドライバーを削除します。Homebrew の場合、ドライバーの配置先は `/opt/homebrew/lib/lima/` です。
 
 ```bash
-rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima /opt/homebrew/lib/lima/lima-driver-hanalima
+rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima ~/.hanalima /opt/homebrew/lib/lima/lima-driver-hanalima
 ```
 
 LaunchAgent が残っていれば `launchctl bootout gui/$(id -u)/org.izawa.HanaLima.net.<名前>` で登録を外し、`~/Library/LaunchAgents` の plist を削除します。`~/.lima` の VM には触れません。
