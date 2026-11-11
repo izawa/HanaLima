@@ -306,12 +306,12 @@ struct InspectTool {
         return out.joined(separator: "\n")
     }
 
-    /// The MCP jobs, newest first (in memory: they end with the app).
+    /// The MCP jobs, newest first (kept across launches; unfinished ones become interrupted).
     private func jobs() -> String {
         let store = model.agentHost.vmJobs.store
         store.expireStale()
         let jobs = store.jobs
-        let lines = ["# jobs \(jobs.count) (kept in memory; quitting HanaLima drops them)"]
+        let lines = ["# jobs \(jobs.count)"]
             + jobs.prefix(20).map { "\($0.id)\t\($0.state.rawValue)\t\($0.summary)" }
         return lines.joined(separator: "\n")
     }
