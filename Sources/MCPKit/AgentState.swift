@@ -19,11 +19,14 @@ public final class AgentState {
         /// Record id (InstanceMetadata.id) -> entry: a CLI clone gets a new id, so it is the user's.
         var vms: [UUID: LedgerVM]
         var networks: [String: LedgerNetwork]
+        /// Groups a build made (optional: files written before groups were recorded).
+        var groups: [String: LedgerNetwork]?
     }
 
     public let jobs: JobStore
     private var vms: [UUID: LedgerVM]
     private var networks: [String: LedgerNetwork]
+    private var groups: [String: LedgerNetwork]
     private let url: URL?
     private var observers: [@MainActor () -> Void] = []
     /// The last error writing the file; the tools refuse to change anything while it is set.
@@ -36,6 +39,7 @@ public final class AgentState {
         jobs = JobStore(restoring: file?.jobs ?? [], nextID: file?.nextJobID ?? 1)
         vms = file?.vms ?? [:]
         networks = file?.networks ?? [:]
+        groups = file?.groups ?? [:]
         jobs.onChange = { [weak self] in self?.changed() }
     }
 
@@ -50,6 +54,9 @@ public final class AgentState {
     public func forgetVM(_ id: UUID) { vms[id] = nil; changed() }
     public func recordNetwork(_ name: String, job: String) { networks[name] = LedgerNetwork(job: job); changed() }
     public func forgetNetwork(_ name: String) { networks[name] = nil; changed() }
+    public func ownsGroup(_ name: String) -> Bool { groups[name] != nil }
+    public func recordGroup(_ name: String, job: String) { groups[name] = LedgerNetwork(job: job); changed() }
+    public func forgetGroup(_ name: String) { groups[name] = nil; changed() }
 
     private func changed() {
         save()
@@ -58,7 +65,7 @@ public final class AgentState {
 
     private func save() {
         guard let url else { return }
-        let file = File(nextJobID: jobs.nextID, jobs: jobs.jobs, vms: vms, networks: networks)
+        let file = File(nextJobID: jobs.nextID, jobs: jobs.jobs, vms: vms, networks: networks, groups: groups)
         do {
             let data = try JSONEncoder.iso.encode(file)
             let temp = url.appendingPathExtension("tmp")

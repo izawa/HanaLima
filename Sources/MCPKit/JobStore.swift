@@ -37,6 +37,8 @@ public struct Job: Sendable, Equatable, Codable {
     public var results: [JobTargetResult]
     public var cancelRequested: Bool
     public let createdAt: Date
+    /// One line the runner adds for the short answer, e.g. what the checks verified.
+    public var note: String?
 }
 
 public enum JobStoreError: Error, Equatable {
@@ -135,6 +137,10 @@ public final class JobStore {
     public func deny(_ id: String) throws {
         guard job(id) != nil else { throw JobStoreError.notFound }
         update(id) { if $0.state == .awaitingApproval { $0.state = .denied } }
+    }
+
+    public func setNote(_ id: String, _ note: String) {
+        update(id) { $0.note = note }
     }
 
     public func setCurrent(_ id: String, _ target: String?) {
@@ -236,6 +242,7 @@ public final class JobStore {
             lines.append("waiting\tapproval in the HanaLima app (ask the user)")
         }
         if let current = job.current { lines.append("current\t\(current)") }
+        if let note = job.note { lines.append("note\t\(note)") }
         if !job.results.isEmpty {
             lines.append("target\toutcome\tmessage")
             // Without detail, the rows that carry a reason; plain successes only as a count.

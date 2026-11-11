@@ -132,7 +132,9 @@ final class BuildJobs {
             record(net.network.name, error)
             if error != nil { return finish(id) }
         }
-        // 2. VMs, stopped.
+        // 2. VMs, stopped. A group that didn't exist is the build's, so a delete can remove it
+        //    once it's empty.
+        if let group = plan.group, model.groupLayout.index(ofGroup: group) == nil { state.recordGroup(group, job: id) }
         var failed: Set<String> = []
         for vm in plan.vms where vm.action == .create {
             if jobs.job(id)?.cancelRequested == true { return finish(id) }
@@ -192,6 +194,12 @@ final class BuildJobs {
         if plan.verifyOutside == nil {
             jobs.record(id, JobTargetResult(target: "- outside", outcome: "unverified", message: "no verifyOutside given"))
         }
+        // The short answer counts rows; say which are the traffic checks, so the client
+        // needn't ask for the details or check again itself.
+        let checks = jobs.job(id)?.results.filter { $0.target.contains(" ") } ?? []
+        let verified = checks.filter { $0.outcome == "done" }.count
+        jobs.setNote(id, "built \(plan.networks.count) network(s), \(plan.vms.count) VM(s); traffic checks verified \(verified) of \(checks.count)"
+            + (plan.verifyOutside.map { " (outside: \($0))" } ?? ""))
         finish(id)
     }
 
@@ -304,6 +312,12 @@ final class BuildJobs {
                 error = "not the VM that was approved (renamed or made again); left alone"
             }
             state.jobs.record(id, JobTargetResult(target: name, outcome: error == nil ? "done" : "failed", message: error))
+        }
+        // Groups a build made and this delete emptied go too.
+        for group in model.groupLayout.groups.map(\.name) where state.ownsGroup(group) && (model.groupMembers(group) ?? []).isEmpty {
+            model.ungroup(group)
+            state.forgetGroup(group)
+            state.jobs.record(id, JobTargetResult(target: "group \(group)", outcome: "done"))
         }
         for name in request.networks {
             if stopped() { return finish(id) }

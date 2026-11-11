@@ -31,4 +31,25 @@ struct AgentStateTests {
         again.forgetVM(id)
         #expect(AgentState(url: url).ownsVM(id) == false)
     }
+
+    @Test func remembersGroupsAndReadsFilesWithoutThem() throws {
+        let dir = try TestDirectory()
+        let url = dir.url.appendingPathComponent("agent-state.json")
+        // A file from before groups were recorded.
+        try Data(#"{"version":1,"nextJobID":3,"jobs":[],"vms":[],"networks":{"inner":{"job":"j1"}}}"#.utf8).write(to: url)
+        let state = AgentState(url: url)
+        #expect(state.ownsNetwork("inner"))
+        #expect(!state.ownsGroup("lab2"))
+        state.recordGroup("lab2", job: "j2")
+        #expect(AgentState(url: url).ownsGroup("lab2"))
+        state.forgetGroup("lab2")
+        #expect(!AgentState(url: url).ownsGroup("lab2"))
+    }
+
+    @Test func noteShowsInTheShortAnswer() throws {
+        let state = AgentState(url: nil)
+        let (job, _) = try state.jobs.submit(key: "k", tool: "apply", input: [:], summary: "build", needsApproval: false)
+        state.jobs.setNote(job.id, "traffic checks verified 9 of 9")
+        #expect(JobStore.text(try #require(state.jobs.job(job.id)), detail: false).contains("note\ttraffic checks verified 9 of 9"))
+    }
 }

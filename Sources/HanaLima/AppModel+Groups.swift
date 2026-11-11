@@ -152,6 +152,8 @@ extension AppModel {
         layout.ungrouped.insert(contentsOf: ids, at: 0)
         setGroupLayout(layout)
         if selection == .group(name) { selection = nil }
+        // However it went: a group made again under this name is the user's.
+        agentHost.agentState.forgetGroup(name)
     }
 
     /// Moves `vm` into `group` (nil: out of any group) at `index` of that list as it is now

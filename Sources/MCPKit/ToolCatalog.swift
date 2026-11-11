@@ -49,7 +49,8 @@ public enum ToolCatalog {
     public static let instructions = """
     HanaLima runs Lima VMs on this Mac. Read state with `inspect` (default topic `context`); \
     `inspect` topic `help` explains details on demand. Results are compact text: tab-separated \
-    tables with a header line. To build: `inspect` → `plan` → (ask the user about any problem) → \
+    tables with a header line. One `inspect` with no topics (context) has all that `plan` needs. \
+    To build: `inspect` → `plan` → (ask the user about any problem) → \
     `apply` → `job` wait. Read drawings and requests this way: keep what is written; choose \
     sensible values for what isn't and list them as spec assumptions; for what can't be done, \
     ask the user with the plan's alternative. `vm` operates VMs as a job that the user approves in the HanaLima \
