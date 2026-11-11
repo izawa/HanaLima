@@ -97,9 +97,10 @@ def background(c, scale):
     base = tip - u * 26 * scale
     head = [tuple(tip), tuple(base + n * 14 * scale), tuple(base - n * 14 * scale)]
     draw.polygon(head, fill=tuple(int(v) for v in end))
+    # The caption sits above y = 340: Finder's path bar, when shown, covers the bottom of the window
     font = ImageFont.truetype(c["font"], 13 * scale, index=c.get("font_index", 0))
     for i, line in enumerate(c["caption"]):
-        draw.text((w / 2, (334 + 18 * i - 9 * (len(c["caption"]) - 1)) * scale), line, fill=(110, 110, 115, 255),
+        draw.text((w / 2, (312 + 18 * i - 9 * (len(c["caption"]) - 1)) * scale), line, fill=(110, 110, 115, 255),
                   font=font, anchor="mm")
     return img
 
