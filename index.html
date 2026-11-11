@@ -63,7 +63,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.14.0 · macOS 26+ · Lima 2.3+ · MIT</span>
+      <span class="eyebrow">● v0.15.0 · macOS 26+ · Lima 2.3+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -643,8 +643,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
     <div class="kicker">// experimental · mcp</div>
     <h2><span class="en">Describe the lab. <span class="grad">AI builds it.</span></span><span class="ja">構成を伝えれば、<span class="grad">AI が組み立てる。</span></span></h2>
     <p class="section-lead">
-      <span class="en">HanaLima hands its operations to AI as MCP tools. Give your MCP client a sketch or a sentence; the AI reads it, asks about what can't be done, then creates the networks and VMs, starts them in order and checks the traffic from inside the guests. HanaLima calls no AI itself and holds no API key: the AI you already use does the talking. <span class="chip">Experimental</span> on the main branch, not yet in a release.</span>
-      <span class="ja">HanaLima の操作を、MCP の道具として AI に渡します。MCP クライアントに構成の図か文章を渡すと、AI がそれを読み、作れない点だけを尋ねてから、ネットワークと VM を作り、順に起動し、ゲストの中から疎通を確かめます。HanaLima 自身は AI を呼ばず、API キーも持ちません。話すのは、いつも使っている AI です。<span class="chip">Experimental</span> main ブランチにあり、リリースにはまだ入っていません。</span>
+      <span class="en">HanaLima hands its operations to AI as MCP tools. Give your MCP client a sketch or a sentence; the AI reads it, asks about what can't be done, then creates the networks and VMs, starts them in order and checks the traffic from inside the guests. HanaLima calls no AI itself and holds no API key: the AI you already use does the talking. <span class="chip">Experimental</span> since v0.15.</span>
+      <span class="ja">HanaLima の操作を、MCP の道具として AI に渡します。MCP クライアントに構成の図か文章を渡すと、AI がそれを読み、作れない点だけを尋ねてから、ネットワークと VM を作り、順に起動し、ゲストの中から疎通を確かめます。HanaLima 自身は AI を呼ばず、API キーも持ちません。話すのは、いつも使っている AI です。<span class="chip">Experimental</span> v0.15 から使えます。</span>
     </p>
 
     <div class="grid mcp-grid">
@@ -690,7 +690,7 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <div class="card reveal">
         <h3><span class="en">Try it</span><span class="ja">試すには</span></h3>
         <ol class="points">
-          <li><span class="en">Build HanaLima from the main branch and turn the setting on.</span><span class="ja">main ブランチの HanaLima をビルドし、設定をオンにします。</span></li>
+          <li><span class="en">Install HanaLima 0.15 or later and turn the setting on.</span><span class="ja">HanaLima 0.15 以降を入れ、設定をオンにします。</span></li>
           <li><span class="en">Load <code>~/.hanalima/mcp.json</code> in your MCP client. HanaLima writes it at every launch.</span><span class="ja">MCP クライアントに <code>~/.hanalima/mcp.json</code> を読ませます。このファイルは HanaLima が起動のたびに書きます。</span></li>
           <li><span class="en">Ask for a lab. A build like the one above sends HanaLima's part of the talk in about 1,200 tokens.</span><span class="ja">構成を頼みます。上の例のような構築で、HanaLima とのやり取りは 1,200 トークンほどです。</span></li>
         </ol>
