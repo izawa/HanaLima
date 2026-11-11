@@ -154,13 +154,15 @@ final class AppModel {
     /// Waits until `bootstrap()` has loaded the VMs, networks and templates (or `timeout`), for
     /// callers that may run before the window has started the model (the MCP server after a
     /// launch by its helper): answering earlier would report an empty Mac.
-    func waitUntilBootstrapped(timeout: Duration) async {
+    /// Returns whether it finished.
+    func waitUntilBootstrapped(timeout: Duration) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while !bootstrapFinished, availability != .missing, clock.now < deadline {
-            if case .failed = availability { return }
+            if case .failed = availability { break }
             try? await Task.sleep(for: .milliseconds(100))
         }
+        return bootstrapFinished
     }
     @ObservationIgnored private var bootstrapStarted = false
     /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).

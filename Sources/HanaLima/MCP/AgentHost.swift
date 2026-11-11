@@ -108,7 +108,13 @@ final class AgentHost {
             return AgentResponse(text: "Unknown tool: \(request.tool)", isError: true)
         }
         // A fresh launch loads the VMs, networks and templates a moment later.
-        await model.waitUntilBootstrapped(timeout: .seconds(20))
+        guard await model.waitUntilBootstrapped(timeout: .seconds(20)) else {
+            switch model.availability {
+            case .missing: return AgentResponse(text: "Lima (limactl) is not installed on this Mac.", isError: true)
+            case .failed(let message): return AgentResponse(text: "HanaLima can't run limactl: \(message)", isError: true)
+            default: return AgentResponse(text: "HanaLima is still loading; try again in a few seconds.", isError: true)
+            }
+        }
         switch request.tool {
         case ToolCatalog.inspect.name:
             do {

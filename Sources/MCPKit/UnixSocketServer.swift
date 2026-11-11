@@ -108,13 +108,13 @@ public final class UnixSocketServer: @unchecked Sendable {
                 clients.insert(fd)
                 DispatchQueue.global(qos: .utility).async { @Sendable [weak self, handler, maxRequestBytes] in
                     do {
-                        let line = try UnixSocketIO.readLine(from: fd, limit: maxRequestBytes)
+                        let line = try UnixSocketIO.readLine(from: fd, limit: maxRequestBytes, deadline: Self.deadline())
                         Task { @Sendable [weak self, handler] in
                             var reply = await handler(line, peer)
                             reply.append(10)
                             // Blocking socket I/O stays off Swift's cooperative executor.
                             DispatchQueue.global(qos: .utility).async { @Sendable [weak self, reply] in
-                                try? UnixSocketIO.write(reply, to: fd)
+                                try? UnixSocketIO.write(reply, to: fd, deadline: Self.deadline())
                                 if let self { finish(fd) } else { Darwin.close(fd) }
                             }
                         }
@@ -125,6 +125,11 @@ public final class UnixSocketServer: @unchecked Sendable {
             }
         }
     }
+
+    /// A peer that stops mid-request or stops reading must not hold a connection slot forever.
+    static let ioTimeout: UInt64 = 10_000_000_000
+
+    private static func deadline() -> UInt64 { DispatchTime.now().uptimeNanoseconds + ioTimeout }
 
     private func finish(_ fd: Int32) {
         lock.withLock {

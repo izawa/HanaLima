@@ -13,17 +13,13 @@ import NetworkKit
 struct InspectTool {
     let model: AppModel
 
-    static let defaultLimit = 20
+    nonisolated static let defaultLimit = 20
 
     enum Failure: Error { case invalid(String) }
 
     func run(_ arguments: MCPKit.JSONValue) throws -> String {
-        let topics = try Self.topics(arguments)
-        let ids = arguments["ids"]?.arrayValue?.compactMap(\.stringValue) ?? []
-        let query = arguments["query"]?.stringValue?.trimmingCharacters(in: .whitespaces) ?? ""
-        let limit = min(max(arguments["limit"]?.intValue ?? Self.defaultLimit, 1), 100)
-        let offset = arguments["cursor"]?.stringValue.flatMap(Int.init) ?? 0
-        guard offset >= 0 else { throw Failure.invalid("cursor must be a value returned as next") }
+        let args = try Arguments(arguments)
+        let (topics, ids, query, limit, offset) = (args.topics, args.ids, args.query, args.limit, args.offset)
         var sections: [String] = []
         for topic in topics {
             switch topic {
@@ -31,7 +27,7 @@ struct InspectTool {
             case "vms": sections.append(ids.isEmpty ? vms(limit: limit, offset: offset) : vmDetails(ids))
             case "networks": sections.append(ids.isEmpty ? networks() : networkDetails(ids))
             case "groups": sections.append(groups())
-            case "templates": sections.append(try templates(query: query, limit: limit))
+            case "templates": sections.append(try templates(query: query, limit: limit, offset: offset))
             case "examples": sections.append(examples())
             case "snapshots": sections.append(try snapshots(ids))
             case "jobs": sections.append(jobs())
@@ -42,12 +38,56 @@ struct InspectTool {
         return sections.joined(separator: "\n")
     }
 
-    static func topics(_ arguments: MCPKit.JSONValue) throws -> [String] {
-        guard let raw = arguments["topics"] else { return ["context"] }
-        guard let list = raw.arrayValue?.compactMap(\.stringValue), list.count == raw.arrayValue?.count else {
-            throw Failure.invalid("topics must be an array of strings")
+    /// The arguments, checked against the tool's input schema: a mistyped argument is an error,
+    /// not a quietly different answer (an `ids` the model got wrong would list everything).
+    struct Arguments {
+        var topics = ["context"]
+        var ids: [String] = []
+        var query = ""
+        var limit = InspectTool.defaultLimit
+        var offset = 0
+
+        init(_ json: MCPKit.JSONValue) throws {
+            guard let object = json.objectValue else { throw Failure.invalid("arguments must be an object") }
+            let known: Set = ["topics", "ids", "query", "limit", "cursor"]
+            if let unknown = object.keys.first(where: { !known.contains($0) }) {
+                throw Failure.invalid("unknown argument: \(unknown)")
+            }
+            if let raw = object["topics"] {
+                let list = try Self.strings(raw, "topics")
+                if !list.isEmpty { topics = list }
+            }
+            if let raw = object["ids"] { ids = try Self.strings(raw, "ids") }
+            if let raw = object["query"] {
+                guard let s = raw.stringValue else { throw Failure.invalid("query must be a string") }
+                query = s.trimmingCharacters(in: .whitespaces)
+            }
+            if let raw = object["limit"] {
+                guard let n = raw.intValue, (1...100).contains(n) else { throw Failure.invalid("limit must be an integer from 1 to 100") }
+                limit = n
+            }
+            if let raw = object["cursor"] {
+                guard let n = raw.stringValue.flatMap(Int.init), n >= 0 else {
+                    throw Failure.invalid("cursor must be a value returned as next")
+                }
+                offset = n
+            }
         }
-        return list.isEmpty ? ["context"] : list
+
+        private static func strings(_ raw: MCPKit.JSONValue, _ name: String) throws -> [String] {
+            guard let array = raw.arrayValue else { throw Failure.invalid("\(name) must be an array of strings") }
+            let list = array.compactMap(\.stringValue)
+            guard list.count == array.count else { throw Failure.invalid("\(name) must be an array of strings") }
+            return list
+        }
+    }
+
+    /// One page of `items` and the `next` line when more remain (shared by every paged topic).
+    static func page<T>(_ items: [T], limit: Int, offset: Int, row: (T) -> String) -> [String] {
+        let page = items.dropFirst(offset).prefix(limit)
+        var lines = page.map(row)
+        if offset + page.count < items.count { lines.append("next\t\(offset + page.count)") }
+        return lines
     }
 
     // MARK: - context
@@ -102,15 +142,12 @@ struct InspectTool {
 
     private func vms(limit: Int, offset: Int) -> String {
         let all = model.instances
-        let page = all.dropFirst(offset).prefix(limit)
-        var lines = ["# vms \(all.count)", "name\tstatus\tvmType\tcpus\tmemGiB\tdiskGiB\tgroup\tnics"]
-        for inst in page {
-            lines.append([inst.name, state(of: inst), inst.vmType ?? "-", inst.cpus.map(String.init) ?? "-",
-                          Self.gib(inst.memory), Self.gib(inst.disk), model.metadata[inst.name]?.group ?? "-",
-                          nics(of: inst)].joined(separator: "\t"))
-        }
-        if offset + page.count < all.count { lines.append("next\t\(offset + page.count)") }
-        return lines.joined(separator: "\n")
+        let header = ["# vms \(all.count)", "name\tstatus\tvmType\tcpus\tmemGiB\tdiskGiB\tgroup\tnics"]
+        return (header + Self.page(all, limit: limit, offset: offset) { inst in
+            [inst.name, state(of: inst), inst.vmType ?? "-", inst.cpus.map(String.init) ?? "-",
+             Self.gib(inst.memory), Self.gib(inst.disk), model.metadata[inst.name]?.group ?? "-",
+             nics(of: inst)].joined(separator: "\t")
+        }).joined(separator: "\n")
     }
 
     /// Lima's status, refined with what HanaLima knows (ready, paused, hibernated, an operation).
@@ -222,14 +259,14 @@ struct InspectTool {
 
     // MARK: - templates, examples, snapshots, jobs
 
-    private func templates(query: String, limit: Int) throws -> String {
+    private func templates(query: String, limit: Int, offset: Int) throws -> String {
         guard !query.isEmpty else {
             throw Failure.invalid("templates needs a query (e.g. ubuntu, debian, alpine); the full list is long")
         }
         let matches = model.templates.filter { $0.name.localizedCaseInsensitiveContains(query) && !$0.isExperimental }
-        var lines = ["# templates \(query) \(matches.count)", "name\tresolves_to"]
-        lines += matches.prefix(limit).map { "\($0.name)\t\($0.resolvedImage ?? "-")" }
-        return lines.joined(separator: "\n")
+        let header = ["# templates \(query) \(matches.count)", "name\tresolves_to"]
+        return (header + Self.page(matches, limit: limit, offset: offset) { "\($0.name)\t\($0.resolvedImage ?? "-")" })
+            .joined(separator: "\n")
     }
 
     private func examples() -> String {
