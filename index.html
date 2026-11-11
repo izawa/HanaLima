@@ -40,6 +40,7 @@
       <a href="#networking"><span class="en">Networking</span><span class="ja">ネットワーク</span></a>
       <a href="#features"><span class="en">Features</span><span class="ja">機能</span></a>
       <a href="#lab"><span class="en">Lab</span><span class="ja">構成例</span></a>
+      <a href="#mcp"><span class="en">AI (MCP)</span><span class="ja">AI（MCP）</span></a>
       <a href="#quickstart"><span class="en">Quick start</span><span class="ja">クイックスタート</span></a>
       <a href="#roadmap"><span class="en">Roadmap</span><span class="ja">ロードマップ</span></a>
     </nav>
@@ -636,6 +637,68 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
   </div>
 </section>
 
+<!-- ============================== MCP ============================== -->
+<section id="mcp" class="alt">
+  <div class="wrap">
+    <div class="kicker">// experimental · mcp</div>
+    <h2><span class="en">Describe the lab. <span class="grad">AI builds it.</span></span><span class="ja">構成を伝えれば、<span class="grad">AI が組み立てる。</span></span></h2>
+    <p class="section-lead">
+      <span class="en">HanaLima hands its operations to AI as MCP tools. Give your MCP client a sketch or a sentence; the AI reads it, asks about what can't be done, then creates the networks and VMs, starts them in order and checks the traffic from inside the guests. HanaLima calls no AI itself and holds no API key: the AI you already use does the talking. <span class="chip">Experimental</span> on the main branch, not yet in a release.</span>
+      <span class="ja">HanaLima の操作を、MCP の道具として AI に渡します。MCP クライアントに構成の図か文章を渡すと、AI がそれを読み、作れない点だけを尋ねてから、ネットワークと VM を作り、順に起動し、ゲストの中から疎通を確かめます。HanaLima 自身は AI を呼ばず、API キーも持ちません。話すのは、いつも使っている AI です。<span class="chip">Experimental</span> main ブランチにあり、リリースにはまだ入っていません。</span>
+    </p>
+
+    <div class="grid mcp-grid">
+      <div class="term reveal" aria-label="An MCP client session (illustration)"><span class="c"># in your MCP client</span>
+<span class="p">you ›</span> <span class="en">Build a guest-only network with one router and two clients, no bridge. Smallest OS you can.</span><span class="ja">「ゲスト専用ネットワークにルーター 1 台とクライアント 2 台」の構成を、ブリッジを使わずに作って。OS はできるだけ小さいもので。</span>
+
+<span class="c">  hanalima.inspect   → templates, free subnets, names in use</span>
+<span class="c">  hanalima.plan      → ready · alpine-3.24 · 192.168.201.0/24</span>
+<span class="c">  hanalima.apply     → job j1</span>
+<span class="c">  hanalima.job wait  → </span><span class="h">succeeded</span>
+<span class="c">     note  built 1 network, 3 VMs;</span>
+<span class="c">           traffic checks verified </span><span class="h">9 of 9</span>
+
+<span class="p">ai  ›</span> <span class="en">Done: gn-router (192.168.201.1) and two isolated clients on gnet. For “smallest” I picked Alpine 3.24; 1 CPU, 1 GiB, 10 GiB each, names and subnet were mine too.</span><span class="ja">gnet に gn-router（192.168.201.1）と、隔離したクライアント 2 台を作りました。「できるだけ小さい OS」には Alpine 3.24 を選びました。各 1 CPU・1 GiB・10 GiB、名前とサブネットも、指定がなかったのでこちらで決めています。</span></div>
+
+      <div class="card reveal">
+        <h3><span class="en">How the AI read this request</span><span class="ja">この依頼の読み方</span></h3>
+        <ul class="points">
+          <li><span class="en"><strong>Written, kept:</strong> one router and two clients on a guest-only network, no bridge, and “the smallest OS you can”.</span><span class="ja"><strong>書いたことは、そのまま守る。</strong>ゲスト専用ネットワークにルーター 1 台とクライアント 2 台、ブリッジなし、OS はできるだけ小さいもの。</span></li>
+          <li><span class="en"><strong>Not written, decided by the AI:</strong> Alpine 3.24 as the smallest template; 1 CPU, 1 GiB, 10 GiB each; the names; a free subnet; clients isolated so they go out only through the router, which gets the gateway with everything allowed. Every choice is listed in the answer.</span><span class="ja"><strong>書いていないことは、AI が決める。</strong>テンプレートのうちいちばん小さい Alpine 3.24、各 1 CPU・1 GiB・10 GiB、VM とネットワークの名前、空いているサブネット。クライアントは NIC 0 を外してルーターからだけ外へ出し、ルーターにはすべて通すゲートウェイを入れる。決めた値は、最後の報告にすべて並べます。</span></li>
+          <li><span class="en"><strong>Can't be done, asked with a way that works:</strong> a /8 becomes a /16, an overlapping subnet a free one, an isolated Alpine boots once with NIC 0 first.</span><span class="ja"><strong>作れないことは、代わりの案と一緒に尋ねる。</strong>/8 なら /16 に、重なるサブネットなら空いている範囲に。Alpine を隔離するなら、最初の 1 回だけ NIC 0 を付けて起動する、という形です。</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:18px">
+      <div class="card reveal">
+        <h3><span class="en">Seven tools</span><span class="ja">7 つの道具</span></h3>
+        <ul class="points">
+          <li><span class="en"><code>inspect</code> reads state; <code>plan</code> checks a declaration and changes nothing.</span><span class="ja"><code>inspect</code> で状態を読み、<code>plan</code> で宣言を確かめます。<code>plan</code> は何も変えません。</span></li>
+          <li><span class="en"><code>apply</code> builds a plan; <code>vm</code> starts, stops, pauses, hibernates and snapshots; <code>exec</code> runs a script in guests.</span><span class="ja"><code>apply</code> で計画どおりに作り、<code>vm</code> で起動・停止・一時停止・休止・スナップショット、<code>exec</code> でゲストのスクリプトを実行します。</span></li>
+          <li><span class="en"><code>job</code> follows long operations; <code>delete</code> removes what MCP made.</span><span class="ja"><code>job</code> で長い処理を待ち、<code>delete</code> で MCP が作ったものを消します。</span></li>
+        </ul>
+      </div>
+      <div class="card reveal">
+        <h3><span class="en">You stay in charge</span><span class="ja">決めるのは人</span></h3>
+        <ul class="points">
+          <li><span class="en">Off until you turn on <em>Accept Operations from AI</em> in Settings.</span><span class="ja">設定の「AI からの操作を受け付ける」をオンにするまでは何も受け付けません。</span></li>
+          <li><span class="en">VMs the AI made, it may run on its own. Yours — and every delete or snapshot restore — wait for you to allow them in HanaLima.</span><span class="ja">AI が作った VM は AI がそのまま操作できます。あなたの VM の操作と、削除やスナップショットの復元は、HanaLima の画面で許可してから実行します。</span></li>
+          <li><span class="en">No sudo, no bridges from AI, nothing leaves the Mac but your client's own API calls.</span><span class="ja">sudo は使わず、ブリッジは AI からは作れません。Mac の外に出るのは、MCP クライアント自身の通信だけです。</span></li>
+        </ul>
+      </div>
+      <div class="card reveal">
+        <h3><span class="en">Try it</span><span class="ja">試すには</span></h3>
+        <ol class="points">
+          <li><span class="en">Build HanaLima from the main branch and turn the setting on.</span><span class="ja">main ブランチの HanaLima をビルドし、設定をオンにします。</span></li>
+          <li><span class="en">Load <code>~/.hanalima/mcp.json</code> in your MCP client. HanaLima writes it at every launch.</span><span class="ja">MCP クライアントに <code>~/.hanalima/mcp.json</code> を読ませます。このファイルは HanaLima が起動のたびに書きます。</span></li>
+          <li><span class="en">Ask for a lab. A build like the one above sends HanaLima's part of the talk in about 1,200 tokens.</span><span class="ja">構成を頼みます。上の例のような構築で、HanaLima とのやり取りは 1,200 トークンほどです。</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============================= QUICK START ============================= -->
 <section id="quickstart">
   <div class="wrap">
@@ -700,6 +763,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">A router for guest-only networks</span><span class="ja">ゲスト専用ネットワークのルーター</span></li><li><span class="en">Allow-list gateway example</span><span class="ja">出口を絞るゲートウェイの例</span></li><li><span class="en">Lima 2.3</span><span class="ja">Lima 2.3 に対応</span></li><li><span class="en">Pause and hibernate</span><span class="ja">一時停止と休止</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.14</h3>
         <ul><li><span class="en">VM groups in the sidebar</span><span class="ja">サイドバーの VM グループ</span></li><li><span class="en">Start, stop, hibernate a group</span><span class="ja">グループの一括起動・停止・休止</span></li><li><span class="en">Group submenus in the menu bar</span><span class="ja">メニューバーのグループ</span></li><li><span class="en">Notarized DMG on Releases</span><span class="ja">公証済みの DMG を配布</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.15</h3>
+        <ul><li><span class="en">AI through MCP (experimental)</span><span class="ja">MCP で AI から操作（試験的）</span></li><li><span class="en">Build a lab from a description</span><span class="ja">文章や図から構成を作る</span></li><li><span class="en">Approvals in the app</span><span class="ja">アプリで許可する操作</span></li><li><span class="en">Traffic checks inside guests</span><span class="ja">ゲストの中から疎通を確認</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
