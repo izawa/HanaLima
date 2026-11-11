@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(AppSettings.showMenuBarExtra) private var showMenuBarExtra = true
     @AppStorage(AppSettings.ansiblePathKey) private var ansiblePath = ""
+    @AppStorage(AppSettings.acceptAIOperationsKey) private var acceptAIOperations = false
 
     var body: some View {
         Form {
@@ -50,6 +51,17 @@ struct SettingsView: View {
                 Text("指定がなければ Homebrew、pyenv、~/.local/bin などの通常の場所から探します。仮想マシンの設定タブの「Ansible」で Playbook を選んで実行できます。")
                     .font(.caption).foregroundStyle(.secondary)
             }
+
+            Section {
+                Toggle("AI からの操作を受け付ける", isOn: $acceptAIOperations)
+                    .onChange(of: acceptAIOperations) { model.agentHost.update() }
+                AgentHostStatus(state: model.agentHost.state)
+            } header: {
+                Text("AI（MCP）")
+            } footer: {
+                Text("MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具を使えます。今は状態を読むことだけができます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .frame(width: 480)
@@ -77,6 +89,27 @@ struct AutostartToggle: View {
                 }))
                 .disabled(isUpdating)
             if isUpdating { ProgressView().controlSize(.small) }
+        }
+    }
+}
+
+/// What the MCP listener is doing, under its switch in Settings.
+private struct AgentHostStatus: View {
+    let state: AgentHost.State
+
+    var body: some View {
+        switch state {
+        case .off:
+            EmptyView()
+        case .listening:
+            Label("受け付けています", systemImage: "checkmark.circle")
+                .font(.caption).foregroundStyle(.secondary)
+        case .otherInstance:
+            Label("別の HanaLima が受け付けています", systemImage: "exclamationmark.triangle")
+                .font(.caption).foregroundStyle(.orange)
+        case .failed(let message):
+            Label("受け付けを始められませんでした: \(message)", systemImage: "exclamationmark.triangle")
+                .font(.caption).foregroundStyle(.red)
         }
     }
 }

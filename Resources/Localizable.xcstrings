@@ -827,6 +827,38 @@
         }
       }
     },
+    "AI からの操作を受け付ける": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept Operations from AI"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI からの操作を受け付ける"
+          }
+        }
+      }
+    },
+    "AI（MCP）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI (MCP)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI（MCP）"
+          }
+        }
+      }
+    },
     "APFS のクローンを作れませんでした（%@）。ディスクのあるボリュームが APFS でない可能性があります。": {
       "localizations": {
         "en": {
@@ -1849,6 +1881,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "MAC: %@"
+          }
+        }
+      }
+    },
+    "MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具を使えます。今は状態を読むことだけができます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load ~/.hanalima/mcp.json in your MCP client to let AI use HanaLima’s tools. For now they can only read the state."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP クライアントに ~/.hanalima/mcp.json を読ませると、AI が HanaLima の道具を使えます。今は状態を読むことだけができます。"
           }
         }
       }
@@ -10543,6 +10591,22 @@
         }
       }
     },
+    "別の HanaLima が受け付けています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another copy of HanaLima is accepting operations"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の HanaLima が受け付けています"
+          }
+        }
+      }
+    },
     "削除": {
       "localizations": {
         "en": {
@@ -10779,6 +10843,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "取り外す"
+          }
+        }
+      }
+    },
+    "受け付けています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepting operations"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け付けています"
+          }
+        }
+      }
+    },
+    "受け付けを始められませんでした: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start accepting operations: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け付けを始められませんでした: %@"
           }
         }
       }
@@ -13368,16 +13464,16 @@
     },
     "計画のあとで、ほかのネットワークも削除されました。確かめてから、この仮想マシンだけを起動してください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "計画のあとで、ほかのネットワークも削除されました。確かめてから、この仮想マシンだけを起動してください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Since the plan was made, another of its networks was deleted. Check, then start this virtual machine on its own."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "計画のあとで、ほかのネットワークも削除されました。確かめてから、この仮想マシンだけを起動してください。"
           }
         }
       }

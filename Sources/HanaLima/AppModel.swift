@@ -145,6 +145,23 @@ final class AppModel {
     /// Stopped VMs with a hibernated state (docs/11, stage 2), from the instance folders.
     var hibernatedInstances: Set<String> = []
     @ObservationIgnored private var hasListedOnce = false
+    /// The MCP server's app side (docs/14), started by `HanaLimaApp`.
+    @ObservationIgnored lazy var agentHost = AgentHost(model: self)
+
+    /// Set when `bootstrap()` has loaded everything once (VMs, networks, templates).
+    @ObservationIgnored private(set) var bootstrapFinished = false
+
+    /// Waits until `bootstrap()` has loaded the VMs, networks and templates (or `timeout`), for
+    /// callers that may run before the window has started the model (the MCP server after a
+    /// launch by its helper): answering earlier would report an empty Mac.
+    func waitUntilBootstrapped(timeout: Duration) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while !bootstrapFinished, availability != .missing, clock.now < deadline {
+            if case .failed = availability { return }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+    }
     @ObservationIgnored private var bootstrapStarted = false
     /// Snapshots per instance, loaded when the snapshot tab is shown (QEMU only).
     private(set) var snapshots: [String: [LimaSnapshot]] = [:]
@@ -315,6 +332,7 @@ final class AppModel {
         startWatching()
         startPolling()
         templates = (try? await client.templates()) ?? []
+        bootstrapFinished = true
     }
 
     func retryBootstrap() async {

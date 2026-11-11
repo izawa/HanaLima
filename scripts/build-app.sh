@@ -19,6 +19,7 @@ sign() {
 
 swift build -c "$CONFIG" --product HanaLima
 swift build -c "$CONFIG" --product hanalima-netd
+swift build -c "$CONFIG" --product hanalima-mcp
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
 
 APP="$ROOT/build/HanaLima.app"
@@ -44,6 +45,10 @@ done
 # The network helper needs com.apple.security.virtualization for the vmnet_network APIs.
 cp "$BIN_DIR/hanalima-netd" "$APP/Contents/Helpers/hanalima-netd"
 sign --entitlements "$ROOT/Resources/hanalima-netd.entitlements" "$APP/Contents/Helpers/hanalima-netd"
+
+# The MCP helper (docs/14): MCP clients start it from ~/.hanalima/mcp.json; no entitlements.
+cp "$BIN_DIR/hanalima-mcp" "$APP/Contents/Helpers/hanalima-mcp"
+sign "$APP/Contents/Helpers/hanalima-mcp"
 
 # Lima's external VM driver (Driver/, its own package): signed with the virtualization
 # entitlement, found by limactl through LIMA_DRIVERS_PATH=Contents/Helpers (docs/09).

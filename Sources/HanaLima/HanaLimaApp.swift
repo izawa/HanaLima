@@ -8,6 +8,12 @@ struct HanaLimaApp: App {
     @State private var model = AppModel()
     @AppStorage(AppSettings.showMenuBarExtra) private var showMenuBarExtra = true
 
+    init() {
+        let model = AppModel()
+        _model = State(initialValue: model)
+        model.agentHost.launch()
+    }
+
     var body: some Scene {
         // A single window, so the menu bar can bring it back instead of opening another.
         Window("HanaLima", id: "main") {
@@ -71,13 +77,29 @@ enum AppSettings {
     static var isMenuBarExtraShown: Bool {
         UserDefaults.standard.object(forKey: showMenuBarExtra) as? Bool ?? true
     }
+
+    /// Accept tool calls from MCP clients through `hanalima-mcp` (docs/14). Off by default.
+    /// The helper reads this key too (CFPreferences, domain org.izawa.HanaLima) to decide
+    /// whether launching the app would help.
+    static let acceptAIOperationsKey = "acceptAIOperations"
+    static var acceptsAIOperations: Bool {
+        #if DEBUG
+        // Lets a development build be tried without changing the installed app's setting.
+        if ProcessInfo.processInfo.environment["HANALIMA_MCP_ACCEPT"] == "1" { return true }
+        #endif
+        return UserDefaults.standard.bool(forKey: acceptAIOperationsKey)
+    }
+
+    /// Set by `hanalima-mcp` when it launches the app (`open -g --env`): stay in the background.
+    static var launchedByMCP: Bool { ProcessInfo.processInfo.environment["HANALIMA_MCP_LAUNCH"] == "1" }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Needed when launched as a bare SwiftPM executable (`swift run`) rather than an .app bundle.
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        // Launched by the MCP helper: don't take the user's focus.
+        if !AppSettings.launchedByMCP { NSApp.activate() }
         #if DEBUG
         DebugSnapshot.scheduleIfRequested()
         #endif
