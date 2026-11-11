@@ -635,6 +635,7 @@ final class AppModel {
             if let recordID, let dir {
                 DiskSnapshot.removeLocalSnapshots(limaHome: dir.deletingLastPathComponent(), id: recordID)
             }
+            if let recordID { self.agentHost.agentState.forgetVM(recordID) }
             if let dir, !shared { self.cleanUpExternalDisk(after: name, placement: placement, instanceDir: dir) }
             self.operations[name] = nil
             self.events[name] = nil

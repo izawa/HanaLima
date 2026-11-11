@@ -86,8 +86,9 @@ final class VMJobs {
         let summary = "\(action.rawValue) \(names.joined(separator: ", "))" + (tag.map { " (\($0))" } ?? "")
         let draft = makePlan(action: action, names: names, tag: tag, summary: summary)
         // Nothing to do (all already running, say): no approval to ask for, just the reasons.
-        // VMs MCP made need no approval either (docs/14 §6.1).
-        let needsApproval = draft.steps.contains { !state.ownsVM($0.id) }
+        // VMs MCP made need no approval either (docs/14 §6.1), except to roll a disk back.
+        let needsApproval = action == .snapshotRestore || draft.steps.contains { !state.ownsVM($0.id) }
+        if let error = state.saveError { throw Failure.invalid("HanaLima can't save its MCP state (\(error)); nothing was started") }
         let (job, _) = try store.submit(key: key, tool: "vm", input: arguments, summary: summary, needsApproval: needsApproval)
         var plan = draft
         plan.jobID = job.id

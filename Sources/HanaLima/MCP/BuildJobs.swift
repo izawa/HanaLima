@@ -23,6 +23,9 @@ final class BuildJobs {
     struct DeleteRequest: Identifiable {
         let jobID: String
         let vms: [String]
+        /// The record id each VM had when the person was asked: a VM made again under the
+        /// same name since is not the one approved.
+        let vmIDs: [String: UUID]
         let networks: [String]
         var id: String { jobID }
     }
@@ -100,6 +103,11 @@ final class BuildJobs {
         guard now.fingerprint == stored.plan.fingerprint, now.problems.isEmpty else {
             throw Failure.invalid("PLAN_STALE: the Mac changed since the plan; call plan again")
         }
+        if let error = state.saveError { throw Failure.invalid("HanaLima can't save its MCP state (\(error)); nothing was started") }
+        // One build at a time: two would save networks.json over each other.
+        if state.jobs.jobs.contains(where: { $0.tool == "apply" && !$0.state.isFinished }) {
+            throw Failure.invalid("another build is running; wait for it with job, then plan again")
+        }
         guard now.approvals.isEmpty else {
             throw Failure.invalid("this plan needs approval (\(now.approvals.joined(separator: "; "))), which stage 2 doesn't ask for yet; make it smaller")
         }
@@ -127,7 +135,7 @@ final class BuildJobs {
         // 2. VMs, stopped.
         var failed: Set<String> = []
         for vm in plan.vms where vm.action == .create {
-            if jobs.job(id)?.cancelRequested == true { return finish(id) }
+            if jobs.job(id)?.cancelRequested == true || state.saveError != nil { return finish(id) }
             jobs.setCurrent(id, vm.name)
             if let error = await model.createNow(vm.options, template: vm.template, group: plan.group) {
                 record(vm.name, "create: \(error)")
@@ -140,7 +148,8 @@ final class BuildJobs {
         let routers = Set(plan.networks.compactMap { net in
             plan.vms.first { vm in vm.nics.contains { $0.network == net.network.name && $0.ip == net.network.router } }?.name
         })
-        var routerFailed = false
+        // A router that couldn't even be created fails its network's other VMs too.
+        var routerFailed = !failed.isDisjoint(with: routers)
         for vm in plan.vms where !failed.contains(vm.name) {
             if jobs.job(id)?.cancelRequested == true { return finish(id) }
             if routerFailed && !routers.contains(vm.name) {
@@ -165,12 +174,14 @@ final class BuildJobs {
         state.jobs.finish(id)
     }
 
-    /// Starts `vm`; a bootstrap VM boots once with NIC 0, then loses it (docs/14 §2).
+    /// Starts `vm`; a bootstrap VM boots once with NIC 0, then loses it (docs/14 §2). Decided
+    /// from the VM's config, not from whether it runs: a build interrupted after the first boot
+    /// leaves it running with NIC 0, and only removing NIC 0 finishes it.
     private func start(_ vm: TopologyPlan.PlannedVM) async -> String? {
-        guard let client = model.client else { return "HanaLima has no limactl" }
-        if model.instance(named: vm.name)?.isRunning == true { return nil }
-        if let error = await model.perform(.start, on: vm.name, client.start(vm.name)) { return "start: \(error)" }
-        guard vm.bootstrapUsernet else { return nil }
+        guard let client = model.client, let inst = model.instance(named: vm.name) else { return "not found" }
+        let isolate = vm.bootstrapUsernet && inst.usesUsernet
+        if !inst.isRunning, let error = await model.perform(.start, on: vm.name, client.start(vm.name)) { return "start: \(error)" }
+        guard isolate else { return nil }
         if let error = await model.perform(.stop, on: vm.name, client.stop(vm.name)) { return "stop after the first boot: \(error)" }
         if let error = await model.perform(.edit, on: vm.name, client.edit(vm.name, set: [".vmOpts.hanalima.usernet = false"])) {
             return "remove NIC 0: \(error)"
@@ -179,9 +190,12 @@ final class BuildJobs {
         return nil
     }
 
-    /// Ready, and each NIC with a planned address holds a DHCP lease for it (others: any lease).
+    /// Ready, NIC 0 as planned, and each NIC with a planned address holds a DHCP lease for it
+    /// (others: any lease).
     private func verify(_ vm: TopologyPlan.PlannedVM) async -> String? {
         guard model.isReady(vm.name), let inst = model.instance(named: vm.name) else { return "not ready" }
+        let wantsUsernet = !vm.bootstrapUsernet && !vm.options.setExpressions.contains(".vmOpts.hanalima.usernet = false")
+        if inst.usesUsernet != wantsUsernet { return wantsUsernet ? "NIC 0 is missing" : "NIC 0 is still attached" }
         for _ in 0..<30 {
             await model.refreshNetworkStates()
             let missing = vm.nics.filter { nic in
@@ -211,15 +225,18 @@ final class BuildJobs {
         }
         let vms = try names("vms"), networks = try names("networks")
         guard !vms.isEmpty || !networks.isEmpty else { throw Failure.invalid("give vms and/or networks") }
+        var vmIDs: [String: UUID] = [:]
         for name in vms {
             guard let id = model.metadata[name]?.id, state.ownsVM(id) else { throw Failure.invalid("\(name) was not made through MCP; delete it in the app") }
+            vmIDs[name] = id
         }
+        if let error = state.saveError { throw Failure.invalid("HanaLima can't save its MCP state (\(error)); nothing was started") }
         for name in networks where !state.ownsNetwork(name) {
             throw Failure.invalid("\(name) was not made through MCP; delete it in the app")
         }
         let summary = "delete " + (vms + networks).joined(separator: " ")
         let (job, _) = try state.jobs.submit(key: key, tool: "delete", input: arguments, summary: summary, needsApproval: true)
-        awaitingDelete.append(DeleteRequest(jobID: job.id, vms: vms, networks: networks))
+        awaitingDelete.append(DeleteRequest(jobID: job.id, vms: vms, vmIDs: vmIDs, networks: networks))
         return JobStore.text(job, detail: false)
     }
 
@@ -250,21 +267,26 @@ final class BuildJobs {
 
     private func runDelete(_ request: DeleteRequest) async {
         let id = request.jobID
+        func stopped() -> Bool { state.jobs.job(id)?.cancelRequested == true }
         for name in request.vms {
+            if stopped() { return finish(id) }
             state.jobs.setCurrent(id, name)
-            let recordID = model.metadata[name]?.id
-            let error = await model.deleteNow(name)
-            if error == nil, let recordID { state.forgetVM(recordID) }
+            let error: String?
+            if let approved = request.vmIDs[name], model.metadata[name]?.id == approved, state.ownsVM(approved) {
+                error = await model.deleteNow(name)
+            } else {
+                error = "not the VM that was approved (renamed or made again); left alone"
+            }
             state.jobs.record(id, JobTargetResult(target: name, outcome: error == nil ? "done" : "failed", message: error))
         }
         for name in request.networks {
+            if stopped() { return finish(id) }
             state.jobs.setCurrent(id, name)
             var error: String?
             if let net = model.virtualNetworks.first(where: { $0.name == name }), !model.instances(using: net).isEmpty {
                 error = "still used by \(model.instances(using: net).map(\.name).joined(separator: ", "))"
             } else {
                 error = await model.deleteVirtualNetworkNow(name)
-                if error == nil { state.forgetNetwork(name) }
             }
             state.jobs.record(id, JobTargetResult(target: name, outcome: error == nil ? "done" : "failed", message: error))
         }

@@ -172,6 +172,8 @@ extension AppModel {
         virtualNetworks = remaining
         networkStates[name] = nil
         networkStatuses[name] = nil
+        // However it was deleted: a network made again under this name is the user's.
+        agentHost.agentState.forgetNetwork(name)
         return nil
     }
 
