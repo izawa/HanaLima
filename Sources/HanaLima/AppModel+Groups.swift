@@ -133,6 +133,8 @@ extension AppModel {
         layout.groups[i].name = new
         setGroupLayout(layout)
         if selection == .group(old) { selection = .group(new) }
+        // Renamed by the person: it's theirs now, and the old name is free for anyone.
+        agentHost.agentState.forgetGroup(old)
     }
 
     /// Takes the VMs out of the group (to the top of the ungrouped VMs) and removes it.

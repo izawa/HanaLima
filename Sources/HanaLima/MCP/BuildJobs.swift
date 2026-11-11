@@ -134,7 +134,7 @@ final class BuildJobs {
         }
         // 2. VMs, stopped. A group that didn't exist is the build's, so a delete can remove it
         //    once it's empty.
-        if let group = plan.group, model.groupLayout.index(ofGroup: group) == nil { state.recordGroup(group, job: id) }
+        let groupIsNew = plan.group.map { model.groupLayout.index(ofGroup: $0) == nil } ?? false
         var failed: Set<String> = []
         for vm in plan.vms where vm.action == .create {
             if jobs.job(id)?.cancelRequested == true { return finish(id) }
@@ -148,6 +148,10 @@ final class BuildJobs {
                 failed.insert(vm.name)
             } else if let recordID = model.metadata[vm.name]?.id {
                 state.recordVM(recordID, name: vm.name, job: id)
+                // Only once a VM made it exist.
+                if groupIsNew, let group = plan.group, !state.ownsGroup(group), model.groupLayout.index(ofGroup: group) != nil {
+                    state.recordGroup(group, job: id)
+                }
             }
         }
         // 3. Start in order; a failed router leaves the rest waiting (they'd have no way out).
