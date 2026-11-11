@@ -77,8 +77,40 @@ final class VMJobs {
 
     // MARK: - Tools
 
+    /// `vm` and `exec` as the client calls them: file the job, then, with `wait` (seconds), wait
+    /// for it to finish so a short operation needs no `job` call (docs/14 §5.3). A job waiting
+    /// for the person's approval answers at once: the client should tell them.
+    func call(_ tool: String, _ arguments: MCPKit.JSONValue) async throws -> String {
+        var rest = arguments
+        var seconds = 0
+        if case .object(var o) = arguments, let raw = o.removeValue(forKey: "wait") {
+            guard let n = raw.intValue, (0...120).contains(n) else { throw Failure.invalid("wait must be an integer in 0...120") }
+            seconds = n
+            rest = .object(o)
+        }
+        var job = tool == "exec" ? try submitExec(rest) : try submit(rest)
+        // A wait holds a socket connection, like `job` wait: past the cap, answer at once.
+        if seconds > 0, job.state == .running, activeWaits < Self.maxWaits {
+            activeWaits += 1
+            defer { activeWaits -= 1 }
+            let deadline = ContinuousClock.now + .seconds(seconds)
+            while job.state == .running, ContinuousClock.now < deadline,
+                  let next = await store.wait(job.id, after: job.seq, timeout: deadline - ContinuousClock.now) {
+                job = next
+            }
+        }
+        let text = JobStore.text(job, detail: job.results.count <= 3)
+        return job.tool == "exec" && job.state.isFinished ? text + "\n" + outputText(job.id) : text
+    }
+
+    /// The kept output of an exec job, VM by VM.
+    private func outputText(_ id: String) -> String {
+        let parts = (outputs[id] ?? [:]).sorted { $0.key < $1.key }.map { "--- \($0.key)\n\($0.value)" }
+        return parts.isEmpty ? "--- no output kept (not an exec job, or HanaLima restarted)" : parts.joined(separator: "\n")
+    }
+
     /// `vm`: validates, plans, and files a job waiting for approval.
-    func submit(_ arguments: MCPKit.JSONValue) throws -> String {
+    func submit(_ arguments: MCPKit.JSONValue) throws -> Job {
         store.expireStale()
         guard let object = arguments.objectValue else { throw Failure.invalid("arguments must be an object") }
         let known: Set = ["key", "targets", "group", "action", "tag"]
@@ -89,7 +121,7 @@ final class VMJobs {
         }
         do {
             // A retry finds its job even if the VMs it named were renamed or deleted since.
-            if let job = try store.existing(key: key, tool: "vm", input: arguments) { return JobStore.text(job, detail: false) }
+            if let job = try store.existing(key: key, tool: "vm", input: arguments) { return job }
         } catch JobStoreError.keyConflict(let id) {
             throw Failure.invalid("key already used by job \(id) with different arguments")
         }
@@ -103,7 +135,7 @@ final class VMJobs {
     }
 
     /// Files `draft` as a job: at once, after the person's approval, or (nothing to do) finished.
-    private func file(_ draft: Plan, key: String, tool: String, input arguments: MCPKit.JSONValue) throws -> String {
+    private func file(_ draft: Plan, key: String, tool: String, input arguments: MCPKit.JSONValue) throws -> Job {
         // Nothing to do (all already running, say): no approval to ask for, just the reasons.
         // VMs MCP made need no approval either (docs/14 §6.1), except to roll a disk back.
         let needsApproval = draft.action == .snapshotRestore || draft.steps.contains { !state.ownsVM($0.id) }
@@ -119,18 +151,18 @@ final class VMJobs {
         } else {
             Task { await run(plan, confirmations: [:]) }
         }
-        return JobStore.text(store.job(job.id) ?? job, detail: true)
+        return store.job(job.id) ?? job
     }
 
     /// `exec`: a script in each target, as a job (approval rules as `vm`).
-    func submitExec(_ arguments: MCPKit.JSONValue) throws -> String {
+    func submitExec(_ arguments: MCPKit.JSONValue) throws -> Job {
         store.expireStale()
         guard let object = arguments.objectValue else { throw Failure.invalid("arguments must be an object") }
         let known: Set = ["key", "targets", "script", "timeoutSeconds", "outputBytes"]
         if let unknown = object.keys.first(where: { !known.contains($0) }) { throw Failure.invalid("unknown argument: \(unknown)") }
         guard let key = object["key"]?.stringValue, !key.isEmpty else { throw Failure.invalid("key is required") }
         do {
-            if let job = try store.existing(key: key, tool: "exec", input: arguments) { return JobStore.text(job, detail: false) }
+            if let job = try store.existing(key: key, tool: "exec", input: arguments) { return job }
         } catch JobStoreError.keyConflict(let id) {
             throw Failure.invalid("key already used by job \(id) with different arguments")
         }
@@ -166,8 +198,7 @@ final class VMJobs {
         case "get":
             let text = JobStore.text(store.job(id)!, detail: detail)
             guard withOutput else { return text }
-            let parts = (outputs[id] ?? [:]).sorted { $0.key < $1.key }.map { "--- \($0.key)\n\($0.value)" }
-            return ([text] + (parts.isEmpty ? ["--- no output kept (not an exec job, or HanaLima restarted)"] : parts)).joined(separator: "\n")
+            return text + "\n" + outputText(id)
         case "wait":
             let after = object["after"]?.intValue ?? store.job(id)!.seq
             let seconds = activeWaits < Self.maxWaits ? min(max(object["waitSeconds"]?.intValue ?? 120, 1), 120) : 0

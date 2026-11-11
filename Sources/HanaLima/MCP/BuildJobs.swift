@@ -180,7 +180,8 @@ final class BuildJobs {
         }
         // 5. Traffic, from inside the guests (docs/14 §2.3). A check that didn't pass is
         //    "unverified", not "can't reach": ICMP may be filtered, the site may be down.
-        for (vm, entry) in TopologyVerification.scripts(for: plan).sorted(by: { $0.key < $1.key }) {
+        let checkScripts = TopologyVerification.scripts(for: plan)
+        for (vm, entry) in checkScripts.sorted(by: { $0.key < $1.key }) {
             if jobs.job(id)?.cancelRequested == true { return finish(id) }
             jobs.setCurrent(id, vm)
             var runError: String? = failed.contains(vm) ? "not built" : nil
@@ -195,7 +196,8 @@ final class BuildJobs {
                                                 outcome: check.verified ? "done" : "unverified", message: check.reason))
             }
         }
-        if plan.verifyOutside == nil {
+        // Only a topology with a router has a way out to check.
+        if plan.verifyOutside == nil, plan.networks.contains(where: { !$0.network.router.isEmpty }) {
             jobs.record(id, JobTargetResult(target: "- outside", outcome: "unverified", message: "no verifyOutside given"))
         }
         // The short answer counts rows; say which are the traffic checks, so the client

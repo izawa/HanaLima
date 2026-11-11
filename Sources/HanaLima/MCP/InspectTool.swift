@@ -328,7 +328,9 @@ struct InspectTool {
             "networks": """
             Modes: shared (NAT via the Mac), host (host-only), bridged (the Mac's interface; made by the user only), \
             guestOnly (a switch between VMs inside netd; the Mac has no interface on it). A guestOnly network can name \
-            a router: a VM address handed out by DHCP as the default route and second DNS server.
+            a router: a VM address handed out by DHCP as the default route and second DNS server. The first DNS \
+            server (the network's DHCP server address) answers only `lima-<vm>` names and refuses the rest, so the \
+            resolver moves on to the router; busybox `nslookup` doesn't move on and fails, which is expected.
             """,
             "gateway": """
             The gateway example makes a router VM do NAT and DNS for a guestOnly network and pass only hosts \

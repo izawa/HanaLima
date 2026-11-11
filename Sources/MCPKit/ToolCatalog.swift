@@ -81,6 +81,12 @@ public enum ToolCatalog {
         ],
         readOnly: true)
 
+    /// `wait` of `vm` and `exec`: answer with the result if the job ends within that time.
+    static let waitProperty: JSONValue = [
+        "type": "integer", "minimum": 0, "maximum": 120,
+        "description": "Seconds to wait for the job; if it finishes, the answer is its result (exec: with output)",
+    ]
+
     public static let vm = MCPToolDefinition(
         name: "vm",
         title: "Operate VMs",
@@ -95,6 +101,7 @@ public enum ToolCatalog {
                 "targets": ["type": "array", "items": ["type": "string"], "description": "VM names"],
                 "group": ["type": "string", "description": "Instead of targets: a group (start, stop, hibernate only)"],
                 "tag": ["type": "string", "description": "Snapshot name (snapshot_create, snapshot_restore)"],
+                "wait": waitProperty,
             ],
             "required": ["key", "action"],
             "additionalProperties": false,
@@ -186,6 +193,7 @@ public enum ToolCatalog {
                 "script": ["type": "string"],
                 "timeoutSeconds": ["type": "integer", "minimum": 1, "maximum": 600, "description": "Per VM, default 60"],
                 "outputBytes": ["type": "integer", "minimum": 1, "maximum": 16384, "description": "Output kept, all VMs together, default 4096"],
+                "wait": waitProperty,
             ],
             "required": ["key", "targets", "script"],
             "additionalProperties": false,
