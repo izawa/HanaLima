@@ -199,6 +199,10 @@ final class VMJobs {
 
     /// Drops plans whose jobs ended while waiting (expired, cancelled by the client).
     private func pruneApprovals() {
+        // Output of jobs the store has let go of (keep limit) goes with them.
+        if outputs.keys.contains(where: { store.job($0) == nil }) {
+            outputs = outputs.filter { store.job($0.key) != nil }
+        }
         if awaitingApproval.contains(where: { store.job($0.jobID)?.state != .awaitingApproval }) {
             awaitingApproval.removeAll { store.job($0.jobID)?.state != .awaitingApproval }
         }

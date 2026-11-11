@@ -240,15 +240,26 @@ private final class BackgroundProcesses: @unchecked Sendable {
     }
 }
 
+/// The end of a command's stderr, for its error message: a command that writes megabytes to
+/// stderr (a guest script run for MCP, say) must not fill the app's memory.
 private final class LockedData: @unchecked Sendable {
+    static let limit = 64 * 1024
     private let lock = NSLock()
     private var buffer = Data()
     var data: Data { lock.withLock { buffer } }
-    func append(_ d: Data) { lock.withLock { buffer.append(d) } }
+    func append(_ d: Data) {
+        lock.withLock {
+            buffer.append(d)
+            if buffer.count > Self.limit { buffer = Data(buffer.suffix(Self.limit)) }
+        }
+    }
 }
 
 /// Splits a byte stream into lines on `\n` or `\r`, skipping empty lines.
 struct LineSplitter {
+    /// Output with no line break for this long is passed on in pieces of this size, so that it
+    /// isn't all held in memory waiting for one.
+    static let maxLineBytes = 64 * 1024
     private var pending = Data()
 
     mutating func feed(_ data: Data) -> [String] {
@@ -258,6 +269,10 @@ struct LineSplitter {
             let line = pending[pending.startIndex..<idx]
             pending.removeSubrange(pending.startIndex...idx)
             if !line.isEmpty { lines.append(String(decoding: line, as: UTF8.self)) }
+        }
+        while pending.count >= Self.maxLineBytes {
+            lines.append(String(decoding: pending.prefix(Self.maxLineBytes), as: UTF8.self))
+            pending.removeFirst(Self.maxLineBytes)
         }
         return lines
     }

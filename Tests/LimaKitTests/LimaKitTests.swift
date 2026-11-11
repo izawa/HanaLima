@@ -173,6 +173,14 @@ import Testing
         _ = s.feed(Data("tail".utf8))
         #expect(s.flush() == "tail")
     }
+
+    @Test func passesOnOutputWithoutLineBreaksInPieces() {
+        var s = LineSplitter()
+        let size = LineSplitter.maxLineBytes
+        let lines = s.feed(Data(repeating: UInt8(ascii: "x"), count: size * 2 + 5))
+        #expect(lines.map(\.count) == [size, size])
+        #expect(s.flush() == "xxxxx")
+    }
 }
 
 @Suite struct ProcessRunnerTests {
