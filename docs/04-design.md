@@ -10,6 +10,7 @@ HanaLima の設計上の判断と、その理由をまとめる。経緯は [03]
 | `NetworkKit` | HanaLima 仮想ネットワーク: `VirtualNetwork`/`networks.json`、`LaunchAgentManager`、`HelperInstaller`、`DHCPClientIDFilter`、`DHCPLeases`、`NetworkConflict` |
 | `hanalima-netd` | ネットワークごとに 1 プロセス。Lima の `socket:` ネットワーク（socket_vmnet 互換の QEMU stream: 4 バイト長＋フレーム）を vmnet に中継する。root 不要（`com.apple.security.virtualization` が必須） |
 | `MCPKit` | MCP（docs/14）: JSON-RPC の処理、道具の定義（AI が読むので英語）、アプリとの Unix ソケット（`~/.hanalima/agent.sock`）、`mcp.json` の書き換えの規則、呼び出しの記録（字数と時間だけ） |
+| `AgentKit` | MCP の道具のうち画面の要らない部分: 宣言の読み取りと計画（作れない点を改定案付きで返す）、計画の文面 |
 | `hanalima-mcp` | MCP クライアントが起動するヘルパー。`initialize` と `tools/list` は自分で答え、道具の呼び出しだけをアプリへ中継する。アプリが居なければ、設定「AI からの操作を受け付ける」がオンのときだけ起動する |
 | `HanaLima` | SwiftUI アプリ。`AppModel`（@Observable, @MainActor）、`AppModel+Networks` |
 | `lima-driver-hanalima`（`Driver/`、別パッケージ） | Lima の外部 VM ドライバー（docs/09）。hostagent から gRPC（Unix ソケット）で呼ばれ、Virtualization.framework で VM を自分のプロセスに起動し、NIC 0 は `limactl usernet` の子プロセスに socketpair の片側を SCM_RIGHTS で渡してつなぐ。`vmType: hanalima` の VM で使われる。画面（自分のウインドウ）、シリアルコンソール（`serialv.sock`）、HanaLima からの制御（`hanalima-ctl.sock`、`DriverControl`）も持つ。`build-app.sh` が virtualization の entitlement で署名して `Contents/Helpers/` に入れ（`LIMA_DRIVERS_PATH`）、アプリの起動時に `DriverInstaller` が `<prefix>/lib/lima/`（Homebrew なら `/opt/homebrew/lib/lima/`）にも写すのでターミナルの `limactl` からも使える。新規作成の既定（2026-11-06）。hosted モード（`--hosted`、gRPC なし、制御ソケットと `hanalima-hosted.pid`）で救出起動と ISO インストールの VM も動かす |
