@@ -21,6 +21,8 @@ let package = Package(
         // MCP (docs/14): the protocol, the tool catalog and the app's Unix socket. Foundation only.
         .target(name: "MCPKit"),
         .executableTarget(name: "hanalima-mcp", dependencies: ["MCPKit"]),
+        // The MCP tools' logic that needs no UI (docs/14 stage 2): the topology declaration and its planner.
+        .target(name: "AgentKit", dependencies: ["MCPKit", "LimaKit", "NetworkKit"]),
         .executableTarget(name: "hanalima-netd", dependencies: ["NetworkKit"]),
         .executableTarget(
             name: "HanaLima",
@@ -28,10 +30,12 @@ let package = Package(
                 "LimaKit",
                 "NetworkKit",
                 "MCPKit",
+                "AgentKit",
                 .product(name: "SwiftTerm", package: "SwiftTerm"),
             ]
         ),
         .testTarget(name: "MCPKitTests", dependencies: ["MCPKit"]),
+        .testTarget(name: "AgentKitTests", dependencies: ["AgentKit", "MCPKit", "LimaKit", "NetworkKit"]),
         .testTarget(name: "NetworkKitTests", dependencies: ["NetworkKit", "LimaKit"]),
         .testTarget(
             name: "LimaKitTests",
