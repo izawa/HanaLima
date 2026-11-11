@@ -6254,7 +6254,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Run Script"
+            "value": "Run a Script"
           }
         },
         "ja": {
@@ -11598,6 +11598,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "実行されるコマンド"
+          }
+        }
+      }
+    },
+    "実行するスクリプト（ログインユーザー、各仮想マシンで最長 %lld 秒）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Script to run (as the login user, up to %lld seconds in each virtual machine)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行するスクリプト（ログインユーザー、各仮想マシンで最長 %lld 秒）"
           }
         }
       }

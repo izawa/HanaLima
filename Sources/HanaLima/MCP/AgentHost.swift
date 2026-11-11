@@ -134,6 +134,7 @@ final class AgentHost {
             case ToolCatalog.inspect.name: text = try InspectTool(model: model).run(request.arguments)
             case ToolCatalog.vm.name: text = try vmJobs.submit(request.arguments)
             case ToolCatalog.job.name: text = try await vmJobs.job(request.arguments)
+            case ToolCatalog.exec.name: text = try vmJobs.submitExec(request.arguments)
             case ToolCatalog.plan.name: text = try buildJobs.plan(request.arguments)
             case ToolCatalog.apply.name: text = try buildJobs.apply(request.arguments)
             case ToolCatalog.delete.name: text = try buildJobs.delete(request.arguments)

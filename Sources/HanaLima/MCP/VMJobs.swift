@@ -15,6 +15,8 @@ final class VMJobs {
     enum Action: String, CaseIterable {
         case start, stop, restart, pause, resume, hibernate
         case snapshotCreate = "snapshot_create", snapshotRestore = "snapshot_restore"
+        /// The `exec` tool (not a `vm` action): a script in each target.
+        case exec
 
         /// The group operation with the same checks, if there is one.
         var groupAction: GroupAction? {
@@ -38,7 +40,20 @@ final class VMJobs {
         /// snapshot_restore: the snapshot each VM was planned to go back to, by id (one made
         /// again under the same name while waiting for approval is not the one approved).
         var snapshotIDs: [String: UUID] = [:]
+        /// exec: what to run and its limits.
+        var exec: ExecRequest?
     }
+
+    struct ExecRequest {
+        let script: String
+        let timeout: Duration
+        /// Output kept per target, in bytes (the response's budget split among the targets).
+        let keepBytes: Int
+    }
+
+    /// The output of exec jobs, by job and target: in memory only, never in the state file or
+    /// the call log (it may hold secrets).
+    @ObservationIgnored private var outputs: [String: [String: String]] = [:]
 
     enum Failure: Error { case invalid(String) }
 
@@ -84,12 +99,16 @@ final class VMJobs {
             throw Failure.invalid("tag is required for \(action.rawValue)")
         }
         let summary = "\(action.rawValue) \(names.joined(separator: ", "))" + (tag.map { " (\($0))" } ?? "")
-        let draft = makePlan(action: action, names: names, tag: tag, summary: summary)
+        return try file(makePlan(action: action, names: names, tag: tag, summary: summary), key: key, tool: "vm", input: arguments)
+    }
+
+    /// Files `draft` as a job: at once, after the person's approval, or (nothing to do) finished.
+    private func file(_ draft: Plan, key: String, tool: String, input arguments: MCPKit.JSONValue) throws -> String {
         // Nothing to do (all already running, say): no approval to ask for, just the reasons.
         // VMs MCP made need no approval either (docs/14 §6.1), except to roll a disk back.
-        let needsApproval = action == .snapshotRestore || draft.steps.contains { !state.ownsVM($0.id) }
+        let needsApproval = draft.action == .snapshotRestore || draft.steps.contains { !state.ownsVM($0.id) }
         if let error = state.saveError { throw Failure.invalid("HanaLima can't save its MCP state (\(error)); nothing was started") }
-        let (job, _) = try store.submit(key: key, tool: "vm", input: arguments, summary: summary, needsApproval: needsApproval)
+        let (job, _) = try store.submit(key: key, tool: tool, input: arguments, summary: draft.summary, needsApproval: needsApproval)
         var plan = draft
         plan.jobID = job.id
         if plan.steps.isEmpty {
@@ -103,17 +122,52 @@ final class VMJobs {
         return JobStore.text(store.job(job.id) ?? job, detail: true)
     }
 
+    /// `exec`: a script in each target, as a job (approval rules as `vm`).
+    func submitExec(_ arguments: MCPKit.JSONValue) throws -> String {
+        store.expireStale()
+        guard let object = arguments.objectValue else { throw Failure.invalid("arguments must be an object") }
+        let known: Set = ["key", "targets", "script", "timeoutSeconds", "outputBytes"]
+        if let unknown = object.keys.first(where: { !known.contains($0) }) { throw Failure.invalid("unknown argument: \(unknown)") }
+        guard let key = object["key"]?.stringValue, !key.isEmpty else { throw Failure.invalid("key is required") }
+        do {
+            if let job = try store.existing(key: key, tool: "exec", input: arguments) { return JobStore.text(job, detail: false) }
+        } catch JobStoreError.keyConflict(let id) {
+            throw Failure.invalid("key already used by job \(id) with different arguments")
+        }
+        guard let script = object["script"]?.stringValue, !script.isEmpty, script.utf8.count <= 64 * 1024, !script.contains("\0") else {
+            throw Failure.invalid("script is required (UTF-8, up to 64 KiB)")
+        }
+        let timeout = try Self.integer(object["timeoutSeconds"], "timeoutSeconds", 1...600, default: 60)
+        let budget = try Self.integer(object["outputBytes"], "outputBytes", 1...16384, default: 4096)
+        let names = try targets(object, action: .exec)
+        guard names.count <= 16 else { throw Failure.invalid("at most 16 targets") }
+        let summary = "exec \(names.joined(separator: ", "))"
+        var plan = makePlan(action: .exec, names: names, tag: nil, summary: summary)
+        plan.exec = ExecRequest(script: script, timeout: .seconds(timeout), keepBytes: budget / max(names.count, 1))
+        return try file(plan, key: key, tool: "exec", input: arguments)
+    }
+
+    private static func integer(_ value: MCPKit.JSONValue?, _ name: String, _ range: ClosedRange<Int>, default fallback: Int) throws -> Int {
+        guard let value else { return fallback }
+        guard let n = value.intValue, range.contains(n) else { throw Failure.invalid("\(name) must be an integer in \(range.lowerBound)...\(range.upperBound)") }
+        return n
+    }
+
     /// `job`: get, wait or cancel.
     func job(_ arguments: MCPKit.JSONValue) async throws -> String {
         store.expireStale()
         guard let object = arguments.objectValue else { throw Failure.invalid("arguments must be an object") }
-        let known: Set = ["id", "action", "after", "waitSeconds", "detail"]
+        let known: Set = ["id", "action", "after", "waitSeconds", "detail", "output"]
         if let unknown = object.keys.first(where: { !known.contains($0) }) { throw Failure.invalid("unknown argument: \(unknown)") }
         guard let id = object["id"]?.stringValue, store.job(id) != nil else { throw Failure.invalid("unknown job id") }
         let detail = object["detail"]?.boolValue ?? false
+        let withOutput = object["output"]?.boolValue ?? false
         switch object["action"]?.stringValue ?? "get" {
         case "get":
-            return JobStore.text(store.job(id)!, detail: detail)
+            let text = JobStore.text(store.job(id)!, detail: detail)
+            guard withOutput else { return text }
+            let parts = (outputs[id] ?? [:]).sorted { $0.key < $1.key }.map { "--- \($0.key)\n\($0.value)" }
+            return ([text] + (parts.isEmpty ? ["--- no output kept (not an exec job, or HanaLima restarted)"] : parts)).joined(separator: "\n")
         case "wait":
             let after = object["after"]?.intValue ?? store.job(id)!.seq
             let seconds = activeWaits < Self.maxWaits ? min(max(object["waitSeconds"]?.intValue ?? 120, 1), 120) : 0
@@ -241,6 +295,10 @@ final class VMJobs {
         case .restart: return inst.isRunning ? model.diskUnusableReason(name)?.title : "not running"
         case .pause: return model.isPaused(name) ? "already paused" : model.pauseBlocker(name)
         case .resume: return model.isPaused(name) ? nil : "not paused"
+        case .exec:
+            if !inst.isRunning { return "not running" }
+            if model.isPaused(name) { return "paused" }
+            return model.isReady(name) ? nil : "still booting"
         case .snapshotCreate, .snapshotRestore:
             if inst.isRunning { return "stop the VM first" }
             if model.isHibernated(name) { return "hibernated; start or discard the saved state first" }
@@ -271,6 +329,13 @@ final class VMJobs {
                 return .failed("the snapshot approved is gone")
             }
             error = await model.performDiskSnapshot(.snapshotApply, name) { dir in try DiskSnapshot.restore(snapshot, of: dir, into: dir) }
+        case .exec:
+            guard let exec = plan.exec else { return .failed("no script") }
+            let result = await model.runGuestScript(name, script: exec.script, timeout: exec.timeout, keepBytes: exec.keepBytes)
+            outputs[plan.jobID, default: [:]][step.name] = result.output
+            if let failure = result.error { error = failure }
+            else if let exit = result.exit, exit != 0 { error = "exit \(exit)" }
+            else { error = nil }
         case .start, .stop, .hibernate: error = nil
         }
         return error.map(GroupStepReport.failed) ?? .done

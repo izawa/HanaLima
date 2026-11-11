@@ -252,7 +252,7 @@ private func trial(bootstrap: Bool = true) -> TopologySpec {
     #expect(text.contains("filled\tdriver=hanalima; shares=none;"))
     #expect(text.contains("assumption\t/defaults\tSmall lab"))
     #expect(text.contains("approval\tnone"))
-    #expect(text.hasSuffix("verify\tconfig, boot, DHCP lease (traffic not checked)"))
+    #expect(text.hasSuffix("verify\tconfig, boot, DHCP lease, traffic (outside: not checked; give verifyOutside)"))
     let blocked = TopologyPlanner.plan(trial(bootstrap: false), facts: facts()).text(planID: "p2", expires: date)
     #expect(blocked.contains("plan p2\tblocked"))
     #expect(blocked.contains("problem\tUNSUPPORTED\t/vms/0/bootstrapUsernet\t"))

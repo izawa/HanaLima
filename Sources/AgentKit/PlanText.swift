@@ -36,7 +36,7 @@ extension TopologyPlan {
             if let alternative = p.alternative { columns.append("alternative: " + alternative) }
             lines.append(columns.map(Self.cell).joined(separator: "\t"))
         }
-        lines.append("verify\tconfig, boot, DHCP lease (traffic not checked)")
+        lines.append(row("verify", "config, boot, DHCP lease, traffic (outside: \(verifyOutside ?? "not checked; give verifyOutside"))"))
         return lines.joined(separator: "\n")
     }
 
@@ -71,6 +71,7 @@ extension TopologyPlan {
             ])
         }
         let value = LimaKit.JSONValue.object(["group": group.map(LimaKit.JSONValue.string) ?? .null,
+                                              "verifyOutside": verifyOutside.map(LimaKit.JSONValue.string) ?? .null,
                                               "networks": .array(networkValues), "vms": .array(vmValues)])
         return SHA256.hash(data: Data(value.jsonText.utf8)).map { String(format: "%02x", $0) }.joined()
     }

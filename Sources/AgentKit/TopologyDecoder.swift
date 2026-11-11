@@ -4,7 +4,7 @@ import MCPKit
 extension TopologySpec {
     public static func decode(_ json: MCPKit.JSONValue) -> (spec: TopologySpec?, problems: [PlanProblem]) {
         let reader = DeclarationReader()
-        let root = reader.object(json, at: "", keys: ["group", "defaults", "networks", "vms", "assumptions"])
+        let root = reader.object(json, at: "", keys: ["group", "verifyOutside", "defaults", "networks", "vms", "assumptions"])
         let d = root["defaults"].map {
             reader.object($0, at: "/defaults", keys: ["template", "cpus", "memoryGiB", "diskGiB", "usernet"])
         } ?? [:]
@@ -55,7 +55,7 @@ extension TopologySpec {
             return Assumption(path: reader.string(o, "path", at: path, required: true) ?? "",
                               reason: reader.string(o, "reason", at: path, required: true) ?? "")
         }
-        let spec = TopologySpec(group: reader.string(root, "group", at: ""), defaults: defaults,
+        let spec = TopologySpec(group: reader.string(root, "group", at: ""), verifyOutside: reader.string(root, "verifyOutside", at: ""), defaults: defaults,
                                 networks: networks, vms: vms, assumptions: assumptions)
         let problems = reader.problems + declarationProblems(spec)
         return (problems.isEmpty ? spec : nil, problems)
@@ -76,6 +76,10 @@ func declarationProblems(_ spec: TopologySpec) -> [PlanProblem] {
         if let disk, !disk.isFinite || !(10...4096).contains(disk) {
             invalid(path + "/diskGiB", "Disk must be between 10 and 4096 GiB")
         }
+    }
+    if let host = spec.verifyOutside,
+       !(1...253).contains(host.count) || host.hasPrefix("-") || host.wholeMatch(of: /[A-Za-z0-9.-]+/) == nil {
+        invalid("/verifyOutside", "Expected 1–253 letters, digits, dots or hyphens, with no leading hyphen")
     }
     if spec.vms.count > 16 { invalid("/vms", "At most 16 VMs are supported") }
     if spec.networks.count > 4 { invalid("/networks", "At most 4 networks are supported") }

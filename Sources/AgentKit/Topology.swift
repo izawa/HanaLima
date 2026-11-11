@@ -61,13 +61,14 @@ public struct TopologySpec: Equatable, Sendable {
     }
 
     public var group: String?
+    public var verifyOutside: String?
     public var defaults: Defaults
     public var networks: [Network]
     public var vms: [VM]
     public var assumptions: [Assumption]
 
-    public init(group: String? = nil, defaults: Defaults = .init(), networks: [Network] = [], vms: [VM] = [], assumptions: [Assumption] = []) {
-        self.group = group; self.defaults = defaults; self.networks = networks; self.vms = vms; self.assumptions = assumptions
+    public init(group: String? = nil, verifyOutside: String? = nil, defaults: Defaults = .init(), networks: [Network] = [], vms: [VM] = [], assumptions: [Assumption] = []) {
+        self.group = group; self.verifyOutside = verifyOutside; self.defaults = defaults; self.networks = networks; self.vms = vms; self.assumptions = assumptions
     }
 }
 
@@ -139,6 +140,7 @@ public struct TopologyPlan: Equatable, Sendable {
     /// In start order: routers first, then the rest in declaration order.
     public var vms: [PlannedVM]
     public var group: String?
+    public var verifyOutside: String?
     /// "key=value" notes of what HanaLima filled in (driver, DHCP server address, pinned template...).
     public var filled: [String]
     public var assumptions: [TopologySpec.Assumption]

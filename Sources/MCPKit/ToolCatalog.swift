@@ -113,6 +113,7 @@ public enum ToolCatalog {
                 "after": ["type": "integer", "minimum": 0],
                 "waitSeconds": ["type": "integer", "minimum": 1, "maximum": 120],
                 "detail": ["type": "boolean", "description": "All per-VM rows instead of failures only"],
+                "output": ["type": "boolean", "description": "exec jobs: append the end of each VM's output (get only)"],
             ],
             "required": ["id"],
             "additionalProperties": false,
@@ -128,6 +129,7 @@ public enum ToolCatalog {
             + "\"vms\":[{\"ref\":\"gw\",\"nics\":[{\"network\":\"inner\",\"ip\":\"10.20.0.1\"}],\"gateway\":{\"allow\":[\"*\"]}},"
             + "{\"ref\":\"c1\",\"usernet\":false,\"bootstrapUsernet\":true,\"nics\":[{\"network\":\"inner\"}]}],"
             + "\"assumptions\":[{\"path\":\"/defaults\",\"reason\":\"smallest\"}]}. "
+            + "Add \"verifyOutside\":\"example.com\" to check the way out after the build. "
             + "usernet false = no NIC 0 (isolated; vsock keeps SSH). Problems come with an alternative: ask the user before changing what they asked for.",
         inputSchema: [
             "type": "object",
@@ -169,8 +171,28 @@ public enum ToolCatalog {
         ],
         readOnly: false, destructive: true)
 
+    public static let exec = MCPToolDefinition(
+        name: "exec",
+        title: "Run a script in VMs",
+        description: "Run a POSIX sh script in each target as the login user (sudo works), one after another, as a job. "
+            + "For VMs not made through MCP the user approves it in the app first. Results: exit codes; "
+            + "`job` with output: true returns the end of each output.",
+        inputSchema: [
+            "type": "object",
+            "properties": [
+                "key": ["type": "string"],
+                "targets": ["type": "array", "items": ["type": "string"], "description": "VM names (1-16)"],
+                "script": ["type": "string"],
+                "timeoutSeconds": ["type": "integer", "minimum": 1, "maximum": 600, "description": "Per VM, default 60"],
+                "outputBytes": ["type": "integer", "minimum": 1, "maximum": 16384, "description": "Output kept, all VMs together, default 4096"],
+            ],
+            "required": ["key", "targets", "script"],
+            "additionalProperties": false,
+        ],
+        readOnly: false)
+
     /// The tools this build offers (docs/14 §4).
-    public static let tools: [MCPToolDefinition] = [inspect, plan, apply, vm, job, delete]
+    public static let tools: [MCPToolDefinition] = [inspect, plan, apply, vm, exec, job, delete]
 
     public static func tool(named name: String) -> MCPToolDefinition? {
         tools.first { $0.name == name }

@@ -34,6 +34,19 @@ struct AgentApprovalSheet: View {
                     Text("MCP クライアントからの依頼です。許可した操作だけを、この順に実行します。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                if let exec = plan.exec {
+                    Section {
+                        ScrollView {
+                            Text(verbatim: exec.script)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxHeight: 160)
+                    } header: {
+                        Text("実行するスクリプト（ログインユーザー、各仮想マシンで最長 \(exec.timeout.components.seconds) 秒）")
+                    }
+                }
                 if !plan.skipped.isEmpty {
                     Section("対象にしない") {
                         ForEach(plan.skipped, id: \.name) { skip in
@@ -64,6 +77,7 @@ struct AgentApprovalSheet: View {
         let confirmations = plan.steps.reduce(0) { $0 + $1.confirmations.count }
         var height = 170 + 46 * CGFloat(max(plan.steps.count, 1)) + 40 * CGFloat(confirmations)
         if !plan.skipped.isEmpty { height += 50 + 46 * CGFloat(plan.skipped.count) }
+        if plan.exec != nil { height += 220 }
         return min(height, 640)
     }
 
@@ -77,6 +91,7 @@ struct AgentApprovalSheet: View {
         case .hibernate: String(localized: "休止")
         case .snapshotCreate: String(localized: "スナップショット「\(plan.tag ?? "")」の作成")
         case .snapshotRestore: String(localized: "スナップショット「\(plan.tag ?? "")」に戻す")
+        case .exec: String(localized: "スクリプトの実行")
         }
     }
 

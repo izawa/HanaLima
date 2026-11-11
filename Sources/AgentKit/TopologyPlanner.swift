@@ -5,7 +5,7 @@ import NetworkKit
 
 public enum TopologyPlanner {
     public static func plan(_ spec: TopologySpec, facts: PlannerFacts) -> TopologyPlan {
-        var result = TopologyPlan(networks: [], vms: [], group: spec.group,
+        var result = TopologyPlan(networks: [], vms: [], group: spec.group, verifyOutside: spec.verifyOutside,
                                   filled: ["driver=hanalima", "shares=none"], assumptions: spec.assumptions,
                                   problems: declarationProblems(spec), approvals: [])
         func problem(_ code: String = "INVALID", _ path: String, _ message: String, _ alternative: String? = nil) {

@@ -168,7 +168,29 @@ final class BuildJobs {
         // 4. Check what can be checked without running anything in the guests.
         jobs.setCurrent(id, nil)
         for vm in plan.vms where !failed.contains(vm.name) && jobs.job(id)?.results.contains(where: { $0.target == vm.name }) != true {
-            record(vm.name, await verify(vm))
+            let error = await verify(vm)
+            record(vm.name, error)
+            if error != nil { failed.insert(vm.name) }
+        }
+        // 5. Traffic, from inside the guests (docs/14 §2.3). A check that didn't pass is
+        //    "unverified", not "can't reach": ICMP may be filtered, the site may be down.
+        for (vm, entry) in TopologyVerification.scripts(for: plan).sorted(by: { $0.key < $1.key }) {
+            if jobs.job(id)?.cancelRequested == true { return finish(id) }
+            jobs.setCurrent(id, vm)
+            var runError: String? = failed.contains(vm) ? "not built" : nil
+            var output = ""
+            if runError == nil {
+                let result = await model.runGuestScript(vm, script: entry.script, timeout: .seconds(60), keepBytes: 8192)
+                output = result.output
+                runError = result.error
+            }
+            for check in TopologyVerification.results(checks: entry.checks, output: output, runError: runError) {
+                jobs.record(id, JobTargetResult(target: "\(check.check.vm) \(check.check.id)",
+                                                outcome: check.verified ? "done" : "unverified", message: check.reason))
+            }
+        }
+        if plan.verifyOutside == nil {
+            jobs.record(id, JobTargetResult(target: "- outside", outcome: "unverified", message: "no verifyOutside given"))
         }
         finish(id)
     }
