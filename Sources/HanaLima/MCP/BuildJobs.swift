@@ -135,7 +135,11 @@ final class BuildJobs {
         // 2. VMs, stopped.
         var failed: Set<String> = []
         for vm in plan.vms where vm.action == .create {
-            if jobs.job(id)?.cancelRequested == true || state.saveError != nil { return finish(id) }
+            if jobs.job(id)?.cancelRequested == true { return finish(id) }
+            if let error = state.saveError {
+                record(vm.name, "not created: HanaLima can't save its MCP state (\(error))")
+                return finish(id)
+            }
             jobs.setCurrent(id, vm.name)
             if let error = await model.createNow(vm.options, template: vm.template, group: plan.group) {
                 record(vm.name, "create: \(error)")
