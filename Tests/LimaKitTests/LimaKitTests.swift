@@ -152,6 +152,12 @@ import Testing
             == ["create", "--name=ai", "--mount-only=/Users/me/work dir:w", "template:macos"])
     }
 
+    @Test func namesAnEmulatedArchitecture() {
+        #expect(CreateOptions(name: "x86", template: "debian", vmType: .qemu, arch: .x86_64).arguments
+            == ["create", "--name=x86", "--vm-type=qemu", "--arch=x86_64", "template:debian"])
+        #expect(!CreateOptions(name: "a", template: "debian").arguments.contains { $0.hasPrefix("--arch") })
+    }
+
     @Test func dropsMounts() {
         #expect(CreateOptions(name: "ai", template: "macos", mountNone: true).arguments
             == ["create", "--name=ai", "--mount-none", "template:macos"])

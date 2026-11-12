@@ -51,6 +51,8 @@ struct CreateInstanceSheet: View {
         case virtual(String)
     }
     @State private var rosetta = false
+    /// QEMU only: the guest's CPU, the Mac's own unless another is chosen (then emulated).
+    @State private var arch = CreateOptions.Arch.host
     @State private var startAfterCreate = true
     /// The group the new VM goes into (docs/12); "" for none.
     @State private var group = ""
@@ -115,6 +117,17 @@ struct CreateInstanceSheet: View {
                         Text("QEMU").tag(CreateOptions.VMType.qemu)
                     }
                     .disabled(source == .iso)
+                    if vmType == .qemu {
+                        Picker("アーキテクチャ", selection: $arch) {
+                            ForEach(CreateOptions.Arch.allCases) { a in
+                                Text(a == .host ? "\(a.rawValue)（この Mac と同じ）" : "\(a.rawValue)（エミュレーション）").tag(a)
+                            }
+                        }
+                        if arch != .host {
+                            Text("CPU をソフトウェアで再現するので、起動に数分かかり、処理の速さも数分の 1 から十数分の 1 になります。Homebrew の QEMU が要ります（brew install qemu）。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                     if vmType == .hanalima {
                         Text("Lima の VZ の代わりに HanaLima 自身が Virtualization.framework で動かします。画面を閉じて開き直せ、コンソールタブでシリアルコンソールが使え、隔離した仮想マシンも作れます。ターミナルの limactl からも使えます（HanaLima がドライバーを Lima の置き場所に写します）。HanaLima を入れていない Mac では起動できません。VZ に戻すのは設定タブで 1 手順です。")
                             .font(.caption).foregroundStyle(.secondary)
@@ -296,6 +309,7 @@ struct CreateInstanceSheet: View {
             if extraNIC == .vzNAT, new != .vz, new != .hanalima { extraNIC = .none }
             if new != .hanalima { isolated = false; isolationPreset = false }
             if new != .vz, new != .hanalima { rosetta = false }
+            if new != .qemu { arch = .host }
         }
         .onAppear {
             if Self.initialIsolationPreset { isolationPreset = true }
@@ -393,7 +407,10 @@ struct CreateInstanceSheet: View {
             mountNone: !shareHome,
             mountOnly: shareHome ? [] : workFolderMount,
             setExpressions: (source == .iso ? InstallSupport.createExpressions : []) + virtualNetworkExpression
-                + (isolated && !(isolationPreset && prepareFirstBoot) ? [".vmOpts.hanalima.usernet = false"] : []))
+                + (isolated && !(isolationPreset && prepareFirstBoot) ? [".vmOpts.hanalima.usernet = false"] : []),
+            // With QEMU the picker always decides: a template may name its own (windows-2025 is
+            // x86_64), which would otherwise win while the picker said "same as this Mac".
+            arch: vmType == .qemu ? arch : nil)
     }
 
     /// The work folder as a `--mount-only` value: `<path>` or `<path>:w`.

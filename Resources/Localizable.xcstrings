@@ -429,6 +429,38 @@
         }
       }
     },
+    "%@（この Mac と同じ）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (same as this Mac)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（この Mac と同じ）"
+          }
+        }
+      }
+    },
+    "%@（エミュレーション）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (emulated)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（エミュレーション）"
+          }
+        }
+      }
+    },
     "%@（ブリッジ %@）": {
       "localizations": {
         "en": {
@@ -1025,6 +1057,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "CPU"
+          }
+        }
+      }
+    },
+    "CPU をソフトウェアで再現するので、起動に数分かかり、処理の速さも数分の 1 から十数分の 1 になります。Homebrew の QEMU が要ります（brew install qemu）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The CPU is emulated in software, so the VM takes minutes to boot and runs several to over ten times slower. Needs QEMU from Homebrew (brew install qemu)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU をソフトウェアで再現するので、起動に数分かかり、処理の速さも数分の 1 から十数分の 1 になります。Homebrew の QEMU が要ります（brew install qemu）。"
           }
         }
       }
