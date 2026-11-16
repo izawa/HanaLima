@@ -94,16 +94,16 @@
     },
     "%@ に確かめた": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ に確かめた"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Checked at %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に確かめた"
           }
         }
       }
@@ -537,6 +537,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@（エミュレーション）"
+          }
+        }
+      }
+    },
+    "%@（ゲストの答え）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（ゲストの答え）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (reported by the guest)"
           }
         }
       }

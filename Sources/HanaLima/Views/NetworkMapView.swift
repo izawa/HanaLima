@@ -196,7 +196,8 @@ private struct MapRowView: View {
                     CheckMark(state: MapChecks.state(bus: map.buses[i].id, in: entry?.record), stale: stale, checking: checking)
                         .position(x: layout.busX(i) - 12, y: mid + 13)
                 }
-                if let text = MapText.addresses(Array(port.addresses.prefix(1))).map({ port.addresses.count > 1 ? "\($0) +\(port.addresses.count - 1)" : $0 }) {
+                if let text = MapText.addresses(Array(port.addresses.prefix(1))).map({ port.addresses.count > 1 ? "\($0) +\(port.addresses.count - 1)" : $0 })
+                    ?? reported(port).first {
                     Text(text).font(.caption).monospacedDigit().lineLimit(1)
                         .fixedSize()
                         .position(x: layout.busX(i) + 8 + textWidth(text) / 2, y: mid - 12)
@@ -223,6 +224,11 @@ private struct MapRowView: View {
     }
 
     private var entry: MapCheckEntry? { model.mapChecks[row.name] }
+
+    /// The addresses the guest reported on `port`'s NICs in the last check.
+    private func reported(_ port: NetworkMap.Port) -> [String] {
+        port.macs.flatMap { entry?.record.observed[$0] ?? [] }
+    }
     private var stale: Bool { model.isMapCheckStale(row.name) }
     private var checking: Bool { model.mapCheckRun?.current == row.name }
 
@@ -319,7 +325,10 @@ private struct MapInspector: View {
                 Text(bus.name).font(.subheadline.weight(.semibold))
                 Text(MapText.kind(bus.kind)).font(.caption).foregroundStyle(.secondary)
                 if !port.macs.isEmpty { LabeledContent("MAC", value: port.macs.joined(separator: ", ")) }
-                LabeledContent("IP", value: MapText.addresses(port.addresses) ?? MapText.unknownAddress(bus.kind, running: row.running))
+                let reported = port.macs.flatMap { model.mapChecks[row.name]?.record.observed[$0] ?? [] }
+                LabeledContent("IP", value: MapText.addresses(port.addresses)
+                    ?? (reported.isEmpty ? MapText.unknownAddress(bus.kind, running: row.running)
+                        : String(localized: "\(reported.joined(separator: ", "))（ゲストの答え）")))
                 if case .guestOnly = bus.kind, row.kind == .vm {
                     LabeledContent("DNS の名前", value: "lima-\(row.name).hanalima")
                 }
