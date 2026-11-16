@@ -33,17 +33,28 @@ public struct NetworkMap: Equatable, Sendable {
     }
 
     public struct Address: Equatable, Sendable {
-        /// `host`: the Mac's own address on the network.
-        public enum Source: Equatable, Sendable { case reservation, lease, host }
+        /// `host`: the Mac's own address on the network. `leaseByName`: a lease found by the VM's
+        /// host name rather than this NIC's MAC (shown, but not trusted as the NIC's address).
+        public enum Source: Equatable, Sendable { case reservation, lease, leaseByName, host }
         public var ip: String
         public var source: Source
+    }
+
+    /// One NIC: its MAC (nil when the guest uses another, e.g. NIC 0's for a user-v2 network that
+    /// replaces it) and the addresses HanaLima knows for it.
+    public struct NIC: Equatable, Sendable {
+        public var mac: String?
+        public var addresses: [Address]
     }
 
     /// The NICs a row has on one bus (usually one; two NICs on a network share a dot).
     public struct Port: Equatable, Sendable {
         public var bus: String
-        public var macs: [String]
-        public var addresses: [Address]
+        public var nics: [NIC]
+        public var macs: [String] { nics.compactMap(\.mac) }
+        public var addresses: [Address] {
+            nics.flatMap(\.addresses).reduce(into: []) { if !$0.contains($1) { $0.append($1) } }
+        }
     }
 
     public struct Row: Identifiable, Equatable, Sendable {
@@ -59,6 +70,8 @@ public struct NetworkMap: Equatable, Sendable {
         public var usernet: Bool
         /// A vzNAT NIC: VZ's NAT, also drawn per VM (whether vzNAT VMs share a segment is unchecked).
         public var vzNAT: Bool
+        /// The vzNAT NIC's MAC, if any.
+        public var vzNATMAC: String?
         /// Buses this VM is the router of.
         public var routerOf: [String]
     }
@@ -95,9 +108,14 @@ public struct NetworkMap: Equatable, Sendable {
         for inst in instances {
             var ports: [Port] = []
             var vzNAT = false
+            var vzNATMAC: String?
             var replacedNIC0 = false
             for nic in inst.networks ?? [] {
-                if nic.vzNAT == true { vzNAT = true; continue }
+                if nic.vzNAT == true {
+                    vzNAT = true
+                    vzNATMAC = nic.macAddress.flatMap(DHCPReservation.normalizedMAC)
+                    continue
+                }
                 var mac = nic.macAddress.flatMap(DHCPReservation.normalizedMAC)
                 // On HanaLima's driver the first user-v2 network takes NIC 0's place, with NIC 0's MAC.
                 if inst.usesHanaLimaDriver, !replacedNIC0, let lima = nic.lima,
@@ -116,9 +134,9 @@ public struct NetworkMap: Equatable, Sendable {
                             addresses.append(Address(ip: r.ip, source: .reservation))
                         }
                         if inst.isRunning, !net.isBridged, let subnet = net.subnet,
-                           let ip = leaseAddress(mac: mac, instance: inst.name, in: subnet, leases: live),
-                           !addresses.contains(where: { $0.ip == ip }) {
-                            addresses.append(Address(ip: ip, source: .lease))
+                           let lease = leaseAddress(mac: mac, instance: inst.name, in: subnet, leases: live),
+                           !addresses.contains(where: { $0.ip == lease.ip }) {
+                            addresses.append(Address(ip: lease.ip, source: lease.byMAC ? .lease : .leaseByName))
                         }
                     } else if buses[socket] == nil {
                         let name = URL(filePath: socket).deletingPathExtension().lastPathComponent
@@ -138,14 +156,14 @@ public struct NetworkMap: Equatable, Sendable {
                 }
                 // Two NICs on one network share a dot.
                 if let i = ports.firstIndex(where: { $0.bus == busID }) {
-                    ports[i].addresses += addresses.filter { !ports[i].addresses.contains($0) }
-                    if let mac { ports[i].macs.append(mac) }
+                    ports[i].nics.append(NIC(mac: mac, addresses: addresses))
                 } else {
-                    ports.append(Port(bus: busID, macs: mac.map { [$0] } ?? [], addresses: addresses))
+                    ports.append(Port(bus: busID, nics: [NIC(mac: mac, addresses: addresses)]))
                 }
             }
             rows.append(Row(kind: .vm, name: inst.name, running: inst.isRunning, vmType: inst.vmType,
-                            group: groups[inst.name], ports: ports, usernet: inst.usesUsernet, vzNAT: vzNAT, routerOf: []))
+                            group: groups[inst.name], ports: ports, usernet: inst.usesUsernet, vzNAT: vzNAT,
+                            vzNATMAC: vzNATMAC, routerOf: []))
         }
         // Routers: the VM whose address (reserved or leased) on a guest-only network is its router.
         for (id, bus) in buses {
@@ -156,22 +174,22 @@ public struct NetworkMap: Equatable, Sendable {
             }
         }
         let macPorts = buses.values.filter(\.macOnSegment).map { bus in
-            Port(bus: bus.id, macs: [], addresses: bus.gateway.map { [Address(ip: $0, source: .host)] } ?? [])
+            Port(bus: bus.id, nics: [NIC(mac: nil, addresses: bus.gateway.map { [Address(ip: $0, source: .host)] } ?? [])])
         }
         let mac = Row(kind: .mac, name: "Mac", running: true, vmType: nil, group: nil, ports: macPorts,
-                      usernet: false, vzNAT: false, routerOf: [])
+                      usernet: false, vzNAT: false, vzNATMAC: nil, routerOf: [])
         let ordered = order(Array(buses.values), rows: [mac] + rows)
         return NetworkMap(buses: ordered, mac: mac, rows: rows)
     }
 
     /// The lease of the NIC with `mac` in `subnet`; without a match by MAC (a client that
     /// identifies itself otherwise), the instance's newest lease there, as elsewhere in the app.
-    static func leaseAddress(mac: String?, instance: String, in subnet: IPv4Subnet, leases: [DHCPLease]) -> String? {
+    static func leaseAddress(mac: String?, instance: String, in subnet: IPv4Subnet, leases: [DHCPLease]) -> (ip: String, byMAC: Bool)? {
         let inSubnet = leases.filter { IPv4($0.ip).map(subnet.contains) == true }
         if let mac, let lease = inSubnet.filter({ leaseMAC($0) == mac }).max(by: { ($0.expires ?? .distantPast) < ($1.expires ?? .distantPast) }) {
-            return lease.ip
+            return (lease.ip, true)
         }
-        return DHCPLeases.address(of: instance, in: subnet, leases: inSubnet)
+        return DHCPLeases.address(of: instance, in: subnet, leases: inSubnet).map { ($0, false) }
     }
 
     /// bootpd writes `hw_address=1,52:55:55:…` (the hardware type first).

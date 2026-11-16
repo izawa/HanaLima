@@ -43,15 +43,23 @@ struct NetworkMapView: View {
                     .frame(width: 260)
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            Text("縦の線がネットワークで、点のある所でつながっています。設定とリースから描いた図で、通信が届くかは確かめていません。")
-                .font(.caption).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal).padding(.vertical, 6)
-                .background(.bar)
+        .safeAreaInset(edge: .bottom) { footer }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { model.mapCheckRequest = MapCheckRequest(scope: .all) } label: {
+                    Label("疎通を確かめる", systemImage: "dot.radiowaves.left.and.right")
+                }
+                .help("実行中の仮想マシンの中から ping して、つながりを確かめる")
+                .disabled(model.mapCheckRun != nil)
+            }
         }
+        .sheet(item: Bindable(model).mapCheckRequest) { MapCheckSheet(request: $0) }
         #if DEBUG
         .task {
+            if DebugSnapshot.env["HANALIMA_SNAPSHOT_MAPCHECKS"] == "1" {
+                while model.instances.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
+                model.fakeMapChecksForSnapshot()
+            }
             if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_MAPSELECT"] {
                 selection = map.buses.contains { $0.name == name } ? .bus(map.buses.first { $0.name == name }!.id) : .row(name)
             }
@@ -67,9 +75,14 @@ struct NetworkMapView: View {
                     Text(bus.name).font(.headline).lineLimit(1)
                     Text(MapText.kind(bus.kind)).font(.caption)
                     Text(MapText.exit(bus.kind)).font(.caption).foregroundStyle(.secondary)
+                    if let counts = checkCounts(bus.id, in: map) { Text(counts).font(.caption2).foregroundStyle(.secondary) }
+                }
+                .contextMenu {
+                    Button("このネットワークを確かめる…") { model.mapCheckRequest = MapCheckRequest(scope: .bus(id: bus.id, name: bus.name)) }
+                        .disabled(model.mapCheckRun != nil)
                 }
                 .lineLimit(1)
-                .frame(width: layout.busSpacing - 8)
+                .frame(width: layout.busSpacing - 8, height: layout.headerHeight - 12, alignment: .top)
                 .opacity(busEmphasis(bus.id, in: map) ? 1 : 0.35)
                 .contentShape(Rectangle())
                 .onTapGesture { selection = .bus(bus.id) }
@@ -77,6 +90,38 @@ struct NetworkMapView: View {
             }
         }
         .frame(width: layout.width, height: layout.headerHeight, alignment: .topLeading)
+    }
+
+    @ViewBuilder private var footer: some View {
+        HStack {
+            if let run = model.mapCheckRun {
+                ProgressView().controlSize(.small)
+                Text(run.current.map { String(localized: "確かめています: \($0)（\(run.done + 1)/\(run.total)）") } ?? String(localized: "確かめています"))
+                    .font(.caption)
+                Spacer()
+                Button("中止") { model.cancelMapChecks() }.controlSize(.small).disabled(run.cancelled)
+            } else {
+                Text("縦の線がネットワークで、点のある所でつながっています。点の印は、ゲストの中から ping した結果です（届いた・確かめられず）。確かめられなくても、届かないとは限りません。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+            }
+        }
+        .padding(.horizontal).padding(.vertical, 6)
+        .background(.bar)
+    }
+
+    /// "届いた 2・確かめられず 1" for a bus's dots with results.
+    private func checkCounts(_ bus: String, in map: NetworkMap) -> String? {
+        var reached = 0, unverified = 0
+        for row in map.members(of: bus) {
+            switch MapChecks.state(bus: bus, in: model.mapChecks[row.name]?.record) {
+            case .reached: reached += 1
+            case .unverified, .partial: unverified += 1
+            case .configOnly: break
+            }
+        }
+        guard reached + unverified > 0 else { return nil }
+        return String(localized: "届いた \(reached)・確かめられず \(unverified)")
     }
 
     private func emphasis(of row: NetworkMap.Row, in map: NetworkMap) -> Bool {
@@ -104,7 +149,7 @@ struct MapLayout {
     let badgeWidth: CGFloat = 96
     let busSpacing: CGFloat = 160
     let rowHeight: CGFloat = 58
-    let headerHeight: CGFloat = 64
+    let headerHeight: CGFloat = 78
 
     /// Where a VM's wire starts: after its NIC 0 / vzNAT badges.
     var wireStartX: CGFloat { margin + boxWidth + 12 + badgeWidth + 4 }
@@ -147,6 +192,10 @@ private struct MapRowView: View {
                     .fill(dotColor(bus: map.buses[i].id))
                     .frame(width: 11, height: 11)
                     .position(x: layout.busX(i), y: mid)
+                if row.kind == .vm {
+                    CheckMark(state: MapChecks.state(bus: map.buses[i].id, in: entry?.record), stale: stale, checking: checking)
+                        .position(x: layout.busX(i) - 12, y: mid + 13)
+                }
                 if let text = MapText.addresses(Array(port.addresses.prefix(1))).map({ port.addresses.count > 1 ? "\($0) +\(port.addresses.count - 1)" : $0 }) {
                     Text(text).font(.caption).monospacedDigit().lineLimit(1)
                         .fixedSize()
@@ -165,7 +214,17 @@ private struct MapRowView: View {
         .frame(width: layout.width, height: layout.rowHeight, alignment: .topLeading)
         .contentShape(Rectangle())
         .onTapGesture { selection = .row(row.id) }
+        .contextMenu {
+            if row.kind == .vm {
+                Button("この VM を確かめる…") { model.mapCheckRequest = MapCheckRequest(scope: .vm(row.name)) }
+                    .disabled(model.mapCheckRun != nil)
+            }
+        }
     }
+
+    private var entry: MapCheckEntry? { model.mapChecks[row.name] }
+    private var stale: Bool { model.isMapCheckStale(row.name) }
+    private var checking: Bool { model.mapCheckRun?.current == row.name }
 
     private var status: String { row.kind == .mac ? "" : model.statusText(of: row.name) }
 
@@ -186,10 +245,17 @@ private struct MapRowView: View {
     @ViewBuilder private var badges: some View {
         if row.kind == .vm {
             VStack(alignment: .leading, spacing: 3) {
-                if row.usernet { badge(String(localized: "NIC 0 → 外"), dashed: false) }
-                if row.vzNAT { badge(String(localized: "vzNAT → 外"), dashed: false) }
+                if row.usernet { exitBadge(String(localized: "NIC 0 → 外"), .nic0) }
+                if row.vzNAT { exitBadge(String(localized: "vzNAT → 外"), .vzNAT) }
                 if !row.usernet && !row.vzNAT { badge(String(localized: "NIC 0 なし"), dashed: true) }
             }
+        }
+    }
+
+    private func exitBadge(_ text: String, _ exit: MapProbe.Exit) -> some View {
+        HStack(spacing: 3) {
+            badge(text, dashed: false)
+            CheckMark(state: MapChecks.state(exit: exit, in: entry?.record), stale: stale, checking: false)
         }
     }
 
@@ -239,6 +305,13 @@ private struct MapInspector: View {
             if row.usernet { Text("NIC 0（Lima のユーザーモード）: Mac の 127.0.0.1、LAN、インターネットに届きます。").font(.callout) }
             else { Text("NIC 0 なし（隔離）。").font(.callout) }
             if row.vzNAT { Text("vzNAT: Mac 経由でインターネットへ。").font(.callout) }
+            checkResults(row.name, [], probes: { $0.exit != nil })
+            if let entry = model.mapChecks[row.name] {
+                Text(model.isMapCheckStale(row.name)
+                     ? String(localized: "\(entry.record.at.formatted(date: .omitted, time: .shortened)) に確かめた結果（そのあと構成か状態が変わったので古い）")
+                     : String(localized: "\(entry.record.at.formatted(date: .omitted, time: .shortened)) に確かめた結果"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
         ForEach(row.ports, id: \.bus) { port in
             if let bus = map.buses.first(where: { $0.id == port.bus }) {
@@ -251,11 +324,37 @@ private struct MapInspector: View {
                     LabeledContent("DNS の名前", value: "lima-\(row.name).hanalima")
                 }
                 if row.routerOf.contains(bus.id) { Text("このネットワークのルーターです。").font(.callout) }
+                if row.kind == .vm { checkResults(row.name, port.macs, probes: { $0.bus == bus.id }) }
                 let peers = map.members(of: bus.id).map(\.name).filter { $0 != row.name }
                 if !peers.isEmpty { LabeledContent("同じネットワーク", value: peers.joined(separator: ", ")) }
             }
         }
         if row.ports.isEmpty { Text("HanaLima や Lima のネットワークにはつながっていません。").font(.callout).foregroundStyle(.secondary) }
+    }
+
+    /// The probes `filter` picks from `vm`'s last run, and the addresses the guest had on `macs`.
+    @ViewBuilder private func checkResults(_ vm: String, _ macs: [String], probes filter: (MapProbe) -> Bool) -> some View {
+        if let record = model.mapChecks[vm]?.record {
+            let observed = macs.flatMap { record.observed[$0] ?? [] }
+            if !observed.isEmpty { LabeledContent("ゲストのアドレス", value: observed.joined(separator: ", ")) }
+            ForEach(record.probes.filter(filter), id: \.id) { probe in
+                let outcome = record.outcomes[probe.id]
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: outcome?.reached == true ? "checkmark.circle.fill" : "questionmark.circle.fill")
+                        .foregroundStyle(outcome?.reached == true ? .green : .yellow)
+                        .accessibilityLabel(outcome?.reached == true ? String(localized: "届いた") : String(localized: "確かめられず"))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(MapText.probe(probe)).font(.callout)
+                        if outcome?.reached != true, let reason = outcome?.reason {
+                            Text(reason).font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let at = outcome?.at, at != record.at {
+                            Text("\(at.formatted(date: .omitted, time: .shortened)) に確かめた").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder private func busDetails(_ bus: NetworkMap.Bus) -> some View {
@@ -311,6 +410,21 @@ enum MapText {
         return addresses.map { $0.source == .reservation ? String(localized: "\($0.ip) 固定") : $0.ip }.joined(separator: ", ")
     }
 
+    static func probe(_ probe: MapProbe) -> String {
+        let exit: String = switch probe.exit {
+        case .nic0: String(localized: "NIC 0 から")
+        case .vzNAT: String(localized: "vzNAT から")
+        case nil: ""
+        }
+        let target: String = switch probe.target {
+        case .gateway(let ip): String(localized: "Mac（\(ip)）へ")
+        case .router(let ip): String(localized: "ルーター（\(ip)）へ")
+        case .peer(let vm, let ip): String(localized: "\(vm)（\(ip)）へ")
+        case .outside(let ip): String(localized: "外（\(ip)）へ")
+        }
+        return exit.isEmpty ? target : exit + " " + target
+    }
+
     static func unknownAddress(_ kind: NetworkMap.Bus.Kind, running: Bool) -> String {
         if case .bridged = kind { return String(localized: "LAN の DHCP が配る（HanaLima からは見えない）") }
         return running ? String(localized: "不明") : String(localized: "停止中")
@@ -323,5 +437,103 @@ enum MapText {
         if let t = row.vmType { parts.append(t == "hanalima" ? String(localized: "ドライバー") : t) }
         if !row.routerOf.isEmpty { parts.append(String(localized: "ルーター")) }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// A check's mark on a dot or badge (docs/16 §5.2): nothing when not checked.
+private struct CheckMark: View {
+    let state: MapChecks.State
+    let stale: Bool
+    let checking: Bool
+
+    var body: some View {
+        if checking {
+            ProgressView().controlSize(.mini)
+        } else {
+            switch state {
+            case .configOnly:
+                EmptyView()
+            case .reached:
+                mark("checkmark.circle.fill", .green, String(localized: "届いた"))
+            case .unverified:
+                mark("questionmark.circle.fill", .yellow, String(localized: "確かめられず"))
+            case .partial(let reached, let total):
+                Text("\(reached)/\(total)").font(.caption2.monospacedDigit()).padding(.horizontal, 3)
+                    .background(Capsule().fill(.yellow.opacity(stale ? 0.15 : 0.35)))
+                    .accessibilityLabel(String(localized: "\(total) 個中 \(reached) 個の NIC で届いた"))
+            }
+        }
+    }
+
+    private func mark(_ symbol: String, _ color: Color, _ label: String) -> some View {
+        Image(systemName: stale ? "clock.fill" : symbol)
+            .font(.caption)
+            .foregroundStyle(stale ? Color.secondary : color)
+            .accessibilityLabel(stale ? String(localized: "\(label)（古い）") : label)
+    }
+}
+
+/// What a check request will do, and the outside address to try (docs/16 §5.3).
+private struct MapCheckSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    let request: MapCheckRequest
+    @State private var outside = ""
+
+    var body: some View {
+        let targets = model.mapCheckTargets(request)
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    Text(title).font(.headline)
+                    Text("実行中の仮想マシンの中から、NIC ごとに ping します（Mac のアドレス、ルーター、同じネットワークの仮想マシン 1 台）。1 台ずつ順に実行し、その間はその仮想マシンの起動・停止はできません。届かなかった ping は「確かめられず」で、届かないことの証明ではありません。")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Section("対象") {
+                    if targets.run.isEmpty { Text("確かめられる仮想マシンがありません。").foregroundStyle(.secondary) }
+                    ForEach(targets.run, id: \.self) { Text($0) }
+                    ForEach(targets.skipped, id: \.vm) { item in
+                        LabeledContent(item.vm, value: String(localized: "飛ばす（\(item.reason)）")).foregroundStyle(.secondary)
+                    }
+                }
+                if case .bus = request.scope {} else {
+                    Section {
+                        TextField("外の IPv4 アドレス（任意）", text: $outside, prompt: Text("例: 1.1.1.1"))
+                        if let problem { Text(problem).font(.caption).foregroundStyle(.red) }
+                    } footer: {
+                        Text("入れたときだけ、NIC 0・vzNAT とルーターの後ろから、このアドレスに ping します。HanaLima が外の宛先を決めることはしません。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            Divider()
+            HStack {
+                Spacer()
+                Button("キャンセル", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("確かめる") {
+                    model.runMapChecks(request, outside: outside.isEmpty ? nil : outside)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(targets.run.isEmpty || problem != nil)
+            }
+            .padding()
+        }
+        .frame(width: 480, height: 460)
+        .onAppear { outside = model.mapCheckOutside ?? "" }
+    }
+
+    private var title: String {
+        switch request.scope {
+        case .all: String(localized: "疎通を確かめる")
+        case .vm(let name): String(localized: "「\(name)」の疎通を確かめる")
+        case .bus(_, let name): String(localized: "ネットワーク「\(name)」の疎通を確かめる")
+        }
+    }
+
+    private var problem: String? {
+        guard !outside.isEmpty else { return nil }
+        return IPv4(outside) == nil ? String(localized: "IPv4 アドレスを数字で入れてください（名前は使えません）。") : nil
     }
 }

@@ -139,6 +139,7 @@ extension AppModel {
         }
         // The helper restarts with the new settings; running VMs keep a dead link until restarted.
         if let previous, previous != network { markRestartNeeded(using: previous) }
+        invalidateMapChecks(onNetwork: network.socketPath)
         await markRestartNeededForStaleHelpers()
         await refreshNetworkStates()
         return nil
@@ -172,7 +173,10 @@ extension AppModel {
 
     /// Deletes the network; returns the error, or nil.
     func deleteVirtualNetworkNow(_ name: String) async -> String? {
-        if let network = virtualNetworks.first(where: { $0.name == name }) { markRestartNeeded(using: network) }
+        if let network = virtualNetworks.first(where: { $0.name == name }) {
+            markRestartNeeded(using: network)
+            invalidateMapChecks(onNetwork: network.socketPath)
+        }
         await markRestartNeededForStaleHelpers()
         let remaining = virtualNetworks.filter { $0.name != name }
         do {

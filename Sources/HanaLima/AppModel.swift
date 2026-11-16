@@ -183,6 +183,14 @@ final class AppModel {
     var copyRequest: CopyRequest?
     /// The VM whose rename sheet is open.
     var renameRequest: RenameRequest?
+    /// The network map's reachability checks (docs/16 §5): the last results by VM, the run in
+    /// progress, the open sheet, and the outside address of the last run.
+    var mapChecks: [String: MapCheckEntry] = [:]
+    var mapCheckRun: MapCheckRun?
+    var mapCheckRequest: MapCheckRequest?
+    var mapCheckOutside: String?
+    /// Counts saved or deleted networks, so a check running across one is thrown away.
+    @ObservationIgnored var mapCheckNetworkChanges = 0
     /// The VM whose installer should open (see HostedProcess).
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
@@ -418,6 +426,7 @@ final class AppModel {
             updateMetadata(list)
             updateGroupLayout()
             finishInterruptedRenames()
+            invalidateMapChecks()
             reattachHostedBoots()
             applyPendingIsolation()
             await refreshPausedInstances(list)

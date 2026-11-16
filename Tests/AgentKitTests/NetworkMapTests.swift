@@ -94,7 +94,7 @@ struct NetworkMapTests {
     @Test func ordersBusesForTheFewestCrossings() {
         func row(_ name: String, _ buses: [String]) -> NetworkMap.Row {
             .init(kind: .vm, name: name, running: true, vmType: nil, group: nil,
-                  ports: buses.map { .init(bus: $0, macs: [], addresses: []) }, usernet: true, vzNAT: false, routerOf: [])
+                  ports: buses.map { .init(bus: $0, nics: []) }, usernet: true, vzNAT: false, vzNATMAC: nil, routerOf: [])
         }
         func bus(_ id: String) -> NetworkMap.Bus { .init(id: id, name: id, kind: .nat, subnet: nil, gateway: nil, macOnSegment: true) }
         // "a" is used most, so it would come first; but two rows on b+c would then cross a.

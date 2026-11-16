@@ -104,7 +104,7 @@ public enum TopologyVerification {
         return lines.joined(separator: "\n")
     }
 
-    private static func quote(_ value: String) -> String {
+    static func quote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 

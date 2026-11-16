@@ -36,7 +36,7 @@ let package = Package(
         ),
         .testTarget(name: "MCPKitTests", dependencies: ["MCPKit"]),
         .testTarget(name: "AgentKitTests", dependencies: ["AgentKit", "MCPKit", "LimaKit", "NetworkKit"]),
-        .testTarget(name: "NetworkKitTests", dependencies: ["NetworkKit", "LimaKit"]),
+        .testTarget(name: "NetworkKitTests", dependencies: ["NetworkKit", "LimaKit", "AgentKit"]),
         .testTarget(
             name: "LimaKitTests",
             dependencies: ["LimaKit", "NetworkKit"],

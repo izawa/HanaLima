@@ -92,6 +92,54 @@
         }
       }
     },
+    "%@ に確かめた": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に確かめた"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked at %@"
+          }
+        }
+      }
+    },
+    "%@ に確かめた結果": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked at %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に確かめた結果"
+          }
+        }
+      }
+    },
+    "%@ に確かめた結果（そのあと構成か状態が変わったので古い）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked at %@ (stale: the setup or state changed since)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に確かめた結果（そのあと構成か状態が変わったので古い）"
+          }
+        }
+      }
+    },
     "%@ の LAN に接続・IP は LAN の DHCP から": {
       "localizations": {
         "en": {
@@ -413,6 +461,22 @@
         }
       }
     },
+    "%@（%@）へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To %1$@ (%2$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@（%2$@）へ"
+          }
+        }
+      }
+    },
     "%@（%@）を削除します。この操作は取り消せません。": {
       "localizations": {
         "en": {
@@ -505,6 +569,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@（削除済み）"
+          }
+        }
+      }
+    },
+    "%@（古い）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (stale)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（古い）"
           }
         }
       }
@@ -683,6 +763,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 個の仮想ネットワーク"
+          }
+        }
+      }
+    },
+    "%lld 個中 %lld 個の NIC で届いた": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reached from %2$lld of %1$lld NICs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld 個中 %2$lld 個の NIC で届いた"
           }
         }
       }
@@ -1535,6 +1631,22 @@
         }
       }
     },
+    "IPv4 アドレスを数字で入れてください（名前は使えません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a numeric IPv4 address (names don’t work here)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IPv4 アドレスを数字で入れてください（名前は使えません）。"
+          }
+        }
+      }
+    },
     "ISO": {
       "localizations": {
         "en": {
@@ -2301,6 +2413,22 @@
         }
       }
     },
+    "Mac（%@）へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To the Mac (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac（%@）へ"
+          }
+        }
+      }
+    },
     "NAT": {
       "localizations": {
         "ja": {
@@ -2365,6 +2493,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "NIC 0 → 外"
+          }
+        }
+      }
+    },
+    "NIC 0 から": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From NIC 0"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 から"
           }
         }
       }
@@ -3665,6 +3809,22 @@
         }
       }
     },
+    "vzNAT から": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From vzNAT"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vzNAT から"
+          }
+        }
+      }
+    },
     "vzNAT は VZ でのみ使えます。": {
       "localizations": {
         "en": {
@@ -4055,6 +4215,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」の状態に戻しますか？"
+          }
+        }
+      }
+    },
+    "「%@」の疎通を確かめる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Traffic of “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の疎通を確かめる"
           }
         }
       }
@@ -4508,6 +4684,22 @@
         }
       }
     },
+    "この VM を確かめる…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check This VM…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この VM を確かめる…"
+          }
+        }
+      }
+    },
     "このまま再起動": {
       "localizations": {
         "en": {
@@ -4712,6 +4904,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
+          }
+        }
+      }
+    },
+    "このネットワークを確かめる…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check This Network…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークを確かめる…"
           }
         }
       }
@@ -6157,6 +6365,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲストに終了を要求します。応答しないときは「強制停止」を使ってください。"
+          }
+        }
+      }
+    },
+    "ゲストのアドレス": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guest’s Address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストのアドレス"
           }
         }
       }
@@ -8132,6 +8356,22 @@
         }
       }
     },
+    "ネットワーク「%@」の疎通を確かめる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Traffic on “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワーク「%@」の疎通を確かめる"
+          }
+        }
+      }
+    },
     "ネットワーク「%@」を削除しますか？": {
       "localizations": {
         "en": {
@@ -9089,6 +9329,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ルーターは、このサブネットの中で DHCP サーバー以外のアドレスにしてください（空欄なら経路を配りません）。"
+          }
+        }
+      }
+    },
+    "ルーター（%@）へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To the router (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーター（%@）へ"
           }
         }
       }
@@ -10616,6 +10872,22 @@
         }
       }
     },
+    "例: 1.1.1.1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1.1.1.1"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例: 1.1.1.1"
+          }
+        }
+      }
+    },
     "例: アップデート前": {
       "localizations": {
         "en": {
@@ -11112,6 +11384,22 @@
         }
       }
     },
+    "入れたときだけ、NIC 0・vzNAT とルーターの後ろから、このアドレスに ping します。HanaLima が外の宛先を決めることはしません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only when you enter one, VMs ping it through NIC 0, vzNAT and from behind a router. HanaLima doesn’t pick an outside address itself."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入れたときだけ、NIC 0・vzNAT とルーターの後ろから、このアドレスに ping します。HanaLima が外の宛先を決めることはしません。"
+          }
+        }
+      }
+    },
     "共有フォルダ": {
       "localizations": {
         "en": {
@@ -11348,6 +11636,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "再開すると、コンソールを使えます。"
+          }
+        }
+      }
+    },
+    "処理中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中"
           }
         }
       }
@@ -12379,6 +12683,22 @@
         }
       }
     },
+    "外の IPv4 アドレス（任意）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outside IPv4 Address (Optional)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外の IPv4 アドレス（任意）"
+          }
+        }
+      }
+    },
     "外へ": {
       "localizations": {
         "en": {
@@ -12503,6 +12823,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "外部のディスクを削除できませんでした"
+          }
+        }
+      }
+    },
+    "外（%@）へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To the outside (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外（%@）へ"
           }
         }
       }
@@ -12683,6 +13019,38 @@
         }
       }
     },
+    "実行中の仮想マシンの中から ping して、つながりを確かめる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ping from inside the running virtual machines to check the connections"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中の仮想マシンの中から ping して、つながりを確かめる"
+          }
+        }
+      }
+    },
+    "実行中の仮想マシンの中から、NIC ごとに ping します（Mac のアドレス、ルーター、同じネットワークの仮想マシン 1 台）。1 台ずつ順に実行し、その間はその仮想マシンの起動・停止はできません。届かなかった ping は「確かめられず」で、届かないことの証明ではありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pings from inside each running virtual machine, per NIC: the Mac’s address, the router, and one other virtual machine on the network. They run one at a time, and a virtual machine can’t be started or stopped while it runs. A ping without a reply is shown as unconfirmed; it doesn’t prove the address unreachable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中の仮想マシンの中から、NIC ごとに ping します（Mac のアドレス、ルーター、同じネットワークの仮想マシン 1 台）。1 台ずつ順に実行し、その間はその仮想マシンの起動・停止はできません。届かなかった ping は「確かめられず」で、届かないことの証明ではありません。"
+          }
+        }
+      }
+    },
     "実行中の台数／全体の台数": {
       "localizations": {
         "en": {
@@ -12715,6 +13083,22 @@
         }
       }
     },
+    "対象": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtual Machines"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対象"
+          }
+        }
+      }
+    },
     "対象にしない": {
       "localizations": {
         "en": {
@@ -12727,6 +13111,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "対象にしない"
+          }
+        }
+      }
+    },
+    "届いた": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reached"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "届いた"
+          }
+        }
+      }
+    },
+    "届いた %lld・確かめられず %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reached %lld · unconfirmed %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "届いた %1$lld・確かめられず %2$lld"
           }
         }
       }
@@ -14052,6 +14468,22 @@
         }
       }
     },
+    "疎通を確かめる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Traffic"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疎通を確かめる"
+          }
+        }
+      }
+    },
     "直し終わったら「Lima で起動」で、いつもの仮想マシンとして起動します。": {
       "localizations": {
         "en": {
@@ -14064,6 +14496,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "直し終わったら「Lima で起動」で、いつもの仮想マシンとして起動します。"
+          }
+        }
+      }
+    },
+    "確かめています": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確かめています"
+          }
+        }
+      }
+    },
+    "確かめています: %@（%lld/%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking %@ (%lld/%lld)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "確かめています: %1$@（%2$lld/%3$lld）"
+          }
+        }
+      }
+    },
+    "確かめられず": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unconfirmed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確かめられず"
+          }
+        }
+      }
+    },
+    "確かめられる仮想マシンがありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No virtual machine can be checked now."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確かめられる仮想マシンがありません。"
+          }
+        }
+      }
+    },
+    "確かめる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確かめる"
           }
         }
       }
@@ -14415,7 +14927,24 @@
         }
       }
     },
+    "縦の線がネットワークで、点のある所でつながっています。点の印は、ゲストの中から ping した結果です（届いた・確かめられず）。確かめられなくても、届かないとは限りません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertical lines are networks; a dot is a connection. Marks on dots are pings from inside the guests (reached or unconfirmed). Unconfirmed doesn’t mean unreachable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "縦の線がネットワークで、点のある所でつながっています。点の印は、ゲストの中から ping した結果です（届いた・確かめられず）。確かめられなくても、届かないとは限りません。"
+          }
+        }
+      }
+    },
     "縦の線がネットワークで、点のある所でつながっています。設定とリースから描いた図で、通信が届くかは確かめていません。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15606,6 +16135,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "飛ばしました: %@"
+          }
+        }
+      }
+    },
+    "飛ばす（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skipped (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飛ばす（%@）"
           }
         }
       }
