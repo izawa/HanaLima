@@ -14,6 +14,7 @@ struct Operation: Sendable {
         case runScript
         case pause, resume
         case hibernate
+        case rename
 
         var label: String {
             switch self {
@@ -36,6 +37,7 @@ struct Operation: Sendable {
             case .pause: String(localized: "一時停止")
             case .resume: String(localized: "再開")
             case .hibernate: String(localized: "休止")
+            case .rename: String(localized: "名前の変更")
             }
         }
 
@@ -62,6 +64,7 @@ struct Operation: Sendable {
             case .pause: String(localized: "一時停止しています")
             case .resume: String(localized: "再開しています")
             case .hibernate: String(localized: "休止しています")
+            case .rename: String(localized: "名前を変更中")
             }
         }
     }
@@ -178,6 +181,8 @@ final class AppModel {
     var createRequested = false
     /// The VM to copy, from a menu or the toolbar; the window shows the copy sheet for it.
     var copyRequest: CopyRequest?
+    /// The VM whose rename sheet is open.
+    var renameRequest: RenameRequest?
     /// The VM whose installer should open (see HostedProcess).
     var installRequest: InstallRequest?
     /// The installer run shown in the installer window, if any.
@@ -207,6 +212,14 @@ final class AppModel {
     var staleHelpers: Set<String> = []
     /// Disk moves in progress, so they can be cancelled.
     @ObservationIgnored var diskMoveTasks: [String: Task<Void, Never>] = [:]
+    /// A rename under way (`rename`): refreshes wait for it, since halfway the VM's files are in
+    /// two folders. `renameGeneration` tells a listing that began before it to throw itself away.
+    @ObservationIgnored var renameTask: Task<Void, Never>?
+    @ObservationIgnored var renameGeneration = 0
+    /// Interrupted renames already retried in this run (`finishInterruptedRenames`).
+    @ObservationIgnored var renameRecoveryTried: Set<UUID> = []
+    /// VMs whose start-at-login registration is being changed (a rename waits for it).
+    var autostartUpdating: Set<String> = []
     /// Where each instance's disk is. Kept as state (not read from the file system while
     /// drawing) so every view updates when a drive is plugged in or out.
     var diskPlacements: [String: DiskPlacement] = [:]
@@ -378,8 +391,12 @@ final class AppModel {
 
     func refresh() async {
         guard let client else { return }
+        if let renameTask { await renameTask.value }
+        let generation = renameGeneration
         do {
             let list = try await client.list()
+            // A rename began meanwhile: this listing may have caught it halfway (it refreshes when done).
+            guard generation == renameGeneration, renameTask == nil else { return }
             for inst in list {
                 if !inst.isRunning {
                     readyInstances.remove(inst.name)
@@ -400,6 +417,7 @@ final class AppModel {
             updateDiskPlacements()
             updateMetadata(list)
             updateGroupLayout()
+            finishInterruptedRenames()
             reattachHostedBoots()
             applyPendingIsolation()
             await refreshPausedInstances(list)
@@ -595,7 +613,9 @@ final class AppModel {
     }
 
     func setAutostart(_ name: String, enabled: Bool) async {
-        guard let client else { return }
+        guard let client, !isRenaming(name) else { return }  // the rename moves the registration
+        autostartUpdating.insert(name)
+        defer { autostartUpdating.remove(name) }
         do {
             try await client.setAutostart(name, enabled: enabled)
         } catch {
@@ -701,6 +721,12 @@ final class AppModel {
         networks = LimaNetworks.load()
     }
 
+    /// After a rename: the event history follows the VM; the selection too.
+    func moveNameKeyedState(from old: String, to new: String) {
+        events[new] = events.removeValue(forKey: old)
+        if selection == .instance(old) { selection = .instance(new) }
+    }
+
     func clearOperation(_ name: String) {
         if operations[name]?.isRunning == false { operations[name] = nil }
     }
@@ -792,7 +818,7 @@ final class AppModel {
         }
     }
 
-    private func appendLog(_ entry: LogEntry, to name: String) {
+    func appendLog(_ entry: LogEntry, to name: String) {
         guard operations[name] != nil else { return }
         operations[name]!.log.append(entry)
         let overflow = operations[name]!.log.count - Self.maxLogLines

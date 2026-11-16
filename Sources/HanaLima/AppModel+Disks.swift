@@ -14,6 +14,9 @@ extension AppModel {
 
     /// Re-reads where each disk is; assigns only on a change, so views redraw just then.
     func updateDiskPlacements() {
+        // Also called when a drive comes or goes. The instance list is the one from before a
+        // rename until it is done (`refresh`), which no longer matches the folders.
+        guard renameTask == nil else { return }
         let current = Dictionary(uniqueKeysWithValues: instances.map { ($0.name, Self.placement(of: $0)) })
         if current != diskPlacements { diskPlacements = current }
         for case .external(let disk) in current.values { DiskLocationSettings.remember(disk: disk) }

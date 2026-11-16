@@ -25,7 +25,7 @@ extension AppModel {
 
     /// Records the playbook (and arguments) for `name`.
     func setAnsible(playbook: URL?, extraArguments: String, of name: String) {
-        guard var meta = metadata[name] else { return }
+        guard var meta = metadata[name], !isRenaming(name) else { return }  // its record is moving (docs/15)
         if let playbook {
             var record = meta.ansible ?? InstanceMetadata.AnsibleRecord(playbook: playbook)
             record.playbook = playbook.path(percentEncoded: false)

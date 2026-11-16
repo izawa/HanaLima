@@ -47,6 +47,11 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     /// groups can be rebuilt from the records if `groups.json` is lost; it follows the folder
     /// through `limactl rename`, and a copy stays in its source's group.
     public var group: String?
+    /// Set while HanaLima renames the VM and it was registered to start at login: Lima's
+    /// registration names the VM, so it is removed before the rename and made again under the
+    /// new name afterwards. The flag moves with the folder, so a rename cut short by a quit is
+    /// finished at the next launch.
+    public var autostartAfterRename: Bool?
 
     public struct AnsibleRecord: Codable, Equatable, Sendable {
         public var playbook: String

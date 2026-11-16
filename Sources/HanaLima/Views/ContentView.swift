@@ -91,6 +91,7 @@ struct ContentView: View {
             CreateInstanceSheet()
         }
         .sheet(item: $model.copyRequest) { CopyInstanceSheet(source: $0.source, snapshot: $0.snapshot) }
+        .sheet(item: $model.renameRequest) { RenameInstanceSheet(name: $0.name) }
         .sheet(item: $model.groupRunRequest) { GroupRunSheet(request: $0) }
         .sheet(isPresented: Binding(get: { !model.agentHost.vmJobs.awaitingApproval.isEmpty }, set: { _ in })) {
             if let plan = model.agentHost.vmJobs.awaitingApproval.first {

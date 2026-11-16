@@ -134,6 +134,11 @@ struct InstanceDetailView: View {
         }
         .help(model.copyBlocker(name) ?? String(localized: "この仮想マシンを複製"))
         .disabled(model.copyBlocker(name) != nil)
+        Button { model.renameRequest = RenameRequest(name: name) } label: {
+            Label("名前を変更", systemImage: "pencil")
+        }
+        .help(model.renameBlocker(name) ?? String(localized: "この仮想マシンの名前を変更"))
+        .disabled(model.renameBlocker(name) != nil)
         Button { model.rescueRequest = RescueRequest(name: name) } label: {
             Label("救出起動", systemImage: "cross.case")
         }

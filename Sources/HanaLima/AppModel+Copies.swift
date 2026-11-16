@@ -32,7 +32,7 @@ extension AppModel {
     }
 
     func setNote(_ note: String, of name: String) {
-        guard var meta = metadata[name], meta.note != note else { return }
+        guard var meta = metadata[name], meta.note != note, !isRenaming(name) else { return }
         meta.note = note
         do {
             try meta.save()

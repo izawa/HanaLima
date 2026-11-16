@@ -170,6 +170,11 @@ public struct LimaClient: Sendable {
         logStream(["clone", "--tty=false"] + expressions.flatMap { ["--set", $0] } + [source, name])
     }
 
+    /// `limactl rename` (the instance must be stopped). See `InstanceRename`.
+    public func rename(_ name: String, to newName: String) -> AsyncThrowingStream<LogEntry, Error> {
+        logStream(["rename", "--tty=false", name, newName])
+    }
+
     /// Runs `script` in the guest through `limactl shell`, fed to `sh -s` on stdin (so nothing
     /// in it needs quoting), as root with `asRoot`. Streams its output; the VM must be ready.
     public func runScript(in name: String, script: String, asRoot: Bool) -> AsyncThrowingStream<OutputLine, Error> {

@@ -1987,6 +1987,22 @@
         }
       }
     },
+    "MAC アドレスを指定していない NIC には、今の MAC アドレスを書き込みます。固定 IP（DHCP の予約）はそのまま使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NICs without a set MAC address get their current one written in, so fixed IPs (DHCP reservations) keep working."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MAC アドレスを指定していない NIC には、今の MAC アドレスを書き込みます。固定 IP（DHCP の予約）はそのまま使えます。"
+          }
+        }
+      }
+    },
     "MAC: %@": {
       "localizations": {
         "ja": {
@@ -2319,6 +2335,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "OS のインストールが終わると使えます。"
+          }
+        }
+      }
+    },
+    "OS のインストールが終わると名前を変更できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can rename it once the OS is installed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS のインストールが終わると名前を変更できます。"
           }
         }
       }
@@ -2958,6 +2990,22 @@
         }
       }
     },
+    "lima.yaml の外で定義したネットワークがあるため、名前を変更できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t rename: some networks are defined outside lima.yaml."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lima.yaml の外で定義したネットワークがあるため、名前を変更できません。"
+          }
+        }
+      }
+    },
     "lima:%@（%@）": {
       "localizations": {
         "en": {
@@ -3114,6 +3162,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS の vmnet を使い、ブリッジも含めて管理者権限なしで動作します。仮想マシンの「設定 → ネットワーク」で NIC を追加して接続します。"
+          }
+        }
+      }
+    },
+    "macOS のゲストは名前を変更できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS guests can’t be renamed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS のゲストは名前を変更できません。"
           }
         }
       }
@@ -3635,6 +3699,54 @@
         }
       }
     },
+    "「%@」の名前を変更": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の名前を変更"
+          }
+        }
+      }
+    },
+    "「%@」の名前を変更しています。終わってからやり直してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” is being renamed. Try again when it’s done."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の名前を変更しています。終わってからやり直してください。"
+          }
+        }
+      }
+    },
+    "「%@」の名前を変更できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t rename “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の名前を変更できませんでした"
+          }
+        }
+      }
+    },
     "「%@」の実行中はサイズを変更できません。": {
       "localizations": {
         "en": {
@@ -3807,6 +3919,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」は既に存在します。"
+          }
+        }
+      }
+    },
+    "「%@」を「%@」に変更しましたが、残りの処理に失敗しました": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renamed “%1$@” to “%2$@”, but the rest failed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」を「%2$@」に変更しましたが、残りの処理に失敗しました"
           }
         }
       }
@@ -4384,6 +4512,22 @@
           "stringUnit": {
             "state": "new",
             "value": "この仮想マシンのディスクは「%1$@」と同じファイルです（limactl clone でコピーした仮想マシンなど）。起動すると「%2$@」のディスクを書き換えるため、起動できません。"
+          }
+        }
+      }
+    },
+    "この仮想マシンの名前を変更": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename this virtual machine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この仮想マシンの名前を変更"
           }
         }
       }
@@ -4981,6 +5125,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ほかのグループの一括操作の対象です。"
+          }
+        }
+      }
+    },
+    "ほかの仮想マシンの名前を変更しています。終わってからやり直してください。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの仮想マシンの名前を変更しています。終わってからやり直してください。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another virtual machine is being renamed. Try again when it’s done."
           }
         }
       }
@@ -6442,6 +6602,22 @@
         }
       }
     },
+    "スナップショット、グループ、メモ、ログイン時の自動起動は引き継ぎます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots, the group, the note and start at login are kept."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スナップショット、グループ、メモ、ログイン時の自動起動は引き継ぎます。"
+          }
+        }
+      }
+    },
     "スナップショット「%@」に戻す": {
       "localizations": {
         "en": {
@@ -7047,6 +7223,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ディスクのある外付けドライブが接続されていません"
+          }
+        }
+      }
+    },
+    "ディスクのある外付けドライブを接続すると名前を変更できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect the external drive with its disk to rename it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクのある外付けドライブを接続すると名前を変更できます。"
           }
         }
       }
@@ -8269,6 +8461,22 @@
         }
       }
     },
+    "ホスト名は、次の起動で lima-%@ になります。ゲスト専用ネットワークの DNS、Ansible、スクリプトの中で古い名前を使っていれば、書き換えてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The host name becomes lima-%@ at the next start. If the old name is used in guest-only network DNS, Ansible or scripts, update it there."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホスト名は、次の起動で lima-%@ になります。ゲスト専用ネットワークの DNS、Ansible、スクリプトの中で古い名前を使っていれば、書き換えてください。"
+          }
+        }
+      }
+    },
     "ホームフォルダを共有（読み取り専用）": {
       "localizations": {
         "en": {
@@ -9247,6 +9455,22 @@
         }
       }
     },
+    "仮想マシンのフォルダにサブフォルダ「%@」があるため、名前を変更できません（Lima が途中で失敗します）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t rename: the virtual machine’s folder has a subfolder, “%@” (Lima would fail partway)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンのフォルダにサブフォルダ「%@」があるため、名前を変更できません（Lima が途中で失敗します）。"
+          }
+        }
+      }
+    },
     "仮想マシンの作成や起動が終わるまで、キャッシュは削除できません。": {
       "localizations": {
         "en": {
@@ -9676,6 +9900,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "休止中です。起動すると、休止したときの状態から再開します。"
+          }
+        }
+      }
+    },
+    "休止中は名前を変更できません。起動して再開するか、保存した状態を捨ててください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t rename while hibernated. Start it to resume, or discard the saved state."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休止中は名前を変更できません。起動して再開するか、保存した状態を捨ててください。"
           }
         }
       }
@@ -10368,6 +10608,22 @@
         }
       }
     },
+    "停止すると名前を変更できます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop it to rename it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止すると名前を変更できます。"
+          }
+        }
+      }
+    },
     "停止すると複製できます。": {
       "localizations": {
         "en": {
@@ -10752,6 +11008,22 @@
         }
       }
     },
+    "処理中は名前を変更できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t rename while an operation is in progress."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理中は名前を変更できません。"
+          }
+        }
+      }
+    },
     "処理中は実行できません。": {
       "localizations": {
         "en": {
@@ -11024,6 +11296,22 @@
         }
       }
     },
+    "削除禁止（limactl protect）の仮想マシンは名前を変更できません。Lima が名前の変更で削除禁止を外すためです。ターミナルで limactl unprotect %@ を実行してから変更してください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protected virtual machines (limactl protect) can’t be renamed, because Lima drops the protection when renaming. Run limactl unprotect %@ in Terminal first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除禁止（limactl protect）の仮想マシンは名前を変更できません。Lima が名前の変更で削除禁止を外すためです。ターミナルで limactl unprotect %@ を実行してから変更してください。"
+          }
+        }
+      }
+    },
     "前回: %@ · 中止": {
       "localizations": {
         "en": {
@@ -11216,6 +11504,54 @@
         }
       }
     },
+    "名前が長すぎます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name is too long."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前が長すぎます。"
+          }
+        }
+      }
+    },
+    "名前の変更": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前の変更"
+          }
+        }
+      }
+    },
+    "名前の変更で変わること": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What Renaming Changes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前の変更で変わること"
+          }
+        }
+      }
+    },
     "名前は VM の設定から参照されるため変更できません。": {
       "localizations": {
         "en": {
@@ -11260,6 +11596,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "名前を変更"
+          }
+        }
+      }
+    },
+    "名前を変更…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更…"
+          }
+        }
+      }
+    },
+    "名前を変更中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renaming"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更中"
           }
         }
       }
@@ -11631,6 +11999,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "外部のディスクを削除できませんでした"
+          }
+        }
+      }
+    },
+    "大文字と小文字だけを変える名前の変更はできません（Mac のディスクでは同じ名前です）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can’t change only the case of the name (the Mac’s disk treats it as the same name)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大文字と小文字だけを変える名前の変更はできません（Mac のディスクでは同じ名前です）。"
           }
         }
       }
@@ -12250,6 +12634,38 @@
         }
       }
     },
+    "救出起動かインストールで動いている間は名前を変更できません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t rename while it runs for a rescue boot or an install."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動かインストールで動いている間は名前を変更できません。"
+          }
+        }
+      }
+    },
+    "救出起動かインストールのウインドウを閉じると名前を変更できます。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動かインストールのウインドウを閉じると名前を変更できます。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close the rescue boot or install window to rename it."
+          }
+        }
+      }
+    },
     "救出起動は VZ の仮想マシンだけで使えます。": {
       "localizations": {
         "en": {
@@ -12342,6 +12758,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しい仮想マシン…"
+          }
+        }
+      }
+    },
+    "新しい名前": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Name"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい名前"
           }
         }
       }

@@ -206,6 +206,11 @@ extension AppModel {
     /// Writes `group` into the records of `vms`; on a failure puts back the ones already written
     /// and shows why. Returns whether all were written.
     private func writeGroup(_ group: String?, to vms: [String], title: String) -> Bool {
+        // A renaming VM's record is moving between folders (docs/15).
+        if let vm = vms.first(where: isRenaming) {
+            alert = AlertMessage(title: title, message: String(localized: "「\(vm)」の名前を変更しています。終わってからやり直してください。"))
+            return false
+        }
         var written: [(String, InstanceMetadata)] = []
         for vm in vms {
             guard var meta = metadata[vm] else { continue }
