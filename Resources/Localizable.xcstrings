@@ -60,6 +60,39 @@
         }
       }
     },
+    "%@ %lld フレーム・%@%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$lld frames · %3$@%4$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ %2$lld フレーム・%3$@%4$@"
+          }
+        }
+      }
+    },
+    "%@ %llu フレーム・%@%@": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$llu frames · %3$@%4$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ %2$llu フレーム・%3$@%4$@"
+          }
+        }
+      }
+    },
     "%@ · ダウンロード %lld%%": {
       "localizations": {
         "en": {
@@ -543,16 +576,16 @@
     },
     "%@（ゲストの答え）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@（ゲストの答え）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ (reported by the guest)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（ゲストの答え）"
           }
         }
       }
@@ -739,6 +772,38 @@
         }
       }
     },
+    "%lld フレーム・%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld frames · %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld フレーム・%2$@"
+          }
+        }
+      }
+    },
+    "%lld フレーム・%@・記録から落とした %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld frames · %2$@ · %3$lld not recorded"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld フレーム・%2$@・記録から落とした %3$lld"
+          }
+        }
+      }
+    },
     "%lld 個": {
       "localizations": {
         "en": {
@@ -863,6 +928,40 @@
           "stringUnit": {
             "state": "new",
             "value": "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%llu フレーム・%@": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$llu frames · %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$llu フレーム・%2$@"
+          }
+        }
+      }
+    },
+    "%llu フレーム・%@・記録から落とした %llu": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$llu frames · %2$@ · %3$llu not recorded"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$llu フレーム・%2$@・記録から落とした %3$llu"
           }
         }
       }
@@ -3590,6 +3689,22 @@
         }
       }
     },
+    "netd の応答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answered by netd"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "netd の応答"
+          }
+        }
+      }
+    },
     "networks.yaml に「%@」が定義されていません。": {
       "localizations": {
         "en": {
@@ -4876,6 +4991,22 @@
         }
       }
     },
+    "このネットワークのヘルパーは古い版で、数を出せません。つながっている仮想マシンをすべて止めると、新しい版に入れ替わります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This network’s helper is an older build and has no counters. It is replaced once all virtual machines on the network stop."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークのヘルパーは古い版で、数を出せません。つながっている仮想マシンをすべて止めると、新しい版に入れ替わります。"
+          }
+        }
+      }
+    },
     "このネットワークのルーターです。": {
       "localizations": {
         "en": {
@@ -4920,6 +5051,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "このネットワークを使う仮想マシン（%@）は、次の起動から新しい設定を使います。"
+          }
+        }
+      }
+    },
+    "このネットワークを流れるすべてのフレームを、中身ごと pcap のファイルに残します。パスワードなどが含まれることがあります。64 MiB か 5 分で止まります。ファイルは ~/Library/Application Support/HanaLima/Captures に、あなただけが読める形で置きます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every frame on this network is saved, contents included, to a pcap file; it may contain passwords and the like. Recording stops at 64 MiB or after 5 minutes. The file goes to ~/Library/Application Support/HanaLima/Captures, readable only by you."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークを流れるすべてのフレームを、中身ごと pcap のファイルに残します。パスワードなどが含まれることがあります。64 MiB か 5 分で止まります。ファイルは ~/Library/Application Support/HanaLima/Captures に、あなただけが読める形で置きます。"
           }
         }
       }
@@ -5417,6 +5564,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "その他"
+          }
+        }
+      }
+    },
+    "つながっている仮想マシンはありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No virtual machine is connected."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "つながっている仮想マシンはありません。"
           }
         }
       }
@@ -6305,6 +6468,22 @@
         }
       }
     },
+    "ゲストから": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From guest"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストから"
+          }
+        }
+      }
+    },
     "ゲストからの書き込みを許可": {
       "localizations": {
         "en": {
@@ -6430,6 +6609,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲストの画面のコンソール（tty1）にログインして直します。Lima はユーザーのパスワードをロックしているので、設定タブの「プロビジョニング」の「例から追加…」で「画面のコンソールに自動ログイン」を入れて一度 Lima で起動しておいた仮想マシンでないと、ログインできません。この画面にはクリップボードが届かないので、手で入力します。"
+          }
+        }
+      }
+    },
+    "ゲストへ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To guest"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストへ"
           }
         }
       }
@@ -8372,6 +8567,22 @@
         }
       }
     },
+    "ネットワーク「%@」のパケットを記録しますか？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record packets on “%@”?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワーク「%@」のパケットを記録しますか？"
+          }
+        }
+      }
+    },
     "ネットワーク「%@」の疎通を確かめる": {
       "localizations": {
         "en": {
@@ -8420,6 +8631,22 @@
         }
       }
     },
+    "ネットワークの側から見た流れ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traffic as the Network Sees It"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークの側から見た流れ"
+          }
+        }
+      }
+    },
     "ネットワークを作り直しています…": {
       "localizations": {
         "en": {
@@ -8464,6 +8691,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "ハードウェア"
+          }
+        }
+      }
+    },
+    "パケットの記録には、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording packets needs a newer helper. It is replaced once all virtual machines on the network stop."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パケットの記録には、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。"
+          }
+        }
+      }
+    },
+    "パケットの記録を始められませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start recording packets"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パケットの記録を始められませんでした"
+          }
+        }
+      }
+    },
+    "パケットの記録を止められませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t stop recording packets"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パケットの記録を止められませんでした"
+          }
+        }
+      }
+    },
+    "パケットを記録…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record Packets…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パケットを記録…"
+          }
+        }
+      }
+    },
+    "パケットを記録中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording packets"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パケットを記録中"
           }
         }
       }
@@ -8821,6 +9128,38 @@
         }
       }
     },
+    "ヘルパーから新しい数が届いていません（止まったか、応えていません）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No new counts from the helper (it stopped or isn’t responding)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルパーから新しい数が届いていません（止まったか、応えていません）。"
+          }
+        }
+      }
+    },
+    "ヘルパーが終了した": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "helper exited"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルパーが終了した"
+          }
+        }
+      }
+    },
     "ヘルパーの配置に失敗しました: %@": {
       "localizations": {
         "en": {
@@ -8833,6 +9172,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ヘルパーの配置に失敗しました: %@"
+          }
+        }
+      }
+    },
+    "ヘルパーは動いていません。仮想マシンがつながると数え始めます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The helper isn’t running. It starts counting when a virtual machine connects."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルパーは動いていません。仮想マシンがつながると数え始めます。"
           }
         }
       }
@@ -11416,6 +11771,22 @@
         }
       }
     },
+    "全員へ送った": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent to all"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全員へ送った"
+          }
+        }
+      }
+    },
     "共有フォルダ": {
       "localizations": {
         "en": {
@@ -11816,6 +12187,38 @@
         }
       }
     },
+    "切断した接続": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切断した接続"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnected"
+          }
+        }
+      }
+    },
+    "切断した接続（%lld）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切断した接続（%lld）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnected (%lld)"
+          }
+        }
+      }
+    },
     "別の HanaLima が受け付けています": {
       "localizations": {
         "en": {
@@ -12056,6 +12459,39 @@
         }
       }
     },
+    "前の記録: %lld フレーム・%@（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last recording: %1$lld frames · %2$@ (%3$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "前の記録: %1$lld フレーム・%2$@（%3$@）"
+          }
+        }
+      }
+    },
+    "前の記録: %llu フレーム・%@（%@）": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last recording: %1$llu frames · %2$@ (%3$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "前の記録: %1$llu フレーム・%2$@（%3$@）"
+          }
+        }
+      }
+    },
     "前回: %@ · 中止": {
       "localizations": {
         "en": {
@@ -12180,6 +12616,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "受け付けを始められませんでした: %@"
+          }
+        }
+      }
+    },
+    "古い数（ヘルパーから更新が届いていません）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古い数（ヘルパーから更新が届いていません）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Old counts (no update from the helper)"
           }
         }
       }
@@ -12568,6 +13020,39 @@
         }
       }
     },
+    "壊れたフレーム %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malformed frames %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "壊れたフレーム %lld"
+          }
+        }
+      }
+    },
+    "壊れたフレーム %llu": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malformed frames %llu"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "壊れたフレーム %llu"
+          }
+        }
+      }
+    },
     "変更": {
       "localizations": {
         "en": {
@@ -12855,6 +13340,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "外（%@）へ"
+          }
+        }
+      }
+    },
+    "大きさの上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "size limit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大きさの上限"
           }
         }
       }
@@ -13163,6 +13664,22 @@
         }
       }
     },
+    "届け先なし": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nobody to deliver to"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "届け先なし"
+          }
+        }
+      }
+    },
     "左下の ＋ から新しい仮想マシンを作成できます。": {
       "localizations": {
         "en": {
@@ -13415,6 +13932,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "接続"
+          }
+        }
+      }
+    },
+    "接続 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続 %lld"
           }
         }
       }
@@ -13906,6 +14439,22 @@
         }
       }
     },
+    "時間の上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "time limit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間の上限"
+          }
+        }
+      }
+    },
     "最初の 1 回だけ NIC 0 を付けて起動する": {
       "localizations": {
         "en": {
@@ -14206,6 +14755,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "次の起動で一度だけ、入っているパッケージをすべて更新します（apt は full-upgrade と autoremove、dnf は upgrade、apk は upgrade）。「一度だけ実行する」の例で、済むと印を残して以後は何もしません。もう一度更新したいときは、項目の編集画面で「もう一度実行」を押します。"
+          }
+        }
+      }
+    },
+    "止めた": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "stopped"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "止めた"
           }
         }
       }
@@ -15088,6 +15653,72 @@
         }
       }
     },
+    "落とした（キューが満杯）%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (queue full) %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（キューが満杯）%lld"
+          }
+        }
+      }
+    },
+    "落とした（キューが満杯）%llu": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (queue full) %llu"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（キューが満杯）%llu"
+          }
+        }
+      }
+    },
+    "落とした（切断）%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (disconnecting) %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（切断）%lld"
+          }
+        }
+      }
+    },
+    "落とした（切断）%llu": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (disconnecting) %llu"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（切断）%llu"
+          }
+        }
+      }
+    },
     "行いませんでした。": {
       "localizations": {
         "en": {
@@ -15340,6 +15971,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "記録を保存できませんでした"
+          }
+        }
+      }
+    },
+    "記録を始める": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Recording"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を始める"
+          }
+        }
+      }
+    },
+    "記録を止める": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Recording"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を止める"
+          }
+        }
+      }
+    },
+    "記録中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録中"
           }
         }
       }
@@ -16011,6 +16690,22 @@
         }
       }
     },
+    "開く": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開く"
+          }
+        }
+      }
+    },
     "開発言語（Go、Node.js、Python、Rust）": {
       "localizations": {
         "en": {
@@ -16183,6 +16878,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "（パス未設定）"
+          }
+        }
+      }
+    },
+    "（毎秒 %lld フレーム・%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (%1$lld frames · %2$@ per second)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "（毎秒 %1$lld フレーム・%2$@）"
           }
         }
       }

@@ -34,7 +34,7 @@ public struct LaunchAgentManager: Sendable {
         var plist: [String: Any] = [
             "Label": network.launchLabel,
             "ProgramArguments": [helper.path, "--network", network.name],
-            "Sockets": ["Listener": ["SockPathName": network.socketPath, "SockPathMode": 0o600]],
+            "Sockets": sockets(for: network),
             "StandardOutPath": NetworkPaths.log(for: network.name).path,
             "StandardErrorPath": NetworkPaths.log(for: network.name).path,
             // Background QoS would starve packet forwarding.
@@ -42,6 +42,15 @@ public struct LaunchAgentManager: Sendable {
         ]
         if !env.isEmpty { plist["EnvironmentVariables"] = env }
         return plist
+    }
+
+    /// The VMs' socket, and for a guest-only network the control socket too (docs/17).
+    func sockets(for network: VirtualNetwork) -> [String: Any] {
+        var sockets: [String: Any] = ["Listener": ["SockPathName": network.socketPath, "SockPathMode": 0o600]]
+        if network.isGuestOnly {
+            sockets["Control"] = ["SockPathName": NetworkPaths.control(for: network.name).path, "SockPathMode": 0o600]
+        }
+        return sockets
     }
 
     /// Writes the plist and (re)loads it. Any running helper is stopped, so attached VMs lose
@@ -60,6 +69,7 @@ public struct LaunchAgentManager: Sendable {
         bootoutAndWait(network.name)
         // launchd refuses to bind over a stale socket file.
         try? fm.removeItem(at: NetworkPaths.socket(for: network.name))
+        try? fm.removeItem(at: NetworkPaths.control(for: network.name))
         try? fm.removeItem(at: NetworkPaths.status(for: network.name))
         var out = launchctl(["bootstrap", domain, url.path])
         for _ in 0..<5 where out.status != 0 {
@@ -87,6 +97,7 @@ public struct LaunchAgentManager: Sendable {
         let fm = FileManager.default
         try? fm.removeItem(at: NetworkPaths.launchAgentPlist(for: name))
         try? fm.removeItem(at: NetworkPaths.socket(for: name))
+        try? fm.removeItem(at: NetworkPaths.control(for: name))
         try? fm.removeItem(at: NetworkPaths.status(for: name))
         try? fm.removeItem(at: NetworkPaths.leases(for: name))
     }

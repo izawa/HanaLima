@@ -54,8 +54,22 @@ struct NetworkMapView: View {
             }
         }
         .sheet(item: Bindable(model).mapCheckRequest) { MapCheckSheet(request: $0) }
+        .task {
+            // Guest-only networks' counters (docs/17), only while the map shows.
+            while !Task.isCancelled {
+                #if DEBUG
+                if DebugSnapshot.env["HANALIMA_SNAPSHOT_OBSERVE"] != nil { return }
+                #endif
+                model.pollObservations()
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
         #if DEBUG
         .task {
+            if let name = DebugSnapshot.env["HANALIMA_SNAPSHOT_OBSERVE"] {
+                while model.instances.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
+                model.fakeObservationForSnapshot(name)
+            }
             if DebugSnapshot.env["HANALIMA_SNAPSHOT_MAPCHECKS"] == "1" {
                 while model.instances.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
                 model.fakeMapChecksForSnapshot()
@@ -76,6 +90,9 @@ struct NetworkMapView: View {
                     Text(MapText.kind(bus.kind)).font(.caption)
                     Text(MapText.exit(bus.kind)).font(.caption).foregroundStyle(.secondary)
                     if let counts = checkCounts(bus.id, in: map) { Text(counts).font(.caption2).foregroundStyle(.secondary) }
+                    if let capture = model.observations[bus.name]?.current.capture, capture.endedAt == nil {
+                        Label("記録中", systemImage: "record.circle").font(.caption2).foregroundStyle(.red)
+                    }
                 }
                 .contextMenu {
                     Button("このネットワークを確かめる…") { model.mapCheckRequest = MapCheckRequest(scope: .bus(id: bus.id, name: bus.name)) }
@@ -334,6 +351,11 @@ private struct MapInspector: View {
                 }
                 if row.routerOf.contains(bus.id) { Text("このネットワークのルーターです。").font(.callout) }
                 if row.kind == .vm { checkResults(row.name, port.macs, probes: { $0.bus == bus.id }) }
+                if row.kind == .vm, case .guestOnly = bus.kind, let sample = model.observations[bus.name] {
+                    ForEach(ObservationText.ports(of: port.macs, in: sample.current)) { counters in
+                        PortCountersView(port: counters, sample: sample)
+                    }
+                }
                 let peers = map.members(of: bus.id).map(\.name).filter { $0 != row.name }
                 if !peers.isEmpty { LabeledContent("同じネットワーク", value: peers.joined(separator: ", ")) }
             }
@@ -379,6 +401,10 @@ private struct MapInspector: View {
         LabeledContent("Mac", value: bus.macOnSegment ? String(localized: "参加している") : String(localized: "参加していない"))
         let members = map.members(of: bus.id).map(\.name)
         LabeledContent("仮想マシン", value: members.isEmpty ? "—" : members.joined(separator: ", "))
+        if case .guestOnly = bus.kind {
+            Divider()
+            SegmentObservationView(network: bus.name, map: map, bus: bus.id)
+        }
     }
 }
 
@@ -544,5 +570,137 @@ private struct MapCheckSheet: View {
     private var problem: String? {
         guard !outside.isEmpty else { return nil }
         return IPv4(outside) == nil ? String(localized: "IPv4 アドレスを数字で入れてください（名前は使えません）。") : nil
+    }
+}
+
+/// A guest-only segment's counters and its packet capture (docs/17).
+private struct SegmentObservationView: View {
+    @Environment(AppModel.self) private var model
+    let network: String
+    let map: NetworkMap
+    let bus: String
+    @State private var confirming = false
+
+    var body: some View {
+        Text("ネットワークの側から見た流れ").font(.subheadline.weight(.semibold))
+        if let sample = model.observations[network] {
+            let o = sample.current
+            if sample.isStale { Text("ヘルパーから新しい数が届いていません（止まったか、応えていません）。").font(.caption).foregroundStyle(.orange) }
+            LabeledContent("netd の応答", value: ObservationText.counter(o.answered))
+            LabeledContent("全員へ送った", value: "\(o.flooded)")
+            LabeledContent("届け先なし", value: "\(o.undelivered)")
+            ForEach(o.ports.filter(\.connected)) { port in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(ObservationText.portName(port, map: map, bus: bus)).font(.callout.weight(.medium))
+                    PortCountersView(port: port, sample: sample)
+                }
+            }
+            if !o.ports.contains(where: \.connected) { Text("つながっている仮想マシンはありません。").font(.caption).foregroundStyle(.secondary) }
+            let closed = o.ports.filter { !$0.connected }
+            if !closed.isEmpty {
+                DisclosureGroup("切断した接続（\(closed.count)）") {
+                    ForEach(closed) { port in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(ObservationText.portName(port, map: map, bus: bus)).font(.callout.weight(.medium))
+                            PortCountersView(port: port, sample: sample)
+                        }
+                    }
+                }
+                .font(.caption)
+            }
+            Divider()
+            capture(o.capture)
+        } else if model.olderHelpers.contains(network) {
+            Text("このネットワークのヘルパーは古い版で、数を出せません。つながっている仮想マシンをすべて止めると、新しい版に入れ替わります。")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            Text("ヘルパーは動いていません。仮想マシンがつながると数え始めます。").font(.caption).foregroundStyle(.secondary)
+            Divider()
+            capture(nil)
+        }
+    }
+
+    @ViewBuilder private func capture(_ capture: NetworkObservation.Capture?) -> some View {
+        if let capture, capture.endedAt == nil {
+            Label("パケットを記録中", systemImage: "record.circle").foregroundStyle(.red)
+            Text("\(Int(capture.frames)) フレーム・\(Formatting.bytes(Int64(capture.bytes)))・記録から落とした \(Int(capture.lost))")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("記録を止める") { model.stopCapture(network, id: capture.id) }
+        } else if !FileManager.default.fileExists(atPath: NetworkPaths.control(for: network).path) {
+            // Registered by an older helper: no control socket until it is replaced.
+            Text("パケットの記録には、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            Button("パケットを記録…") { confirming = true }
+                .confirmationDialog("ネットワーク「\(network)」のパケットを記録しますか？", isPresented: $confirming) {
+                    Button("記録を始める") { model.startCapture(network) }
+                } message: {
+                    Text("このネットワークを流れるすべてのフレームを、中身ごと pcap のファイルに残します。パスワードなどが含まれることがあります。64 MiB か 5 分で止まります。ファイルは ~/Library/Application Support/HanaLima/Captures に、あなただけが読める形で置きます。")
+                }
+            if let capture {
+                Text("前の記録: \(Int(capture.frames)) フレーム・\(Formatting.bytes(Int64(capture.bytes)))（\(ObservationText.reason(capture.reason))）")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button("開く") { model.openCapture(capture) }
+                    Button("Finder で表示") { model.revealCapture(capture) }
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+}
+
+/// One connection's counters, with per-second rates when there are two samples.
+private struct PortCountersView: View {
+    let port: NetworkObservation.Port
+    let sample: ObservationSample
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if !port.connected { Text("切断した接続").foregroundStyle(.secondary) }
+            if sample.isStale { Text("古い数（ヘルパーから更新が届いていません）").foregroundStyle(.orange) }
+            // Rates only for a live port with fresh samples.
+            let live = port.connected && !sample.isStale
+            line(String(localized: "ゲストから"), port.fromGuest, live ? sample.rate(\.fromGuest, port: port.id) : nil)
+            line(String(localized: "ゲストへ"), port.toGuest, live ? sample.rate(\.toGuest, port: port.id) : nil)
+            if port.droppedFull.frames > 0 { Text("落とした（キューが満杯）\(Int(port.droppedFull.frames))").font(.caption).foregroundStyle(.orange) }
+            if port.droppedClosed.frames > 0 { Text("落とした（切断）\(Int(port.droppedClosed.frames))").font(.caption).foregroundStyle(.secondary) }
+            if port.malformed > 0 { Text("壊れたフレーム \(Int(port.malformed))").font(.caption).foregroundStyle(.orange) }
+        }
+        .font(.caption.monospacedDigit())
+    }
+
+    private func line(_ label: String, _ c: NetworkObservation.Counter, _ rate: (frames: Double, bytes: Double)?) -> some View {
+        let perSecond = rate.map { String(localized: "（毎秒 \(Int($0.frames.rounded())) フレーム・\(Formatting.bytes(Int64($0.bytes)))）") } ?? ""
+        return Text("\(label) \(Int(c.frames)) フレーム・\(Formatting.bytes(Int64(c.bytes)))\(perSecond)")
+    }
+}
+
+enum ObservationText {
+    static func counter(_ c: NetworkObservation.Counter) -> String {
+        String(localized: "\(Int(c.frames)) フレーム・\(Formatting.bytes(Int64(c.bytes)))")
+    }
+
+    /// The VM whose NIC on `bus` has one of the port's MACs, or the MACs themselves.
+    static func portName(_ port: NetworkObservation.Port, map: NetworkMap, bus: String) -> String {
+        let owner = map.rows.first { row in row.ports.contains { $0.bus == bus && !Set($0.macs).isDisjoint(with: port.macs) } }
+        if let owner { return owner.name }
+        return port.macs.isEmpty ? String(localized: "接続 \(port.id)") : port.macs.joined(separator: ", ")
+    }
+
+    /// The ports (live first, then disconnected) whose learned MACs include one of `macs`.
+    static func ports(of macs: [String], in o: NetworkObservation) -> [NetworkObservation.Port] {
+        o.ports.filter { !Set($0.macs).isDisjoint(with: macs) }
+    }
+
+    static func reason(_ reason: String?) -> String {
+        switch reason {
+        case "stopped": String(localized: "止めた")
+        case "size limit": String(localized: "大きさの上限")
+        case "time limit": String(localized: "時間の上限")
+        case "helper exited": String(localized: "ヘルパーが終了した")
+        case let r?: r
+        case nil: "—"
+        }
     }
 }

@@ -35,6 +35,7 @@ func fail(_ message: String) -> Never {
 
 var networkName: String?
 var standaloneSocket: String?
+var standaloneControl: String?
 var checkOnly = false
 var idleTimeout: TimeInterval = 600
 do {
@@ -43,6 +44,7 @@ do {
         switch arg {
         case "--network": networkName = it.next()
         case "--socket": standaloneSocket = it.next()
+        case "--control": standaloneControl = it.next()
         case "--idle-timeout": idleTimeout = it.next().flatMap(TimeInterval.init) ?? idleTimeout
         case "--check": checkOnly = true
         default: fail("unknown argument \(arg)")
@@ -187,6 +189,13 @@ final class GuestSwitch: @unchecked Sendable {
     private var learnedPerPort: [ObjectIdentifier: Int] = [:]
     private static let learnLimit = 32
     private var writtenVersion = -1
+    // Observation (docs/17): segment counters, disconnected ports' last counts, the capture.
+    private var answered = NetworkObservation.Counter()
+    private var flooded: UInt64 = 0
+    private var undelivered: UInt64 = 0
+    private var closedPorts: [NetworkObservation.Port] = []
+    private var capture: CaptureSession?
+    private var departedMACs: [ObjectIdentifier: [String]] = [:]
     let dhcp: GuestOnlyDHCP
     let serverMAC: [UInt8]
     let leasesFile: URL
@@ -208,6 +217,7 @@ final class GuestSwitch: @unchecked Sendable {
     func detach(_ relay: Relay) {
         lock.withLock {
             let id = ObjectIdentifier(relay)
+            departedMACs[id] = macs(of: id)  // the table forgets them below; `retire` needs them
             ports[id] = nil
             learnedPerPort[id] = nil
             table = table.filter { $0.value != id }
@@ -222,6 +232,7 @@ final class GuestSwitch: @unchecked Sendable {
 
     /// Switches one frame that `source` sent.
     func forward(_ frame: UnsafeRawBufferPointer, from source: Relay) {
+        lock.withLock { capture }?.offer(frame)  // as offered, before any checks
         guard frame.count >= 14 else { return }
         let dst = Self.mac(frame, at: 0)
         let src = Self.mac(frame, at: 6)
@@ -237,6 +248,8 @@ final class GuestSwitch: @unchecked Sendable {
             learnedPerPort[sourceID] = learned + 1
         }
         if let reply = dhcp.handle(frame) {
+            let session: CaptureSession? = lock.withLock { answered.add(reply.count); return capture }
+            reply.withUnsafeBytes { session?.offer($0) }
             source.enqueue(reply)
             writeLeasesIfChanged()
             return
@@ -246,7 +259,10 @@ final class GuestSwitch: @unchecked Sendable {
             if frame[0] & 1 == 0, let id = table[dst] {
                 return id == sourceID ? [] : [ports[id]].compactMap { $0 }
             }
-            return ports.filter { $0.key != sourceID }.map(\.value)
+            flooded += 1
+            let all = ports.filter { $0.key != sourceID }.map(\.value)
+            if all.isEmpty { undelivered += 1 }
+            return all
         }
         if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { writeLeasesIfChanged() }  // a RELEASE/DECLINE answers nothing
         guard !targets.isEmpty else { return }
@@ -255,6 +271,79 @@ final class GuestSwitch: @unchecked Sendable {
     }
 
     private static func serverMACValue(_ mac: [UInt8]) -> UInt64 { mac.reduce(0) { $0 << 8 | UInt64($1) } }
+
+    // MARK: Observation (docs/17)
+
+    /// Keeps a disconnected port's final counts, once its writer has finished (frames it
+    /// discarded while closing are counted by then).
+    func retire(_ relay: Relay) {
+        lock.withLock {
+            let id = ObjectIdentifier(relay)
+            if let port = relay.portCounters(macs: departedMACs.removeValue(forKey: id) ?? [], connected: false) {
+                closedPorts.insert(port, at: 0)
+                closedPorts = Array(closedPorts.prefix(NetworkObservation.keepClosed))
+            }
+        }
+    }
+
+    /// The source MACs learned on a port (call with `lock` held).
+    private func macs(of id: ObjectIdentifier) -> [String] {
+        table.filter { $0.value == id }.keys.sorted().map { v in
+            (0..<6).map { String(format: "%02x", UInt8(v >> (8 * (5 - $0)) & 0xff)) }.joined(separator: ":")
+        }
+    }
+
+    func observation(runID: String, sequence: UInt64, uptime: Double) -> NetworkObservation {
+        lock.withLock {
+            let live = ports.compactMap { id, relay in relay.portCounters(macs: macs(of: id), connected: true) }
+                .sorted { $0.id < $1.id }
+            var o = NetworkObservation(runID: runID, sequence: sequence, sampledAt: .now, uptime: uptime, ports: live + closedPorts)
+            o.answered = answered
+            o.flooded = flooded
+            o.undelivered = undelivered
+            o.capture = capture?.snapshot
+            return o
+        }
+    }
+
+    var captureState: NetworkObservation.Capture? { lock.withLock { capture }?.snapshot }
+    var isCapturing: Bool { lock.withLock { capture }?.isRunning == true }
+
+    /// Starts a capture of the whole segment; refused while one runs.
+    func startCapture(network: String) throws -> NetworkObservation.Capture {
+        let running = { (s: CaptureSession?) in s?.isRunning == true }
+        if lock.withLock({ running(capture) }) { throw NetdControl.Failure(message: "a capture is already running") }
+        // The file is made outside the lock: forwarding takes it for every frame.
+        let session = try CaptureSession.start(network: network)
+        let published: Bool = lock.withLock {
+            guard !running(capture) else { return false }
+            capture = session
+            return true
+        }
+        guard published else {
+            session.stop("another capture started first")
+            throw NetdControl.Failure(message: "a capture is already running")
+        }
+        log("capture \(session.id) started")
+        return session.snapshot
+    }
+
+    /// Stops the running capture (`id` nil: whichever runs) and returns its state.
+    func stopCapture(id: String?) -> NetworkObservation.Capture? {
+        guard let session = lock.withLock({ capture }), session.isRunning, id == nil || id == session.id else { return nil }
+        session.stop("stopped")
+        session.waitFinished(timeout: 5)
+        return session.snapshot
+    }
+
+    func checkCaptureTime() { lock.withLock { capture }?.checkTime() }
+
+    /// At exit: ends a running capture and gives its file a moment to be finished.
+    func finishCapture() {
+        guard let session = lock.withLock({ capture }), session.isRunning else { return }
+        session.stop("helper exited")
+        session.waitFinished(timeout: 2)
+    }
 
     /// One writer at a time, and only when the leases changed (the snapshot and the file replace
     /// happen under the lock, so an older snapshot can't land after a newer one).
@@ -284,6 +373,11 @@ final class Registry: @unchecked Sendable {
     private var nextID = 1
     private(set) var lastActivity = Date.now
     let startedAt = Date.now
+    /// Observation (docs/17): a fresh id per run, a sample number, and the switch's counters.
+    let runID = UUID().uuidString
+    private let startedClock = ContinuousClock.now
+    private var sequence: UInt64 = 0
+    var guestSwitch: GuestSwitch?
 
     init(name: String) { self.name = name }
 
@@ -327,19 +421,28 @@ final class Registry: @unchecked Sendable {
     func beginConnecting() { lock.withLock { pending += 1 } }
     func endConnecting() { lock.withLock { pending -= 1 } }
 
-    var isIdle: Bool { lock.withLock { clients.isEmpty && pending == 0 } }
+    /// Rewrites the status file (once a second for the counters).
+    func publish() { lock.withLock { writeStatus() } }
+
+    var isIdle: Bool { lock.withLock { clients.isEmpty && pending == 0 } && guestSwitch?.isCapturing != true }
     /// True when the only user is the caller's own in-progress connection.
     var isIdleExceptOneConnecting: Bool { lock.withLock { clients.isEmpty && pending == 1 } }
     var idleSince: Date { lock.withLock { lastActivity } }
 
+    /// Writes the status file (call with `lock` held, or through `publish`).
     func writeStatus() {
+        sequence += 1
+        let elapsed = ContinuousClock.now - startedClock
+        let uptime = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let observation = guestSwitch?.observation(runID: runID, sequence: sequence, uptime: uptime)
         let status = NetworkDaemonStatus(pid: getpid(), startedAt: startedAt,
-                                         clients: clients.values.sorted { $0.id < $1.id })
+                                         clients: clients.values.sorted { $0.id < $1.id }, observation: observation)
         try? status.write(for: name)
     }
 }
 
 let registry = Registry(name: config.name)
+registry.guestSwitch = guestSwitch
 let reservedMACs = Set(config.reservations.compactMap { DHCPReservation.normalizedMAC($0.mac) })
 registry.writeStatus()
 
@@ -389,6 +492,9 @@ final class Relay: @unchecked Sendable {
     private var outgoing: [[UInt8]] = []
     private var outgoingClosed = false
     private var dropped = 0
+    /// Guest-only: what this port saw (docs/17), under `statsLock`.
+    private let statsLock = NSLock()
+    private var stats: NetworkObservation.Port?
     private let outgoingReady = DispatchSemaphore(value: 0)
     private let writerDone = DispatchSemaphore(value: 0)
     private static let outgoingLimit = 512
@@ -425,6 +531,7 @@ final class Relay: @unchecked Sendable {
     /// sends them, and the read loop hands the VM's frames to the switch.
     private func runGuestOnly(_ guestSwitch: GuestSwitch) {
         id = registry.add(mac: "-")
+        statsLock.withLock { stats = NetworkObservation.Port(id: id, connectedAt: .now) }
         log("client \(id) connected (guest-only)")
         guestSwitch.attach(self)
         Thread.detachNewThread { self.writeOutgoing() }
@@ -436,6 +543,10 @@ final class Relay: @unchecked Sendable {
             guard readFully(fd, &header, 4) else { break }
             let size = Int(UInt32(bigEndian: header))
             guard size > 0, size <= capacity, readFully(fd, buf, size) else { break }
+            statsLock.withLock {
+                stats?.fromGuest.add(size)
+                if size < 14 { stats?.malformed += 1 }
+            }
             guestSwitch.forward(UnsafeRawBufferPointer(start: buf, count: size), from: self)
         }
         // Order matters for the descriptor: detach (no new frames), close the queue, shut the
@@ -445,6 +556,7 @@ final class Relay: @unchecked Sendable {
         closeOutgoing()
         Darwin.shutdown(fd, SHUT_RDWR)
         writerDone.wait()
+        guestSwitch.retire(self)
         log("client \(id) disconnected" + (dropped > 0 ? " (\(dropped) frames dropped)" : ""))
         close(fd)
         registry.remove(id)
@@ -452,13 +564,33 @@ final class Relay: @unchecked Sendable {
 
     /// Queues a frame for this VM (guest-only). Drops it when the VM isn't keeping up.
     func enqueue(_ frame: [UInt8]) {
-        let accepted: Bool = writeLock.withLock {
-            guard !outgoingClosed else { return false }
-            guard outgoing.count < Self.outgoingLimit else { dropped += 1; return false }
+        enum Outcome { case queued, full, closed }
+        let outcome: Outcome = writeLock.withLock {
+            guard !outgoingClosed else { return .closed }
+            guard outgoing.count < Self.outgoingLimit else { dropped += 1; return .full }
             outgoing.append(frame)
-            return true
+            return .queued
         }
-        if accepted { outgoingReady.signal() }
+        switch outcome {
+        case .queued: outgoingReady.signal()
+        case .full: statsLock.withLock { stats?.droppedFull.add(frame.count) }
+        case .closed: statsLock.withLock { stats?.droppedClosed.add(frame.count) }
+        }
+    }
+
+    /// This port's counters with `macs` (nil outside guest-only mode).
+    func portCounters(macs: [String], connected: Bool) -> NetworkObservation.Port? {
+        statsLock.withLock {
+            guard var port = stats else { return nil }
+            port.macs = macs
+            port.connected = connected
+            return port
+        }
+    }
+
+    private func countDroppedClosed(_ frames: [[UInt8]]) {
+        guard !frames.isEmpty else { return }
+        statsLock.withLock { for f in frames { stats?.droppedClosed.add(f.count) } }
     }
 
     private func closeOutgoing() {
@@ -470,19 +602,24 @@ final class Relay: @unchecked Sendable {
         defer { writerDone.signal() }
         while true {
             outgoingReady.wait()
+            var discarded: [[UInt8]] = []
             let next: [UInt8]? = writeLock.withLock {
-                if outgoingClosed { outgoing.removeAll(); return nil }  // closed: drop what's left
+                if outgoingClosed { discarded = outgoing; outgoing.removeAll(); return nil }  // closed: drop what's left
                 if outgoing.isEmpty { return nil }
                 return outgoing.removeFirst()
             }
+            countDroppedClosed(discarded)
             guard let next else {
                 if writeLock.withLock({ outgoingClosed }) { return }
                 continue
             }
             var header = UInt32(next.count).bigEndian
             let ok = next.withUnsafeBytes { writeFully(fd, &header, 4) && writeFully(fd, $0.baseAddress!, $0.count) }
-            if !ok {
+            if ok {
+                statsLock.withLock { stats?.toGuest.add(next.count) }
+            } else {
                 // The VM went away; wake the read loop so run() finishes, and stop writing.
+                countDroppedClosed([next] + writeLock.withLock { let rest = outgoing; outgoing.removeAll(); return rest })
                 writeLock.withLock { outgoingClosed = true }
                 Darwin.shutdown(fd, SHUT_RDWR)
                 return
@@ -679,13 +816,13 @@ typealias LaunchActivateSocket = @convention(c) (
     UnsafePointer<CChar>, UnsafeMutablePointer<UnsafeMutablePointer<Int32>?>, UnsafeMutablePointer<Int>
 ) -> Int32
 
-/// The socket launchd opened for us (`Sockets` → `Listener` in the plist), if any.
-func launchdSocket() -> Int32? {
+/// The socket launchd opened for us (`Sockets` → `name` in the plist), if any.
+func launchdSocket(_ name: String = "Listener") -> Int32? {
     guard let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "launch_activate_socket") else { return nil }
     let activate = unsafeBitCast(sym, to: LaunchActivateSocket.self)
     var fds: UnsafeMutablePointer<Int32>?
     var count = 0
-    guard activate("Listener", &fds, &count) == 0, count > 0, let fds else { return nil }
+    guard activate(name, &fds, &count) == 0, count > 0, let fds else { return nil }
     defer { free(fds) }
     return fds[0]
 }
@@ -736,6 +873,7 @@ final class Terminator: Sendable {
         log("\(reason); stopping \(relays.count) interface(s)")
         for relay in relays { relay.shutdown() }
         holder.discard()
+        guestSwitch?.finishCapture()
         guestSwitch?.shutdown()
         try? FileManager.default.removeItem(at: statusFile)
         exit(code)
@@ -743,6 +881,24 @@ final class Terminator: Sendable {
 }
 
 let terminator = Terminator(registry: registry, holder: holder, statusFile: statusFile)
+
+// Guest-only (docs/17): the control socket, and the counters in the status file once a second.
+if let guestSwitch {
+    let control = standaloneControl.map(bindSocket) ?? (standaloneSocket == nil ? launchdSocket("Control") : nil)
+    if let control {
+        let name = config.name
+        Thread.detachNewThread { serveControl(control, guestSwitch: guestSwitch, network: name) }
+    } else {
+        log("no control socket (an older registration?): counters only")
+    }
+    Thread.detachNewThread {
+        while true {
+            Thread.sleep(forTimeInterval: 1)
+            guestSwitch.checkCaptureTime()
+            registry.publish()
+        }
+    }
+}
 
 // Exit when idle; launchd restarts us on the next connection.
 let timeout = idleTimeout

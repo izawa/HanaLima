@@ -29,6 +29,10 @@ public enum NetworkPaths {
 
     public static func socket(for name: String) -> URL { socketDirectory.appending(path: "\(name).sock") }
     public static func status(for name: String) -> URL { socketDirectory.appending(path: "\(name).status.json") }
+    /// The helper's control socket (guest-only networks, docs/17).
+    public static func control(for name: String) -> URL { socketDirectory.appending(path: "\(name).ctl.sock") }
+    /// Packet captures (docs/17), readable only by the user.
+    public static var capturesDirectory: URL { supportDirectory.appending(path: "Captures", directoryHint: .isDirectory) }
     /// Leases of a guest-only network, written by netd's own DHCP server in dhcpd_leases format.
     public static func leases(for name: String) -> URL { socketDirectory.appending(path: "\(name).leases") }
     /// flock(2)ed by every hanalima-netd around vmnet calls, so the helpers never call vmnet at once.
@@ -67,11 +71,14 @@ public struct NetworkDaemonStatus: Codable, Sendable, Hashable {
     public var pid: Int32
     public var startedAt: Date
     public var clients: [Client]
+    /// Guest-only networks' counters and capture (docs/17); nil from older helpers.
+    public var observation: NetworkObservation?
 
-    public init(pid: Int32, startedAt: Date, clients: [Client]) {
+    public init(pid: Int32, startedAt: Date, clients: [Client], observation: NetworkObservation? = nil) {
         self.pid = pid
         self.startedAt = startedAt
         self.clients = clients
+        self.observation = observation
     }
 
     public static func load(for name: String) -> NetworkDaemonStatus? {

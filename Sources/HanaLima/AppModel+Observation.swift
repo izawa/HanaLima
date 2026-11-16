@@ -1,0 +1,107 @@
+import AppKit
+import Foundation
+import NetworkKit
+
+/// Observing guest-only networks (docs/17): the helpers' counters, read once a second while the
+/// map shows, and their packet captures.
+struct ObservationSample: Equatable {
+    var current: NetworkObservation
+    /// The sample before, from the same run of the helper (for rates).
+    var previous: NetworkObservation?
+
+    var seconds: Double? { previous.map { current.uptime - $0.uptime } }
+
+    /// No new sample for three seconds when last read: the helper stopped or hangs. Shown as
+    /// old, never as zero. Set at each poll, so the view hears when it turns.
+    var isStale = false
+
+    func rate(_ counter: KeyPath<NetworkObservation.Port, NetworkObservation.Counter>, port: Int) -> (frames: Double, bytes: Double)? {
+        guard let seconds, let old = previous?.ports.first(where: { $0.id == port }),
+              let new = current.ports.first(where: { $0.id == port }) else { return nil }
+        return NetworkObservation.rate(new[keyPath: counter], old[keyPath: counter], seconds: seconds)
+    }
+}
+
+extension AppModel {
+    /// Reads the status files of the guest-only networks.
+    func pollObservations() {
+        var samples: [String: ObservationSample] = [:]
+        var older: Set<String> = []
+        for network in virtualNetworks where network.isGuestOnly {
+            guard let status = NetworkDaemonStatus.load(for: network.name) else { continue }
+            guard let current = status.observation else {
+                if !status.clients.isEmpty { older.insert(network.name) }
+                continue
+            }
+            // The sample before, if from the same run: a restarted helper counts from zero again.
+            var previous: NetworkObservation?
+            if let last = observations[network.name], last.current.runID == current.runID {
+                previous = last.current.sequence < current.sequence ? last.current : last.previous
+            }
+            samples[network.name] = ObservationSample(current: current, previous: previous,
+                                                      isStale: Date.now.timeIntervalSince(current.sampledAt) > 3)
+        }
+        if samples != observations { observations = samples }
+        if older != olderHelpers { olderHelpers = older }
+    }
+
+    func startCapture(_ network: String) {
+        let socket = NetworkPaths.control(for: network).path
+        Task {
+            do {
+                _ = try await Task.detached { try NetdControl.send(.init(op: .startCapture), to: socket) }.value
+            } catch {
+                alert = AlertMessage(title: String(localized: "パケットの記録を始められませんでした"), message: error.localizedDescription)
+            }
+            pollObservations()
+        }
+    }
+
+    func stopCapture(_ network: String, id: String) {
+        let socket = NetworkPaths.control(for: network).path
+        Task {
+            do {
+                _ = try await Task.detached { try NetdControl.send(.init(op: .stopCapture, capture: id), to: socket) }.value
+            } catch {
+                alert = AlertMessage(title: String(localized: "パケットの記録を止められませんでした"), message: error.localizedDescription)
+            }
+            pollObservations()
+        }
+    }
+
+    func openCapture(_ capture: NetworkObservation.Capture) {
+        NSWorkspace.shared.open(URL(filePath: capture.file))
+    }
+
+    func revealCapture(_ capture: NetworkObservation.Capture) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(filePath: capture.file)])
+    }
+}
+
+#if DEBUG
+extension AppModel {
+    /// Made-up counters for the screenshots (`HANALIMA_SNAPSHOT_OBSERVE=<network>`), with the
+    /// map's VMs on that network as ports and a capture running.
+    func fakeObservationForSnapshot(_ network: String) {
+        let map = networkMap
+        guard let bus = map.buses.first(where: { $0.name == network }) else { return }
+        func sample(_ seq: UInt64, _ scale: UInt64) -> NetworkObservation {
+            let ports = map.members(of: bus.id).enumerated().map { i, row in
+                var p = NetworkObservation.Port(id: i + 1, macs: row.ports.first { $0.bus == bus.id }?.macs ?? [], connectedAt: .now)
+                p.fromGuest = .init(frames: 120 * scale + UInt64(i) * 7, bytes: 9_800 * scale)
+                p.toGuest = .init(frames: 110 * scale, bytes: 9_100 * scale)
+                if i == 1 { p.droppedFull = .init(frames: 3, bytes: 4_500) }
+                return p
+            }
+            var o = NetworkObservation(runID: "snap", sequence: seq, sampledAt: .now, uptime: Double(seq), ports: ports)
+            o.answered = .init(frames: 14, bytes: 4_200)
+            o.flooded = 31
+            var c = NetworkObservation.Capture(id: "abcd1234", file: "/tmp/x.pcap", startedAt: .now.addingTimeInterval(-40))
+            c.frames = 812; c.bytes = 96_000
+            o.capture = c
+            return o
+        }
+        observations[network] = ObservationSample(current: sample(10, 10), previous: sample(9, 9))
+    }
+}
+#endif

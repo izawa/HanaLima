@@ -189,6 +189,10 @@ final class AppModel {
     var mapCheckRun: MapCheckRun?
     var mapCheckRequest: MapCheckRequest?
     var mapCheckOutside: String?
+    /// Guest-only networks' counters and captures (docs/17), by network name, and the networks
+    /// whose running helper is too old to report them.
+    var observations: [String: ObservationSample] = [:]
+    var olderHelpers: Set<String> = []
     /// Counts saved or deleted networks, so a check running across one is thrown away.
     @ObservationIgnored var mapCheckNetworkChanges = 0
     /// The VM whose installer should open (see HostedProcess).
