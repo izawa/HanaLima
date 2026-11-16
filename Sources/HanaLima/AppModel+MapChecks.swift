@@ -105,6 +105,18 @@ extension AppModel {
         let outside = onlyBus == nil ? outside : nil
         mapCheckRun = MapCheckRun(queue: vms, total: vms.count)
         Task {
+            // First the guests' own addresses, so a VM can ping a peer whose lease carries no MAC.
+            var observed: [String: [String: [String]]] = [:]
+            for name in vms {
+                guard mapCheckRun?.cancelled != true, mapCheckBlocker(name) == nil else { continue }
+                let macs = mapCheckMACs(name)
+                guard !macs.isEmpty else { continue }
+                let result = await runGuestScript(name, script: MapChecks.script(probes: [], macs: macs),
+                                                  timeout: .seconds(20), keepBytes: 4_096) { self.mapCheckRun?.cancelled == true }
+                if result.error == nil {
+                    observed[name] = MapChecks.record(probes: [], output: result.output, runError: nil, at: .now).observed
+                }
+            }
             for name in vms {
                 guard let run = mapCheckRun, !run.cancelled else { break }
                 mapCheckRun?.current = name
@@ -113,11 +125,10 @@ extension AppModel {
                 guard mapCheckBlocker(name) == nil, let inst = instance(named: name) else { continue }
                 let map = networkMap
                 let dir = inst.instanceDir
-                let probes = MapChecks.plan(map, vms: [name], bus: onlyBus, outside: outside) { _ in
+                let probes = MapChecks.plan(map, vms: [name], bus: onlyBus, outside: outside, observed: observed) { _ in
                     LimaMACAddress.address(instanceDir: dir)
                 }[name] ?? []
-                let row = map.rows.first { $0.name == name }
-                let macs = (row?.ports.flatMap(\.macs) ?? []) + [row?.vzNATMAC, LimaMACAddress.address(instanceDir: dir)].compactMap { $0 }
+                let macs = mapCheckMACs(name)
                 // No ping to send still reads the guest's addresses (a bridge's, for one).
                 guard !probes.isEmpty || !macs.isEmpty else { continue }
                 let before = mapCheckSignature(name)
@@ -149,6 +160,13 @@ extension AppModel {
     }
 
     func cancelMapChecks() { mapCheckRun?.cancelled = true }
+
+    /// Every NIC of `name` whose guest addresses a check reads: its networks', vzNAT's and NIC 0's.
+    private func mapCheckMACs(_ name: String) -> [String] {
+        let row = networkMap.rows.first { $0.name == name }
+        let nic0 = instance(named: name).flatMap { LimaMACAddress.address(instanceDir: $0.instanceDir) }
+        return (row?.ports.flatMap(\.macs) ?? []) + [row?.vzNATMAC, nic0].compactMap { $0 }
+    }
 }
 
 #if DEBUG

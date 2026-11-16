@@ -50,6 +50,15 @@ struct MapChecksTests {
         #expect(plans["gw"] == nil)
     }
 
+    @Test func aPeerAddressCanComeFromItsGuest() {
+        var m = map
+        m.rows[1].ports[0].nics[0].addresses = [.init(ip: "10.0.0.11", source: .leaseByName)]
+        let observed = ["a": ["02:00:00:00:00:02": ["10.0.0.11"]]]
+        let plans = MapChecks.plan(m, vms: ["gw"], outside: nil, observed: observed) { _ in nil }
+        let targets = plans["gw"]?.map(\.target)
+        #expect(targets == [.peer(vm: "a", ip: "10.0.0.11")])
+    }
+
     @Test func aStoppedVMIsNoPeer() {
         var m = map
         m.rows[1].running = false  // a

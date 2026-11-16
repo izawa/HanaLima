@@ -76,7 +76,10 @@ public enum MapChecks {
     /// - Parameters:
     ///   - outside: an IPv4 address the user typed; exits are tested only with one.
     ///   - nic0MAC: NIC 0's MAC for a VM (Lima derives it from the instance folder).
+    ///   - observed: the IPv4 addresses each VM's guest reported per NIC (VM → MAC → addresses),
+    ///     for peers whose address HanaLima can't tie to the NIC otherwise (a lease found by name).
     public static func plan(_ map: NetworkMap, vms: [String], bus onlyBus: String? = nil, outside: String?,
+                            observed: [String: [String: [String]]] = [:],
                             nic0MAC: (String) -> String?) -> [String: [MapProbe]] {
         var plans: [String: [MapProbe]] = [:]
         for name in vms {
@@ -102,7 +105,7 @@ public enum MapChecks {
                         continue
                     }
                     // A peer that is also the gateway or router was just pinged.
-                    if let peer = peer(of: name, on: bus.id, in: map),
+                    if let peer = peer(of: name, on: bus.id, in: map, observed: observed),
                        !probes.contains(where: { $0.mac == mac && $0.target.ip == peer.ip }) {
                         add(bus: bus.id, mac: mac, .peer(vm: peer.vm, ip: peer.ip))
                     }
@@ -118,18 +121,24 @@ public enum MapChecks {
     }
 
     /// The next running VM after `vm` on `bus` (rows in the map's order, wrapping) with one known address
-    /// there: a single NIC with a single address, reserved or leased to that NIC's MAC, so the
-    /// ping can't go to the wrong one.
-    static func peer(of vm: String, on bus: String, in map: NetworkMap) -> (vm: String, ip: String)? {
+    /// there: a single NIC with a single address, reserved or leased to that NIC's MAC, or else the
+    /// single address its guest reported on that MAC, so the ping can't go to the wrong one.
+    static func peer(of vm: String, on bus: String, in map: NetworkMap,
+                     observed: [String: [String: [String]]] = [:]) -> (vm: String, ip: String)? {
         let members = map.members(of: bus)
         guard let start = members.firstIndex(where: { $0.name == vm }), members.count > 1 else { return nil }
         for step in 1..<members.count {
             let candidate = members[(start + step) % members.count]
             // A stopped VM keeps its reservation but answers nothing.
             guard candidate.running, let port = candidate.ports.first(where: { $0.bus == bus }), port.nics.count == 1,
-                  let only = port.nics.first, only.addresses.count == 1,
-                  [.reservation, .lease].contains(only.addresses[0].source) else { continue }
-            return (candidate.name, only.addresses[0].ip)
+                  let only = port.nics.first else { continue }
+            if only.addresses.count == 1, [.reservation, .lease].contains(only.addresses[0].source) {
+                return (candidate.name, only.addresses[0].ip)
+            }
+            // Alpine's DHCP client names itself by DUID, so its lease carries no MAC: ask the guest.
+            if let mac = only.mac, let reported = observed[candidate.name]?[mac], reported.count == 1 {
+                return (candidate.name, reported[0])
+            }
         }
         return nil
     }
