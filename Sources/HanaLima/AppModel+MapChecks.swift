@@ -123,8 +123,8 @@ extension AppModel {
                 let before = mapCheckSignature(name)
                 let networkChanges = mapCheckNetworkChanges
                 let result = await runGuestScript(name, script: MapChecks.script(probes: probes, macs: macs),
-                                                  timeout: .seconds(60), keepBytes: 16_384) { [weak self] in
-                    self?.mapCheckRun?.cancelled == true
+                                                  timeout: .seconds(60), keepBytes: 16_384) {
+                    self.mapCheckRun?.cancelled == true
                 }
                 // Cut short by cancel, or the configuration changed meanwhile: keep nothing.
                 // A network saved meanwhile restarted its helper, even if it was changed back.
