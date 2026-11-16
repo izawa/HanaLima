@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import LimaKit
 import NetworkKit
@@ -89,6 +90,17 @@ extension AppModel {
     func address(of instance: LimaInstance, on network: VirtualNetwork) -> String? {
         guard let subnet = network.subnet else { return nil }
         return DHCPLeases.address(of: instance.name, in: subnet, leases: dhcpLeases)
+    }
+
+    /// The network map (docs/16), with the VMs in the sidebar's order.
+    var networkMap: NetworkMap {
+        let byID = Dictionary(metadata.map { ($0.value.id, $0.key) }, uniquingKeysWith: { a, _ in a })
+        let ordered = (groupLayout.groups.flatMap(\.members) + groupLayout.ungrouped).compactMap { byID[$0] }
+        let names = ordered + instances.map(\.name).filter { !ordered.contains($0) }
+        let list = names.compactMap { instance(named: $0) }
+        let groups = metadata.compactMapValues(\.group)
+        return NetworkMap.build(instances: list, groups: groups, networks: virtualNetworks,
+                                limaNetworks: networks.networks, leases: dhcpLeases)
     }
 
     /// Instances whose config attaches to `network` (running or not).

@@ -9,6 +9,10 @@ public struct DHCPLease: Hashable, Sendable {
     public var hwAddress: String
     public var expires: Date?
 
+    public init(name: String, ip: String, hwAddress: String, expires: Date?) {
+        self.name = name; self.ip = ip; self.hwAddress = hwAddress; self.expires = expires
+    }
+
     /// The Lima instance name, if the hostname follows Lima's `lima-<name>` convention.
     public var limaInstance: String? {
         name.hasPrefix("lima-") ? String(name.dropFirst(5)) : nil

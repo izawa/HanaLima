@@ -10,10 +10,45 @@ struct NetworkListView: View {
     @State private var editing: VirtualNetwork?
     @State private var isCreating = false
     @State private var deleting: VirtualNetwork?
+    @State private var showsMap = false
 
     private var selected: VirtualNetwork? { model.virtualNetworks.first { $0.name == selection } }
 
     var body: some View {
+        Group {
+            if showsMap { NetworkMapView() } else { list }
+        }
+        .navigationTitle("ネットワーク")
+        .navigationSubtitle("\(model.virtualNetworks.count) 個の仮想ネットワーク")
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Picker("表示", selection: $showsMap) {
+                    Label("一覧", systemImage: "list.bullet").tag(false)
+                    Label("構成図", systemImage: "point.3.connected.trianglepath.dotted").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .help("一覧と構成図を切り替える")
+            }
+            // The sheets hang off the list, so its buttons go with it.
+            ToolbarItemGroup(placement: .primaryAction) {
+                if !showsMap {
+                    Button { isCreating = true } label: { Label("新規ネットワーク", systemImage: "plus") }
+                        .help("新規ネットワーク")
+                    Button { editing = selected } label: { Label("編集", systemImage: "slider.horizontal.3") }
+                        .help("編集")
+                        .disabled(selected == nil)
+                    Button(role: .destructive) { deleting = selected } label: { Label("削除", systemImage: "trash") }
+                        .help("削除")
+                        .disabled(selected == nil)
+                }
+            }
+        }
+        #if DEBUG
+        .onAppear { if DebugSnapshot.env["HANALIMA_SNAPSHOT_MAP"] != nil { showsMap = true } }
+        #endif
+    }
+
+    private var list: some View {
         List(selection: $selection) {
             Section {
                 if model.virtualNetworks.isEmpty {
@@ -57,20 +92,6 @@ struct NetworkListView: View {
                         .foregroundStyle(.tint)
                 }
                 .font(.caption)
-            }
-        }
-        .navigationTitle("ネットワーク")
-        .navigationSubtitle("\(model.virtualNetworks.count) 個の仮想ネットワーク")
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button { isCreating = true } label: { Label("新規ネットワーク", systemImage: "plus") }
-                    .help("新規ネットワーク")
-                Button { editing = selected } label: { Label("編集", systemImage: "slider.horizontal.3") }
-                    .help("編集")
-                    .disabled(selected == nil)
-                Button(role: .destructive) { deleting = selected } label: { Label("削除", systemImage: "trash") }
-                    .help("削除")
-                    .disabled(selected == nil)
             }
         }
         .sheet(isPresented: $isCreating) { NetworkEditorSheet(original: nil) }

@@ -11,6 +11,10 @@ public struct LimaNetworks: Sendable, Hashable {
         public var netmask: String?
         public var interface: String?
 
+        public init(name: String, mode: String, gateway: String? = nil, netmask: String? = nil, interface: String? = nil) {
+            self.name = name; self.mode = mode; self.gateway = gateway; self.netmask = netmask; self.interface = interface
+        }
+
         /// Everything except user-v2 runs through socket_vmnet.
         public var needsSocketVMNet: Bool { mode != "user-v2" }
     }

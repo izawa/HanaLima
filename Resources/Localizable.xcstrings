@@ -236,6 +236,22 @@
         }
       }
     },
+    "%@ 固定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ fixed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 固定"
+          }
+        }
+      }
+    },
     "%@ ＋ 外部 %@": {
       "extractionState": "stale",
       "localizations": {
@@ -1103,6 +1119,38 @@
         }
       }
     },
+    "DHCP・DNS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DHCP and DNS"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DHCP・DNS"
+          }
+        }
+      }
+    },
+    "DNS の名前": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS Name"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DNS の名前"
+          }
+        }
+      }
+    },
     "Docker Engine を公式の手順で入れ、ユーザーを docker グループに入れます（root で動く構成。グループは次のログインから有効）。rootless で使うなら、作成時に Lima の docker テンプレートを選びます。": {
       "localizations": {
         "en": {
@@ -1307,6 +1355,22 @@
         }
       }
     },
+    "HanaLima や Lima のネットワークにはつながっていません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not on any HanaLima or Lima network."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima や Lima のネットワークにはつながっていません。"
+          }
+        }
+      }
+    },
     "HanaLima を終了": {
       "localizations": {
         "en": {
@@ -1399,6 +1463,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Homebrew（macOS）"
+          }
+        }
+      }
+    },
+    "IP": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IP"
           }
         }
       }
@@ -1521,6 +1595,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kubernetes（kubeadm）"
+          }
+        }
+      }
+    },
+    "LAN そのもの": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The LAN itself"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LAN そのもの"
+          }
+        }
+      }
+    },
+    "LAN の DHCP が配る（HanaLima からは見えない）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From the LAN’s DHCP (not visible to HanaLima)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LAN の DHCP が配る（HanaLima からは見えない）"
           }
         }
       }
@@ -1923,6 +2029,16 @@
         }
       }
     },
+    "MAC": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MAC"
+          }
+        }
+      }
+    },
     "MAC アドレス": {
       "localizations": {
         "en": {
@@ -2078,6 +2194,16 @@
         }
       }
     },
+    "Mac": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac"
+          }
+        }
+      }
+    },
     "Mac との共有": {
       "localizations": {
         "en": {
@@ -2090,6 +2216,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mac との共有"
+          }
+        }
+      }
+    },
+    "Mac のアドレス": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac’s Address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac のアドレス"
           }
         }
       }
@@ -2143,6 +2285,32 @@
         }
       }
     },
+    "Mac 経由で外へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Out through the Mac"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 経由で外へ"
+          }
+        }
+      }
+    },
+    "NAT": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NAT"
+          }
+        }
+      }
+    },
     "NAT（外部に接続できる）": {
       "localizations": {
         "en": {
@@ -2185,6 +2353,54 @@
         }
       }
     },
+    "NIC 0 → 外": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 → out"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 → 外"
+          }
+        }
+      }
+    },
+    "NIC 0 なし": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No NIC 0"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 なし"
+          }
+        }
+      }
+    },
+    "NIC 0 なし（隔離）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No NIC 0 (isolated)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 なし（隔離）。"
+          }
+        }
+      }
+    },
     "NIC 0: Lima のユーザーモード NAT": {
       "localizations": {
         "en": {
@@ -2197,6 +2413,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "NIC 0: Lima のユーザーモード NAT"
+          }
+        }
+      }
+    },
+    "NIC 0（Lima のユーザーモード）: Mac の 127.0.0.1、LAN、インターネットに届きます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0 (Lima’s user-mode network) reaches the Mac’s 127.0.0.1, the LAN and the internet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC 0（Lima のユーザーモード）: Mac の 127.0.0.1、LAN、インターネットに届きます。"
           }
         }
       }
@@ -3417,6 +3649,22 @@
         }
       }
     },
+    "vzNAT → 外": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vzNAT → out"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vzNAT → 外"
+          }
+        }
+      }
+    },
     "vzNAT は VZ でのみ使えます。": {
       "localizations": {
         "en": {
@@ -3429,6 +3677,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "vzNAT は VZ でのみ使えます。"
+          }
+        }
+      }
+    },
+    "vzNAT: Mac 経由でインターネットへ。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vzNAT: to the internet through the Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vzNAT: Mac 経由でインターネットへ。"
           }
         }
       }
@@ -4404,6 +4668,22 @@
         }
       }
     },
+    "このネットワークのルーターです。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This VM is the network’s router."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワークのルーターです。"
+          }
+        }
+      }
+    },
     "このネットワークは削除されています。この NIC を外してください。": {
       "localizations": {
         "en": {
@@ -5131,16 +5411,16 @@
     },
     "ほかの仮想マシンの名前を変更しています。終わってからやり直してください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ほかの仮想マシンの名前を変更しています。終わってからやり直してください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Another virtual machine is being renamed. Try again when it’s done."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの仮想マシンの名前を変更しています。終わってからやり直してください。"
           }
         }
       }
@@ -6923,6 +7203,22 @@
         }
       }
     },
+    "ソケット": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Socket"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ソケット"
+          }
+        }
+      }
+    },
     "ソケット %@ が見つかりません。": {
       "localizations": {
         "en": {
@@ -7720,6 +8016,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "デバッグ"
+          }
+        }
+      }
+    },
+    "ドライバー": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Driver"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドライバー"
           }
         }
       }
@@ -8717,6 +9029,54 @@
         }
       }
     },
+    "ルーター": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Router"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーター"
+          }
+        }
+      }
+    },
+    "ルーター %@ 経由": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Through router %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーター %@ 経由"
+          }
+        }
+      }
+    },
+    "ルーター %@（VM なし）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Router %@ (no VM)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーター %@（VM なし）"
+          }
+        }
+      }
+    },
     "ルーターは、このサブネットの中で DHCP サーバー以外のアドレスにしてください（空欄なら経路を配りません）。": {
       "localizations": {
         "en": {
@@ -9001,6 +9361,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "一般ユーザー（Mac と同じユーザー名）で実行されるスクリプトです。"
+          }
+        }
+      }
+    },
+    "一覧": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "List"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一覧"
+          }
+        }
+      }
+    },
+    "一覧と構成図を切り替える": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch between the list and the map"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一覧と構成図を切り替える"
           }
         }
       }
@@ -9611,6 +10003,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。"
+          }
+        }
+      }
+    },
+    "仮想マシンはまだありません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No virtual machines yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンはまだありません。"
           }
         }
       }
@@ -11136,6 +11544,22 @@
         }
       }
     },
+    "削除したネットワーク": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除したネットワーク"
+          }
+        }
+      }
+    },
     "削除したネットワーク「%@」": {
       "localizations": {
         "en": {
@@ -11360,6 +11784,38 @@
         }
       }
     },
+    "参加していない": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not on it"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参加していない"
+          }
+        }
+      }
+    },
+    "参加している": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On it"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参加している"
+          }
+        }
+      }
+    },
     "取り外す": {
       "localizations": {
         "en": {
@@ -11452,6 +11908,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "同じタグのスナップショットがあります。"
+          }
+        }
+      }
+    },
+    "同じネットワーク": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same Network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じネットワーク"
           }
         }
       }
@@ -11903,6 +12375,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "外す"
+          }
+        }
+      }
+    },
+    "外へ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Way Out"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外へ"
+          }
+        }
+      }
+    },
+    "外へは出ない": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No way out"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外へは出ない"
           }
         }
       }
@@ -12652,16 +13156,16 @@
     },
     "救出起動かインストールのウインドウを閉じると名前を変更できます。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "救出起動かインストールのウインドウを閉じると名前を変更できます。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Close the rescue boot or install window to rename it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "救出起動かインストールのウインドウを閉じると名前を変更できます。"
           }
         }
       }
@@ -13158,6 +13662,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "概要"
+          }
+        }
+      }
+    },
+    "構成図": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "構成図"
           }
         }
       }
@@ -13891,6 +14411,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "編集…"
+          }
+        }
+      }
+    },
+    "縦の線がネットワークで、点のある所でつながっています。設定とリースから描いた図で、通信が届くかは確かめていません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertical lines are networks; a dot is a connection. Drawn from the settings and DHCP leases; whether traffic gets through isn’t checked."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "縦の線がネットワークで、点のある所でつながっています。設定とリースから描いた図で、通信が届くかは確かめていません。"
           }
         }
       }

@@ -39,6 +39,7 @@ enum DebugSnapshot {
     static func scheduleIfRequested() {
         guard let prefix = env["HANALIMA_SNAPSHOT"] else { return }
         let delay = Double(env["HANALIMA_SNAPSHOT_DELAY"] ?? "") ?? 4
+        if env["HANALIMA_SNAPSHOT_DARK"] == "1" { NSApp.appearance = NSAppearance(named: .darkAqua) }
         if env["HANALIMA_SNAPSHOT_ABOUT"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay / 2) { NSApp.orderFrontStandardAboutPanel(nil) }
         }
