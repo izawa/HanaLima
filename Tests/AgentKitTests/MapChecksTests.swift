@@ -50,6 +50,13 @@ struct MapChecksTests {
         #expect(plans["gw"] == nil)
     }
 
+    @Test func aStoppedVMIsNoPeer() {
+        var m = map
+        m.rows[1].running = false  // a
+        let plans = MapChecks.plan(m, vms: ["gw"], outside: nil) { _ in nil }
+        #expect(plans["gw"] == nil)  // b has two addresses, a is stopped: nobody to ping
+    }
+
     @Test func scopesAndNoOutsideWithoutAnAddress() {
         let plans = MapChecks.plan(map, vms: ["a"], bus: "nat", outside: "1.1.1.1") { _ in nil }
         #expect(plans["a"]?.map(\.target) == [.gateway("192.168.200.1")])

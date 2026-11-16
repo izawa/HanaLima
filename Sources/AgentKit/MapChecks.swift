@@ -117,7 +117,7 @@ public enum MapChecks {
         return plans
     }
 
-    /// The next VM after `vm` on `bus` (rows in the map's order, wrapping) with one known address
+    /// The next running VM after `vm` on `bus` (rows in the map's order, wrapping) with one known address
     /// there: a single NIC with a single address, reserved or leased to that NIC's MAC, so the
     /// ping can't go to the wrong one.
     static func peer(of vm: String, on bus: String, in map: NetworkMap) -> (vm: String, ip: String)? {
@@ -125,7 +125,8 @@ public enum MapChecks {
         guard let start = members.firstIndex(where: { $0.name == vm }), members.count > 1 else { return nil }
         for step in 1..<members.count {
             let candidate = members[(start + step) % members.count]
-            guard let port = candidate.ports.first(where: { $0.bus == bus }), port.nics.count == 1,
+            // A stopped VM keeps its reservation but answers nothing.
+            guard candidate.running, let port = candidate.ports.first(where: { $0.bus == bus }), port.nics.count == 1,
                   let only = port.nics.first, only.addresses.count == 1,
                   [.reservation, .lease].contains(only.addresses[0].source) else { continue }
             return (candidate.name, only.addresses[0].ip)
