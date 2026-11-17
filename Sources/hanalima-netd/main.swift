@@ -183,11 +183,10 @@ if config.mode == .bridged { log("network \(config.name): bridged to \(config.br
 /// reading never stalls the others.
 final class GuestSwitch: @unchecked Sendable {
     private let lock = NSLock()
-    private var ports: [ObjectIdentifier: GuestPort] = [:]
-    private var table: [UInt64: ObjectIdentifier] = [:]
-    /// Learned MACs per port, so a guest spraying source addresses can't grow the table forever.
-    private var learnedPerPort: [ObjectIdentifier: Int] = [:]
-    private static let learnLimit = 32
+    /// Connected ports by connection number.
+    private var ports: [Int: GuestPort] = [:]
+    /// MAC learning, destinations and faults (docs/18), decided under `lock`.
+    private var table = SwitchTable()
     private var writtenVersion = -1
     // Observation (docs/17): segment counters, disconnected ports' last counts, the capture.
     private var answered = NetworkObservation.Counter()
@@ -195,9 +194,7 @@ final class GuestSwitch: @unchecked Sendable {
     private var undelivered: UInt64 = 0
     private var closedPorts: [NetworkObservation.Port] = []
     private var capture: CaptureSession?
-    private var departedMACs: [ObjectIdentifier: [String]] = [:]
-    /// Faults (docs/18), decided under `lock`.
-    private var faults = FaultTable()
+    private var departedMACs: [Int: [String]] = [:]
     let dhcp: GuestOnlyDHCP
     let serverMAC: [UInt8]
     let leasesFile: URL
@@ -216,97 +213,69 @@ final class GuestSwitch: @unchecked Sendable {
         if let text = try? String(contentsOf: leasesFile, encoding: .utf8) { dhcp.restore(DHCPLeases.parse(text)) }
     }
 
-    func attach(_ port: GuestPort) { lock.withLock { ports[ObjectIdentifier(port)] = port } }
+    func attach(_ port: GuestPort) { lock.withLock { ports[port.id] = port } }
 
     func detach(_ port: GuestPort) {
         lock.withLock {
-            let id = ObjectIdentifier(port)
-            departedMACs[id] = macs(of: id)  // the table forgets them below; `retire` needs them
-            ports[id] = nil
-            learnedPerPort[id] = nil
-            table = table.filter { $0.value != id }
+            ports[port.id] = nil
+            departedMACs[port.id] = table.forget(port.id)  // `retire` labels the final counts with them
         }
-    }
-
-    private static func mac(_ frame: UnsafeRawBufferPointer, at offset: Int) -> UInt64 {
-        var v: UInt64 = 0
-        for i in 0..<6 { v = v << 8 | UInt64(frame[offset + i]) }
-        return v
     }
 
     /// Switches one frame that `source` sent.
     func forward(_ frame: UnsafeRawBufferPointer, from source: GuestPort) {
         lock.withLock { capture }?.offer(frame)  // as offered, before any checks
         guard frame.count >= 14 else { return }
-        let dst = Self.mac(frame, at: 0)
-        let src = Self.mac(frame, at: 6)
-        let sourceID = ObjectIdentifier(source)
-        // Learn first, so a VM that reconnects (new relay, same MAC) is found by its DHCP
-        // traffic too, not only after its first switched frame.
-        lock.withLock {
-            guard src & 0x010000000000 == 0, ports[sourceID] != nil else { return }  // unicast sources of attached ports
-            if let owner = table[src], owner == sourceID { return }
-            let learned = learnedPerPort[sourceID, default: 0]
-            guard learned < Self.learnLimit else { return }
-            table[src] = sourceID
-            learnedPerPort[sourceID] = learned + 1
+        let now = ContinuousClock.now
+        let dst = SwitchTable.mac(frame, at: 0)
+        let src = SwitchTable.mac(frame, at: 6)
+        // Learn first, so a VM that reconnects (new port, same MAC) is found by its DHCP traffic
+        // too, and a fault named by MAC finds a VM that just connected (docs/18). A blocked
+        // port's frames then go nowhere, not even to the responder.
+        let blocked: Bool = lock.withLock {
+            guard ports[source.id] != nil else { return false }
+            table.learn(src, on: source.id)
+            return table.isBlocked(source.id, now: now)
         }
-        // A blocked port's frames go nowhere, not even to the responder. Checked after learning, so
-        // a fault named by MAC finds a VM that just connected (docs/18).
-        if lock.withLock({ fault(for: sourceID)?.block == true }) {
+        if blocked {
             source.count(\.droppedBlocked, frame.count)
             return
         }
         if let reply = dhcp.handle(frame) {
             let (session, verdict): (CaptureSession?, FaultTable.Verdict) = lock.withLock {
                 answered.add(reply.count)
-                return (capture, faults.verdict(fault(for: sourceID)))
+                return (capture, table.verdict(for: source.id, now: now))
             }
             reply.withUnsafeBytes { session?.offer($0) }
-            source.deliver(reply, verdict)
+            source.deliver(reply, verdict, now: now)
             writeLeasesIfChanged()
             return
         }
         if dst == Self.serverMACValue(serverMAC) { return }  // for the responder only; not switched
         let targets: [(GuestPort, FaultTable.Verdict)] = lock.withLock {
-            if frame[0] & 1 == 0, let id = table[dst] {
-                guard id != sourceID, let port = ports[id] else { return [] }
-                return [(port, faults.verdict(fault(for: id)))]
+            let route = table.deliveries(to: dst, from: source.id, ports: Array(ports.keys), now: now)
+            if route.flooded {
+                flooded += 1
+                if route.deliveries.isEmpty { undelivered += 1 }
             }
-            flooded += 1
-            let all = ports.filter { $0.key != sourceID }.sorted { $0.value.id < $1.value.id }
-                .map { ($0.value, faults.verdict(fault(for: $0.key))) }  // each destination decided on its own
-            if all.isEmpty { undelivered += 1 }
-            return all
+            return route.deliveries.compactMap { d in ports[d.port].map { ($0, d.verdict) } }
         }
         if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { writeLeasesIfChanged() }  // a RELEASE/DECLINE answers nothing
         guard !targets.isEmpty else { return }
         let bytes = [UInt8](frame)
-        for (target, verdict) in targets { target.deliver(bytes, verdict) }
+        for (target, verdict) in targets { target.deliver(bytes, verdict, now: now) }
     }
 
     // MARK: Faults (docs/18)
 
-    /// The fault in force for a port (call with `lock` held).
-    private func fault(for id: ObjectIdentifier) -> NetworkFault.Spec? {
-        guard !faults.isEmpty else { return nil }
-        return faults.fault(at: .now) { mac in Self.macValue(mac).map { table[$0] == id } ?? false }
-    }
-
-    private static func macValue(_ mac: String) -> UInt64? {
-        let parts = mac.split(separator: ":")
-        guard parts.count == 6 else { return nil }
-        return parts.reduce(UInt64(0)) { v, p in v << 8 | UInt64(UInt8(p, radix: 16) ?? 0) }
-    }
-
-    var hasFaults: Bool { lock.withLock { !faults.faults(at: .now).isEmpty } }
-    var faultState: [NetworkFault] { lock.withLock { faults.faults(at: .now) } }
+    var hasFaults: Bool { lock.withLock { !table.faults.faults(at: .now).isEmpty } }
+    var faultState: [NetworkFault] { lock.withLock { table.faults.faults(at: .now) } }
 
     /// Starts a fault; a block also empties the queues of the ports it hits.
     func startFault(_ spec: NetworkFault.Spec) throws -> [NetworkFault] {
         let (fault, all): (NetworkFault, [NetworkFault]) = try lock.withLock {
-            let fault = try faults.start(spec, now: .now)
-            return (fault, faults.faults(at: .now))
+            let fault = try table.faults.start(spec, now: .now)
+            return (fault, table.faults.faults(at: .now))
         }
         log("fault \(fault.id) started: \(fault.spec.target) delay \(fault.spec.delayMs) ms, loss \(fault.spec.lossPercent) %, block \(fault.spec.block), \(fault.spec.seconds) s")
         purgeBlockedPorts()
@@ -315,16 +284,16 @@ final class GuestSwitch: @unchecked Sendable {
 
     func stopFault(id: String?) throws -> [NetworkFault] {
         let all: [NetworkFault] = try lock.withLock {
-            let removed = try faults.stop(id: id)
+            let removed = try table.faults.stop(id: id)
             for f in removed { log("fault \(f.id) removed") }
-            return faults.faults(at: .now)
+            return table.faults.faults(at: .now)
         }
         purgeBlockedPorts()  // removing one fault can let another one's block take over
         return all
     }
 
     func expireFaults() {
-        guard lock.withLock({ faults.expire(.now) }) else { return }
+        guard lock.withLock({ table.faults.expire(.now) }) else { return }
         log("a fault expired")
         purgeBlockedPorts()
     }
@@ -332,7 +301,7 @@ final class GuestSwitch: @unchecked Sendable {
     /// Empties the queues of the ports under a block now, so nothing that waited gets through.
     /// Called whenever the faults change: a block may have started or come into force.
     private func purgeBlockedPorts() {
-        let blocked = lock.withLock { ports.filter { fault(for: $0.key)?.block == true }.map(\.value) }
+        let blocked = lock.withLock { table.blocked(among: Array(ports.keys), now: .now).compactMap { ports[$0] } }
         for port in blocked { port.purgeForBlock() }
     }
 
@@ -344,29 +313,21 @@ final class GuestSwitch: @unchecked Sendable {
     /// discarded while closing are counted by then).
     func retire(_ port: GuestPort) {
         lock.withLock {
-            let id = ObjectIdentifier(port)
-            closedPorts.insert(port.snapshot(macs: departedMACs.removeValue(forKey: id) ?? [], connected: false), at: 0)
+            closedPorts.insert(port.snapshot(macs: departedMACs.removeValue(forKey: port.id) ?? [], connected: false), at: 0)
             closedPorts = Array(closedPorts.prefix(NetworkObservation.keepClosed))
-        }
-    }
-
-    /// The source MACs learned on a port (call with `lock` held).
-    private func macs(of id: ObjectIdentifier) -> [String] {
-        table.filter { $0.value == id }.keys.sorted().map { v in
-            (0..<6).map { String(format: "%02x", UInt8(v >> (8 * (5 - $0)) & 0xff)) }.joined(separator: ":")
         }
     }
 
     func observation(runID: String, sequence: UInt64, uptime: Double) -> NetworkObservation {
         lock.withLock {
-            let live = ports.map { id, port in port.snapshot(macs: macs(of: id), connected: true) }
+            let live = ports.map { id, port in port.snapshot(macs: table.macs(of: id), connected: true) }
                 .sorted { $0.id < $1.id }
             var o = NetworkObservation(runID: runID, sequence: sequence, sampledAt: .now, uptime: uptime, ports: live + closedPorts)
             o.answered = answered
             o.flooded = flooded
             o.undelivered = undelivered
             o.capture = capture?.snapshot
-            o.faults = faults.faults(at: .now)
+            o.faults = table.faults.faults(at: .now)
             o.capabilities = [NetworkObservation.faultsCapability]
             return o
         }
