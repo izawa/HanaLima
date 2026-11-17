@@ -870,9 +870,13 @@ enum ObservationText {
     }
 
     /// The VM whose NIC on `bus` has one of the port's MACs, or the MACs themselves.
+    /// With several NICs of the owner on this bus, the guest's name for the NIC follows (`guest1 lima1`).
     static func portName(_ port: NetworkObservation.Port, map: NetworkMap, bus: String) -> String {
-        let owner = map.rows.first { row in row.ports.contains { $0.bus == bus && !Set($0.macs).isDisjoint(with: port.macs) } }
-        if let owner { return owner.name }
+        for row in map.rows {
+            guard let nics = row.ports.first(where: { $0.bus == bus && !Set($0.macs).isDisjoint(with: port.macs) })?.nics else { continue }
+            guard nics.count > 1, let nic = nics.first(where: { $0.mac.map(port.macs.contains) == true }) else { return row.name }
+            return "\(row.name) \(nic.interface ?? nic.mac ?? "")"
+        }
         return port.macs.isEmpty ? String(localized: "接続 \(port.id)") : port.macs.joined(separator: ", ")
     }
 
