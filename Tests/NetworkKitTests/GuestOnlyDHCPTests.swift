@@ -218,6 +218,55 @@ import Testing
         return serverMAC + mac + [8, 0] + ip + [0xc3, 0x50, UInt8(port >> 8), UInt8(port & 255), UInt8(udpLength >> 8), UInt8(udpLength & 255), 0, 0] + message
     }
 
+    /// The A records of a DNS reply, in order (each answer: name pointer, type, class, TTL, length, address).
+    private static func aRecords(_ reply: [UInt8], question name: String) -> [[UInt8]] {
+        let message = Array(reply[42...])
+        let count = Int(message[6]) << 8 | Int(message[7])
+        var at = 12 + name.split(separator: ".").reduce(1) { $0 + 1 + $1.utf8.count } + 4
+        var out: [[UInt8]] = []
+        for _ in 0..<count {
+            out.append(Array(message[(at + 12)..<(at + 16)]))
+            at += 16
+        }
+        return out
+    }
+
+    /// DISCOVER, then REQUEST for the offered address.
+    private func lease(_ server: GuestOnlyDHCP, mac: [UInt8], name: String) throws {
+        let offer = try #require(handle(server, Self.request(1, mac: mac, hostname: name)))
+        _ = try #require(handle(server, Self.request(3, mac: mac, requested: Self.yiaddr(offer), hostname: name)))
+    }
+
+    @Test func aNameWithSeveralLeasesAnswersEveryAddressLowestFirst() throws {
+        let clock = Clock()
+        let server = server(clock: clock)
+        // Two NICs of one VM, both leasing under its name (.2 for `second`, .3 for `first`).
+        try lease(server, mac: Self.second, name: "lima-vm")
+        try lease(server, mac: Self.first, name: "lima-vm")
+        let both = try #require(handle(server, Self.dnsQuery("lima-vm")))
+        #expect(Self.aRecords(both, question: "lima-vm") == [[192, 168, 233, 2], [192, 168, 233, 3]])
+
+        // Restored from the lease file, the same answer.
+        let restored = self.server(clock: clock)
+        restored.restore(DHCPLeases.parse(server.leaseFileText()))
+        let again = try #require(handle(restored, Self.dnsQuery("lima-vm")))
+        #expect(Self.aRecords(again, question: "lima-vm") == [[192, 168, 233, 2], [192, 168, 233, 3]])
+
+        // One released: one record.
+        _ = handle(server, Self.request(7, ciaddr: [192, 168, 233, 3]))
+        let one = try #require(handle(server, Self.dnsQuery("lima-vm")))
+        #expect(Self.aRecords(one, question: "lima-vm") == [[192, 168, 233, 2]])
+    }
+
+    @Test func answersAreCapped() throws {
+        let wide = GuestOnlyDHCP(subnet: IPv4Subnet(cidr: "192.168.233.0/24")!, serverIP: Self.serverIP, serverMAC: Self.serverMAC,
+                                 reservations: [], leaseTime: 80)
+        for i in 0..<(GuestOnlyDHCP.maxAnswers + 3) { try lease(wide, mac: [0x52, 0x55, 0x55, 9, 9, UInt8(i)], name: "lima-many") }
+        let reply = try #require(handle(wide, Self.dnsQuery("lima-many")))
+        let records = Self.aRecords(reply, question: "lima-many")
+        #expect(records == (2..<(2 + GuestOnlyDHCP.maxAnswers)).map { [192, 168, 233, UInt8($0)] }, "the lowest eight, in order")
+    }
+
     @Test func restoresTheLeasesOfTheLastRun() throws {
         let clock = Clock()
         let old = server(clock: clock)

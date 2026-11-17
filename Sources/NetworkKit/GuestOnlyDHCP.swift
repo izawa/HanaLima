@@ -241,16 +241,21 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
 
     // MARK: - DNS
 
-    /// The address a hostname the leases know resolves to, bare or under the search domain.
-    private func lookup(_ name: String) -> IPv4? {
+    /// At most this many A records answer one name (a guest could lease many MACs under it).
+    static let maxAnswers = 8
+
+    /// The addresses a hostname the leases know resolves to, bare or under the search domain:
+    /// one per lease under that name (a VM with two NICs on the network has two), lowest first,
+    /// so the answer is the same every time.
+    private func lookup(_ name: String) -> [IPv4] {
         var host = name.lowercased()
         while host.hasSuffix(".") { host.removeLast() }
         if host.hasSuffix("." + Self.searchDomain) { host.removeLast(Self.searchDomain.count + 1) }
-        guard !host.isEmpty else { return nil }
+        guard !host.isEmpty else { return [] }
         lock.lock()
         defer { lock.unlock() }
         expire(at: now())
-        return active.values.first { $0.name.lowercased() == host }?.ip
+        return Array(active.values.filter { $0.name.lowercased() == host }.map(\.ip).sorted().prefix(Self.maxAnswers))
     }
 
     /// One question, A or AAAA, answered from the leases; anything else REFUSED. The frame
@@ -275,16 +280,17 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
         let name = labels.joined(separator: ".")
         var reply = Array(message[0..<2])
         let rd = message[2] & 1
-        var answer: [UInt8] = []
-        if let ip = lookup(name) {
+        var answers: [[UInt8]] = []
+        let addresses = lookup(name)
+        if !addresses.isEmpty {
             reply += [0x84 | rd, 0]   // QR, AA; rcode NOERROR
             if qtype == 1 {
-                answer = [0xc0, 12, 0, 1, 0, 1] + Self.octets(Self.dnsTTL) + [0, 4] + Self.octets(ip.value)
+                answers = addresses.map { [0xc0, 12, 0, 1, 0, 1] + Self.octets(Self.dnsTTL) + [0, 4] + Self.octets($0.value) }
             }
         } else {
             reply += [0x80 | rd, 5]   // QR; rcode REFUSED
         }
-        reply += [0, 1, 0, answer.isEmpty ? 0 : 1, 0, 0, 0, 0] + question + answer
+        reply += [0, 1, 0, UInt8(answers.count), 0, 0, 0, 0] + question + answers.flatMap { $0 }
         let udpLength = UInt16(reply.count + 8)
         let total = udpLength + 20
         var ip: [UInt8] = [0x45, 0, UInt8(total >> 8), UInt8(total & 255), 0, 0, 0, 0, 64, 17, 0, 0]
