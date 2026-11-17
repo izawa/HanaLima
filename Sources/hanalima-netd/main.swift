@@ -187,7 +187,6 @@ final class GuestSwitch: @unchecked Sendable {
     private var ports: [Int: GuestPort] = [:]
     /// MAC learning, destinations and faults (docs/18), decided under `lock`.
     private var table = SwitchTable()
-    private var writtenVersion = -1
     // Observation (docs/17): segment counters, disconnected ports' last counts, the capture.
     private var answered = NetworkObservation.Counter()
     private var flooded: UInt64 = 0
@@ -197,7 +196,8 @@ final class GuestSwitch: @unchecked Sendable {
     private var departedMACs: [Int: [String]] = [:]
     let dhcp: GuestOnlyDHCP
     let serverMAC: [UInt8]
-    let leasesFile: URL
+    /// Writes the lease file off the forwarding path.
+    let leases: LeaseFileWriter
 
     init(config: VirtualNetwork) {
         // A locally administered MAC for the DHCP/ARP responder, derived from the name.
@@ -207,10 +207,11 @@ final class GuestSwitch: @unchecked Sendable {
         let subnet = config.subnet ?? IPv4Subnet(cidr: "192.168.233.0/24")!
         dhcp = GuestOnlyDHCP(subnet: subnet, serverIP: config.gatewayAddress ?? IPv4(subnet.network.value + 1),
                              serverMAC: serverMAC, reservations: config.reservations, router: config.routerAddress)
-        leasesFile = NetworkPaths.leases(for: config.name)
+        let leasesFile = NetworkPaths.leases(for: config.name)
         // The leases of the last run: its VMs may still hold them (resumed from hibernation, or
         // running across a helper update) and won't ask again until they renew.
         if let text = try? String(contentsOf: leasesFile, encoding: .utf8) { dhcp.restore(DHCPLeases.parse(text)) }
+        leases = LeaseFileWriter(dhcp: dhcp, file: leasesFile)
     }
 
     func attach(_ port: GuestPort) { lock.withLock { ports[port.id] = port } }
@@ -248,7 +249,7 @@ final class GuestSwitch: @unchecked Sendable {
             }
             reply.withUnsafeBytes { session?.offer($0) }
             source.deliver(reply, verdict, now: now)
-            writeLeasesIfChanged()
+            leases.changed()
             return
         }
         if dst == Self.serverMACValue(serverMAC) { return }  // for the responder only; not switched
@@ -260,7 +261,7 @@ final class GuestSwitch: @unchecked Sendable {
             }
             return route.deliveries.compactMap { d in ports[d.port].map { ($0, d.verdict) } }
         }
-        if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { writeLeasesIfChanged() }  // a RELEASE/DECLINE answers nothing
+        if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { leases.changed() }  // a RELEASE/DECLINE answers nothing
         guard !targets.isEmpty else { return }
         let bytes = [UInt8](frame)
         for (target, verdict) in targets { target.deliver(bytes, verdict, now: now) }
@@ -371,15 +372,40 @@ final class GuestSwitch: @unchecked Sendable {
         session.stop("helper exited")
         session.waitFinished(timeout: 2)
     }
+}
 
-    /// One writer at a time, and only when the leases changed (the snapshot and the file replace
-    /// happen under the lock, so an older snapshot can't land after a newer one).
-    private func writeLeasesIfChanged() {
+/// Writes a guest-only network's lease file on its own thread, so forwarding never waits on the
+/// disk: forwarding only says the leases may have changed. One write at a time, each with the
+/// newest leases, so an older one can't land after a newer one.
+final class LeaseFileWriter: @unchecked Sendable {
+    private let dhcp: GuestOnlyDHCP
+    private let file: URL
+    private let lock = NSLock()
+    private let ready = DispatchSemaphore(value: 0)
+    private var writtenVersion = -1
+
+    init(dhcp: GuestOnlyDHCP, file: URL) {
+        self.dhcp = dhcp
+        self.file = file
+        Thread.detachNewThread { [self] in
+            while true {
+                ready.wait()
+                flush()
+            }
+        }
+    }
+
+    /// The leases may have changed: the writer looks. Never blocks.
+    func changed() { ready.signal() }
+
+    /// Writes the leases now if they changed since the last write (also at exit, so the next
+    /// run reads them back).
+    func flush() {
         lock.withLock {
             let version = dhcp.stateVersion
             guard version != writtenVersion else { return }
             writtenVersion = version
-            try? Data(dhcp.leaseFileText().utf8).write(to: leasesFile, options: .atomic)
+            try? Data(dhcp.leaseFileText().utf8).write(to: file, options: .atomic)
         }
     }
 }
@@ -858,6 +884,7 @@ final class Terminator: Sendable {
         for relay in relays { relay.shutdown() }
         holder.discard()
         guestSwitch?.finishCapture()
+        guestSwitch?.leases.flush()
         try? FileManager.default.removeItem(at: statusFile)
         exit(code)
     }
