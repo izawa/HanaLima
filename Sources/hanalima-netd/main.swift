@@ -183,7 +183,7 @@ if config.mode == .bridged { log("network \(config.name): bridged to \(config.br
 /// reading never stalls the others.
 final class GuestSwitch: @unchecked Sendable {
     private let lock = NSLock()
-    private var ports: [ObjectIdentifier: Relay] = [:]
+    private var ports: [ObjectIdentifier: GuestPort] = [:]
     private var table: [UInt64: ObjectIdentifier] = [:]
     /// Learned MACs per port, so a guest spraying source addresses can't grow the table forever.
     private var learnedPerPort: [ObjectIdentifier: Int] = [:]
@@ -216,11 +216,11 @@ final class GuestSwitch: @unchecked Sendable {
         if let text = try? String(contentsOf: leasesFile, encoding: .utf8) { dhcp.restore(DHCPLeases.parse(text)) }
     }
 
-    func attach(_ relay: Relay) { lock.withLock { ports[ObjectIdentifier(relay)] = relay } }
+    func attach(_ port: GuestPort) { lock.withLock { ports[ObjectIdentifier(port)] = port } }
 
-    func detach(_ relay: Relay) {
+    func detach(_ port: GuestPort) {
         lock.withLock {
-            let id = ObjectIdentifier(relay)
+            let id = ObjectIdentifier(port)
             departedMACs[id] = macs(of: id)  // the table forgets them below; `retire` needs them
             ports[id] = nil
             learnedPerPort[id] = nil
@@ -235,7 +235,7 @@ final class GuestSwitch: @unchecked Sendable {
     }
 
     /// Switches one frame that `source` sent.
-    func forward(_ frame: UnsafeRawBufferPointer, from source: Relay) {
+    func forward(_ frame: UnsafeRawBufferPointer, from source: GuestPort) {
         lock.withLock { capture }?.offer(frame)  // as offered, before any checks
         guard frame.count >= 14 else { return }
         let dst = Self.mac(frame, at: 0)
@@ -268,13 +268,13 @@ final class GuestSwitch: @unchecked Sendable {
             return
         }
         if dst == Self.serverMACValue(serverMAC) { return }  // for the responder only; not switched
-        let targets: [(Relay, FaultTable.Verdict)] = lock.withLock {
+        let targets: [(GuestPort, FaultTable.Verdict)] = lock.withLock {
             if frame[0] & 1 == 0, let id = table[dst] {
                 guard id != sourceID, let port = ports[id] else { return [] }
                 return [(port, faults.verdict(fault(for: id)))]
             }
             flooded += 1
-            let all = ports.filter { $0.key != sourceID }.sorted { $0.value.portID < $1.value.portID }
+            let all = ports.filter { $0.key != sourceID }.sorted { $0.value.id < $1.value.id }
                 .map { ($0.value, faults.verdict(fault(for: $0.key))) }  // each destination decided on its own
             if all.isEmpty { undelivered += 1 }
             return all
@@ -333,7 +333,7 @@ final class GuestSwitch: @unchecked Sendable {
     /// Called whenever the faults change: a block may have started or come into force.
     private func purgeBlockedPorts() {
         let blocked = lock.withLock { ports.filter { fault(for: $0.key)?.block == true }.map(\.value) }
-        for relay in blocked { relay.purgeForBlock() }
+        for port in blocked { port.purgeForBlock() }
     }
 
     private static func serverMACValue(_ mac: [UInt8]) -> UInt64 { mac.reduce(0) { $0 << 8 | UInt64($1) } }
@@ -342,13 +342,11 @@ final class GuestSwitch: @unchecked Sendable {
 
     /// Keeps a disconnected port's final counts, once its writer has finished (frames it
     /// discarded while closing are counted by then).
-    func retire(_ relay: Relay) {
+    func retire(_ port: GuestPort) {
         lock.withLock {
-            let id = ObjectIdentifier(relay)
-            if let port = relay.portCounters(macs: departedMACs.removeValue(forKey: id) ?? [], connected: false) {
-                closedPorts.insert(port, at: 0)
-                closedPorts = Array(closedPorts.prefix(NetworkObservation.keepClosed))
-            }
+            let id = ObjectIdentifier(port)
+            closedPorts.insert(port.snapshot(macs: departedMACs.removeValue(forKey: id) ?? [], connected: false), at: 0)
+            closedPorts = Array(closedPorts.prefix(NetworkObservation.keepClosed))
         }
     }
 
@@ -361,7 +359,7 @@ final class GuestSwitch: @unchecked Sendable {
 
     func observation(runID: String, sequence: UInt64, uptime: Double) -> NetworkObservation {
         lock.withLock {
-            let live = ports.compactMap { id, relay in relay.portCounters(macs: macs(of: id), connected: true) }
+            let live = ports.map { id, port in port.snapshot(macs: macs(of: id), connected: true) }
                 .sorted { $0.id < $1.id }
             var o = NetworkObservation(runID: runID, sequence: sequence, sampledAt: .now, uptime: uptime, ports: live + closedPorts)
             o.answered = answered
@@ -547,28 +545,20 @@ final class Relay: @unchecked Sendable {
     /// (see DHCPClientIDFilter) so the reservation matches.
     let reservedMACs: Set<String>
     let queue = DispatchQueue(label: "hanalima-netd.relay", qos: .userInteractive)
+    /// Serializes writes to the VM's socket (vmnet relays).
     private let writeLock = NSLock()
+    /// Guards `port`, which the shutdown path reads from another thread.
+    private let portLock = NSLock()
     /// Guards `iface` so the interface is stopped exactly once (disconnect vs. shutdown).
     private let ifaceLock = NSLock()
     private var iface: interface_ref?
     private var maxPacket = 1514
     private var id = 0
-    /// Guest-only mode: frames for this VM wait here for the writer thread (bounded; a VM that
-    /// stops reading loses frames instead of stalling the switch).
-    private var outgoing: [[UInt8]] = []
-    /// Frames for this VM waiting out a fault's delay (docs/18), apart from `outgoing` so its
-    /// limit still means "the VM isn't reading".
-    private var delayLine = DelayLine()
-    private var outgoingClosed = false
-    /// A wakeup for the writer is pending (one signal covers any number of frames).
-    private var wakePending = false
-    private var dropped = 0
-    /// Guest-only: what this port saw (docs/17), under `statsLock`.
-    private let statsLock = NSLock()
-    private var stats: NetworkObservation.Port?
+    /// Guest-only: this connection's queues and counters (docs/17, docs/18); the relay keeps
+    /// only the socket and the threads.
+    private var port: GuestPort?
     private let outgoingReady = DispatchSemaphore(value: 0)
     private let writerDone = DispatchSemaphore(value: 0)
-    private static let outgoingLimit = 512
 
     init(fd: Int32, holder: NetworkHolder, registry: Registry, reservedMACs: Set<String>) {
         self.fd = fd
@@ -602,10 +592,12 @@ final class Relay: @unchecked Sendable {
     /// sends them, and the read loop hands the VM's frames to the switch.
     private func runGuestOnly(_ guestSwitch: GuestSwitch) {
         id = registry.add(mac: "-")
-        statsLock.withLock { stats = NetworkObservation.Port(id: id, connectedAt: .now) }
+        let ready = outgoingReady
+        let port = GuestPort(id: id) { ready.signal() }
+        portLock.withLock { self.port = port }
         log("client \(id) connected (guest-only)")
-        guestSwitch.attach(self)
-        Thread.detachNewThread { self.writeOutgoing() }
+        guestSwitch.attach(port)
+        Thread.detachNewThread { self.writeOutgoing(port) }
         let capacity = 65536
         let buf = UnsafeMutableRawPointer.allocate(byteCount: capacity, alignment: 16)
         defer { buf.deallocate() }
@@ -614,141 +606,46 @@ final class Relay: @unchecked Sendable {
             guard readFully(fd, &header, 4) else { break }
             let size = Int(UInt32(bigEndian: header))
             guard size > 0, size <= capacity, readFully(fd, buf, size) else { break }
-            statsLock.withLock {
-                stats?.fromGuest.add(size)
-                if size < 14 { stats?.malformed += 1 }
-            }
-            guestSwitch.forward(UnsafeRawBufferPointer(start: buf, count: size), from: self)
+            port.received(size)
+            guestSwitch.forward(UnsafeRawBufferPointer(start: buf, count: size), from: port)
         }
         // Order matters for the descriptor: detach (no new frames), close the queue, shut the
         // socket down to unblock the writer, wait for it, and only then close the number so a
         // later accept() can't hand it to a connection the old writer still touches.
-        guestSwitch.detach(self)
-        closeOutgoing()
+        guestSwitch.detach(port)
+        port.close()
         Darwin.shutdown(fd, SHUT_RDWR)
         writerDone.wait()
-        guestSwitch.retire(self)
+        guestSwitch.retire(port)
+        let dropped = port.droppedFullCount
         log("client \(id) disconnected" + (dropped > 0 ? " (\(dropped) frames dropped)" : ""))
         close(fd)
         registry.remove(id)
     }
 
-    /// This connection's number (guest-only: stable while it lasts).
-    var portID: Int { id }
-
-    /// Hands a frame for this VM over as a fault decided (docs/18): lost, blocked or (delayed) queued.
-    func deliver(_ frame: [UInt8], _ verdict: FaultTable.Verdict) {
-        switch verdict {
-        case .pass(let delay): enqueue(frame, delay: delay)
-        case .lost: count(\.droppedLoss, frame.count)
-        case .blocked: count(\.droppedBlocked, frame.count)
-        }
-    }
-
-    /// Queues a frame for this VM (guest-only). Drops it when the VM isn't keeping up. A frame
-    /// with a delay, or any frame while delayed ones wait, goes through the delay line, so none
-    /// overtakes another.
-    private func enqueue(_ frame: [UInt8], delay: Duration) {
-        enum Outcome { case queued, queuedQuietly, full, closed, overflow }
-        let outcome: Outcome = writeLock.withLock {
-            guard !outgoingClosed else { return .closed }
-            if delay > .zero || !delayLine.isEmpty {
-                guard delayLine.push(frame, due: .now + delay) else { return .overflow }
-            } else {
-                guard outgoing.count < Self.outgoingLimit else { dropped += 1; return .full }
-                outgoing.append(frame)
-            }
-            if wakePending { return .queuedQuietly }
-            wakePending = true
-            return .queued
-        }
-        switch outcome {
-        case .queuedQuietly: break
-        case .queued: outgoingReady.signal()
-        case .full: count(\.droppedFull, frame.count)
-        case .closed: count(\.droppedClosed, frame.count)
-        case .overflow: count(\.droppedOverflow, frame.count)
-        }
-    }
-
-    func count(_ counter: WritableKeyPath<NetworkObservation.Port, NetworkObservation.Counter>, _ length: Int) {
-        statsLock.withLock { stats?[keyPath: counter].add(length) }
-    }
-
-    /// A block started: what waits for this VM is dropped (as blocked).
-    func purgeForBlock() {
-        let gone: [[UInt8]] = writeLock.withLock {
-            let out = outgoing + delayLine.removeAll()
-            outgoing.removeAll()
-            return out
-        }
-        statsLock.withLock { for f in gone { stats?.droppedBlocked.add(f.count) } }
-    }
-
-    /// This port's counters with `macs` (nil outside guest-only mode).
-    func portCounters(macs: [String], connected: Bool) -> NetworkObservation.Port? {
-        statsLock.withLock {
-            guard var port = stats else { return nil }
-            port.macs = macs
-            port.connected = connected
-            let waiting = writeLock.withLock { (count: delayLine.count, bytes: delayLine.bytes) }
-            port.delayed = .init(frames: UInt64(waiting.count), bytes: UInt64(waiting.bytes))
-            return port
-        }
-    }
-
-    private func countDroppedClosed(_ frames: [[UInt8]]) {
-        guard !frames.isEmpty else { return }
-        statsLock.withLock { for f in frames { stats?.droppedClosed.add(f.count) } }
-    }
-
-    private func closeOutgoing() {
-        writeLock.withLock { outgoingClosed = true }
-        outgoingReady.signal()
-    }
-
-    private func writeOutgoing() {
+    /// Writes what the port hands out until it closes or the VM goes away.
+    private func writeOutgoing(_ port: GuestPort) {
         defer { writerDone.signal() }
         while true {
-            var discarded: [[UInt8]] = []
-            var closed = false
-            var wake: ContinuousClock.Instant?
-            let next: [UInt8]? = writeLock.withLock {
-                if outgoingClosed {  // closed: drop what's left
-                    closed = true
-                    discarded = outgoing + delayLine.removeAll()
-                    outgoing.removeAll()
-                    return nil
-                }
-                // Delayed frames whose time came join the send queue as far as it has room;
-                // the rest wait in the line (the VM may simply not have caught up yet).
-                outgoing += delayLine.popDue(.now, limit: Self.outgoingLimit - outgoing.count)
-                wake = delayLine.nextDue
-                if outgoing.isEmpty { wakePending = false; return nil }  // about to wait: the next frame signals
-                return outgoing.removeFirst()
-            }
-            countDroppedClosed(discarded)
-            if closed { return }
-            guard let next else {
-                // Nothing to write: wait for a frame, or for the next delayed one's time.
-                if let wake {
-                    let wait = max(.zero, wake - .now)
+            switch port.nextWrite(now: .now) {
+            case .finished:
+                return
+            case .wait(let until):
+                if let until {
+                    let wait = max(.zero, until - .now)
                     _ = outgoingReady.wait(timeout: .now() + .nanoseconds(Int(wait.components.seconds) * 1_000_000_000 + Int(wait.components.attoseconds / 1_000_000_000)))
                 } else {
                     outgoingReady.wait()
                 }
-                continue
-            }
-            var header = UInt32(next.count).bigEndian
-            let ok = next.withUnsafeBytes { writeFully(fd, &header, 4) && writeFully(fd, $0.baseAddress!, $0.count) }
-            if ok {
-                statsLock.withLock { stats?.toGuest.add(next.count) }
-            } else {
-                // The VM went away; wake the read loop so run() finishes, and stop writing.
-                countDroppedClosed([next] + writeLock.withLock { let rest = outgoing + delayLine.removeAll(); outgoing.removeAll(); return rest })
-                writeLock.withLock { outgoingClosed = true }
-                Darwin.shutdown(fd, SHUT_RDWR)
-                return
+            case .write(let frame):
+                var header = UInt32(frame.count).bigEndian
+                let ok = frame.withUnsafeBytes { writeFully(fd, &header, 4) && writeFully(fd, $0.baseAddress!, $0.count) }
+                port.completeWrite(frame, ok: ok)
+                if !ok {
+                    // The VM went away; wake the read loop so run() finishes, and stop writing.
+                    Darwin.shutdown(fd, SHUT_RDWR)
+                    return
+                }
             }
         }
     }
@@ -931,7 +828,7 @@ final class Relay: @unchecked Sendable {
     /// finishes `run()` normally.
     func shutdown() {
         stop()
-        closeOutgoing()
+        portLock.withLock { port }?.close()
         Darwin.shutdown(fd, SHUT_RDWR)
     }
 }
