@@ -679,7 +679,9 @@ private struct FaultLine: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: "bolt.horizontal.circle.fill").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 1) {
-                Text("\(target): \(FaultText.describe(fault.spec))").font(.callout)
+                // The target, what the fault does, and its time left: a line each, so none breaks.
+                Text(target).font(.callout)
+                Text(FaultText.describe(fault.spec)).font(.caption)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text(stale ? String(localized: "ヘルパーから更新が届かず、確かめられません")
                          : FaultText.remaining(fault.expiresAt.timeIntervalSince(context.date)))
