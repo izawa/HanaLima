@@ -362,13 +362,15 @@ private struct MapInspector: View {
                 if row.kind == .vm, case .guestOnly = bus.kind {
                     // Per NIC: its counters and its fault. Several NICs on one network get their MAC as a heading.
                     ForEach(port.macs, id: \.self) { mac in
-                        if port.macs.count > 1 { Text("NIC \(mac)").font(.caption.monospaced().weight(.semibold)) }
+                        // Several NICs on one network: each under the guest's name for it and its MAC.
+                        let nic = port.nics.first { $0.mac == mac }?.interface.map { "\($0) (\(mac))" } ?? mac
+                        if port.macs.count > 1 { Text(nic).font(.caption.monospaced().weight(.semibold)) }
                         if let sample = model.observations[bus.name] {
                             ForEach(ObservationText.ports(of: [mac], in: sample.current)) { counters in
                                 PortCountersView(port: counters, sample: sample)
                             }
                         }
-                        FaultControl(network: bus.name, target: mac, name: port.macs.count > 1 ? "\(row.name) (\(mac))" : row.name)
+                        FaultControl(network: bus.name, target: mac, name: port.macs.count > 1 ? "\(row.name) \(nic)" : row.name)
                     }
                 }
                 let peers = map.members(of: bus.id).map(\.name).filter { $0 != row.name }

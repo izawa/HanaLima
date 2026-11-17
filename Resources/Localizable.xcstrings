@@ -2602,16 +2602,6 @@
         }
       }
     },
-    "NIC %@": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NIC %@"
-          }
-        }
-      }
-    },
     "NIC %lld": {
       "localizations": {
         "ja": {

@@ -45,6 +45,8 @@ public struct NetworkMap: Equatable, Sendable {
     public struct NIC: Equatable, Sendable {
         public var mac: String?
         public var addresses: [Address]
+        /// The guest's name for it (`lima0`), as Lima reports it.
+        public var interface: String? = nil
     }
 
     /// The NICs a row has on one bus (usually one; two NICs on a network share a dot).
@@ -156,9 +158,9 @@ public struct NetworkMap: Equatable, Sendable {
                 }
                 // Two NICs on one network share a dot.
                 if let i = ports.firstIndex(where: { $0.bus == busID }) {
-                    ports[i].nics.append(NIC(mac: mac, addresses: addresses))
+                    ports[i].nics.append(NIC(mac: mac, addresses: addresses, interface: nic.interface.flatMap { $0.isEmpty ? nil : $0 }))
                 } else {
-                    ports.append(Port(bus: busID, nics: [NIC(mac: mac, addresses: addresses)]))
+                    ports.append(Port(bus: busID, nics: [NIC(mac: mac, addresses: addresses, interface: nic.interface.flatMap { $0.isEmpty ? nil : $0 })]))
                 }
             }
             rows.append(Row(kind: .vm, name: inst.name, running: inst.isRunning, vmType: inst.vmType,
