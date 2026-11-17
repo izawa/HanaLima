@@ -46,24 +46,45 @@ extension AppModel {
     }
 
     func startCapture(_ network: String) {
-        let socket = NetworkPaths.control(for: network).path
-        Task {
-            do {
-                _ = try await Task.detached { try NetdControl.send(.init(op: .startCapture), to: socket) }.value
-            } catch {
-                alert = AlertMessage(title: String(localized: "パケットの記録を始められませんでした"), message: error.localizedDescription)
-            }
-            pollObservations()
-        }
+        control(network, .init(op: .startCapture), failure: String(localized: "パケットの記録を始められませんでした"))
     }
 
     func stopCapture(_ network: String, id: String) {
+        control(network, .init(op: .stopCapture, capture: id), failure: String(localized: "パケットの記録を止められませんでした"))
+    }
+
+    /// Starts a fault (docs/18). The control socket starts the helper if needed, so a fault can
+    /// be in place before the VMs boot.
+    func startFault(_ network: String, _ spec: NetworkFault.Spec) {
+        control(network, .init(op: .startFault, fault: spec), failure: String(localized: "障害を入れられませんでした"))
+    }
+
+    /// Removes the fault `id`, or all of the network's faults with nil.
+    func stopFault(_ network: String, id: String?) {
+        control(network, .init(op: .stopFault, faultID: id), failure: String(localized: "障害を外せませんでした"))
+    }
+
+    /// Whether faults can be started on `network`: its helper says so, or no helper runs and the
+    /// registration has the control socket (it then starts the current helper).
+    func canStartFault(_ network: String) -> Bool {
+        if let sample = observations[network] { return sample.current.supportsFaults }
+        return !olderHelpers.contains(network) && NetworkDaemonStatus.load(for: network) == nil
+            && FileManager.default.fileExists(atPath: NetworkPaths.control(for: network).path)
+    }
+
+    /// The fault in force on a VM's NIC with `macs`, or on the whole segment.
+    func fault(on network: String, macs: [String]) -> NetworkFault? {
+        observations[network]?.current.faults?.first { $0.spec.isSegment || macs.contains($0.spec.target) }
+    }
+
+    /// One request on the network's control socket, off the main actor; then the counters again.
+    private func control(_ network: String, _ request: NetdControl.Request, failure: String) {
         let socket = NetworkPaths.control(for: network).path
         Task {
             do {
-                _ = try await Task.detached { try NetdControl.send(.init(op: .stopCapture, capture: id), to: socket) }.value
+                _ = try await Task.detached { try NetdControl.send(request, to: socket) }.value
             } catch {
-                alert = AlertMessage(title: String(localized: "パケットの記録を止められませんでした"), message: error.localizedDescription)
+                alert = AlertMessage(title: failure, message: error.localizedDescription)
             }
             pollObservations()
         }
@@ -99,6 +120,15 @@ extension AppModel {
             var c = NetworkObservation.Capture(id: "abcd1234", file: "/tmp/x.pcap", startedAt: .now.addingTimeInterval(-40))
             c.frames = 812; c.bytes = 96_000
             o.capture = c
+            o.capabilities = [NetworkObservation.faultsCapability]
+            if let mac = map.members(of: bus.id).first?.ports.first(where: { $0.bus == bus.id })?.macs.first {
+                o.faults = [NetworkFault(id: "f1", spec: .init(target: mac, delayMs: 100, lossPercent: 1, seconds: 300),
+                                         startedAt: .now.addingTimeInterval(-60), expiresAt: .now.addingTimeInterval(240))]
+                if !ports.isEmpty {
+                    o.ports[0].droppedLoss = .init(frames: 4, bytes: 380)
+                    o.ports[0].delayed = .init(frames: 6, bytes: 600)
+                }
+            }
             return o
         }
         observations[network] = ObservationSample(current: sample(10, 10), previous: sample(9, 9))

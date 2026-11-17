@@ -170,7 +170,7 @@ func serveControl(_ listener: Int32, guestSwitch: GuestSwitch, network: String) 
 private func handle(_ request: NetdControl.Request, guestSwitch: GuestSwitch, network: String) -> NetdControl.Response {
     switch request.op {
     case .status:
-        return .init(ok: true, capture: guestSwitch.captureState)
+        return .init(ok: true, capture: guestSwitch.captureState, faults: guestSwitch.faultState)
     case .startCapture:
         do {
             return .init(ok: true, capture: try guestSwitch.startCapture(network: network))
@@ -182,6 +182,11 @@ private func handle(_ request: NetdControl.Request, guestSwitch: GuestSwitch, ne
             return .init(ok: false, error: "no such capture running")
         }
         return .init(ok: true, capture: capture)
+    case .startFault:
+        guard let spec = request.fault else { return .init(ok: false, error: "no fault given") }
+        do { return .init(ok: true, faults: try guestSwitch.startFault(spec)) } catch { return .init(ok: false, error: error.localizedDescription) }
+    case .stopFault:
+        do { return .init(ok: true, faults: try guestSwitch.stopFault(id: request.faultID)) } catch { return .init(ok: false, error: error.localizedDescription) }
     }
 }
 

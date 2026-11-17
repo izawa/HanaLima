@@ -196,6 +196,8 @@ final class GuestSwitch: @unchecked Sendable {
     private var closedPorts: [NetworkObservation.Port] = []
     private var capture: CaptureSession?
     private var departedMACs: [ObjectIdentifier: [String]] = [:]
+    /// Faults (docs/18), decided under `lock`.
+    private var faults = FaultTable()
     let dhcp: GuestOnlyDHCP
     let serverMAC: [UInt8]
     let leasesFile: URL
@@ -247,27 +249,89 @@ final class GuestSwitch: @unchecked Sendable {
             table[src] = sourceID
             learnedPerPort[sourceID] = learned + 1
         }
+        // A blocked port's frames go nowhere, not even to the responder. Checked after learning, so
+        // a fault named by MAC finds a VM that just connected (docs/18).
+        if lock.withLock({ fault(for: sourceID)?.block == true }) {
+            source.count(\.droppedBlocked, frame.count)
+            return
+        }
         if let reply = dhcp.handle(frame) {
-            let session: CaptureSession? = lock.withLock { answered.add(reply.count); return capture }
+            let (session, verdict): (CaptureSession?, FaultTable.Verdict) = lock.withLock {
+                answered.add(reply.count)
+                return (capture, faults.verdict(fault(for: sourceID)))
+            }
             reply.withUnsafeBytes { session?.offer($0) }
-            source.enqueue(reply)
+            source.deliver(reply, verdict)
             writeLeasesIfChanged()
             return
         }
         if dst == Self.serverMACValue(serverMAC) { return }  // for the responder only; not switched
-        let targets: [Relay] = lock.withLock {
+        let targets: [(Relay, FaultTable.Verdict)] = lock.withLock {
             if frame[0] & 1 == 0, let id = table[dst] {
-                return id == sourceID ? [] : [ports[id]].compactMap { $0 }
+                guard id != sourceID, let port = ports[id] else { return [] }
+                return [(port, faults.verdict(fault(for: id)))]
             }
             flooded += 1
-            let all = ports.filter { $0.key != sourceID }.map(\.value)
+            let all = ports.filter { $0.key != sourceID }.sorted { $0.value.portID < $1.value.portID }
+                .map { ($0.value, faults.verdict(fault(for: $0.key))) }  // each destination decided on its own
             if all.isEmpty { undelivered += 1 }
             return all
         }
         if frame[12] == 0x08, frame[13] == 0x00 || frame[13] == 0x06 { writeLeasesIfChanged() }  // a RELEASE/DECLINE answers nothing
         guard !targets.isEmpty else { return }
         let bytes = [UInt8](frame)
-        for target in targets { target.enqueue(bytes) }
+        for (target, verdict) in targets { target.deliver(bytes, verdict) }
+    }
+
+    // MARK: Faults (docs/18)
+
+    /// The fault in force for a port (call with `lock` held).
+    private func fault(for id: ObjectIdentifier) -> NetworkFault.Spec? {
+        guard !faults.isEmpty else { return nil }
+        return faults.fault(at: .now) { mac in Self.macValue(mac).map { table[$0] == id } ?? false }
+    }
+
+    private static func macValue(_ mac: String) -> UInt64? {
+        let parts = mac.split(separator: ":")
+        guard parts.count == 6 else { return nil }
+        return parts.reduce(UInt64(0)) { v, p in v << 8 | UInt64(UInt8(p, radix: 16) ?? 0) }
+    }
+
+    var hasFaults: Bool { lock.withLock { !faults.faults(at: .now).isEmpty } }
+    var faultState: [NetworkFault] { lock.withLock { faults.faults(at: .now) } }
+
+    /// Starts a fault; a block also empties the queues of the ports it hits.
+    func startFault(_ spec: NetworkFault.Spec) throws -> [NetworkFault] {
+        let (fault, all): (NetworkFault, [NetworkFault]) = try lock.withLock {
+            let fault = try faults.start(spec, now: .now)
+            return (fault, faults.faults(at: .now))
+        }
+        log("fault \(fault.id) started: \(fault.spec.target) delay \(fault.spec.delayMs) ms, loss \(fault.spec.lossPercent) %, block \(fault.spec.block), \(fault.spec.seconds) s")
+        purgeBlockedPorts()
+        return all
+    }
+
+    func stopFault(id: String?) throws -> [NetworkFault] {
+        let all: [NetworkFault] = try lock.withLock {
+            let removed = try faults.stop(id: id)
+            for f in removed { log("fault \(f.id) removed") }
+            return faults.faults(at: .now)
+        }
+        purgeBlockedPorts()  // removing one fault can let another one's block take over
+        return all
+    }
+
+    func expireFaults() {
+        guard lock.withLock({ faults.expire(.now) }) else { return }
+        log("a fault expired")
+        purgeBlockedPorts()
+    }
+
+    /// Empties the queues of the ports under a block now, so nothing that waited gets through.
+    /// Called whenever the faults change: a block may have started or come into force.
+    private func purgeBlockedPorts() {
+        let blocked = lock.withLock { ports.filter { fault(for: $0.key)?.block == true }.map(\.value) }
+        for relay in blocked { relay.purgeForBlock() }
     }
 
     private static func serverMACValue(_ mac: [UInt8]) -> UInt64 { mac.reduce(0) { $0 << 8 | UInt64($1) } }
@@ -302,6 +366,8 @@ final class GuestSwitch: @unchecked Sendable {
             o.flooded = flooded
             o.undelivered = undelivered
             o.capture = capture?.snapshot
+            o.faults = faults.faults(at: .now)
+            o.capabilities = [NetworkObservation.faultsCapability]
             return o
         }
     }
@@ -424,7 +490,7 @@ final class Registry: @unchecked Sendable {
     /// Rewrites the status file (once a second for the counters).
     func publish() { lock.withLock { writeStatus() } }
 
-    var isIdle: Bool { lock.withLock { clients.isEmpty && pending == 0 } && guestSwitch?.isCapturing != true }
+    var isIdle: Bool { lock.withLock { clients.isEmpty && pending == 0 } && guestSwitch?.isCapturing != true && guestSwitch?.hasFaults != true }
     /// True when the only user is the caller's own in-progress connection.
     var isIdleExceptOneConnecting: Bool { lock.withLock { clients.isEmpty && pending == 1 } }
     var idleSince: Date { lock.withLock { lastActivity } }
@@ -490,7 +556,12 @@ final class Relay: @unchecked Sendable {
     /// Guest-only mode: frames for this VM wait here for the writer thread (bounded; a VM that
     /// stops reading loses frames instead of stalling the switch).
     private var outgoing: [[UInt8]] = []
+    /// Frames for this VM waiting out a fault's delay (docs/18), apart from `outgoing` so its
+    /// limit still means "the VM isn't reading".
+    private var delayLine = DelayLine()
     private var outgoingClosed = false
+    /// A wakeup for the writer is pending (one signal covers any number of frames).
+    private var wakePending = false
     private var dropped = 0
     /// Guest-only: what this port saw (docs/17), under `statsLock`.
     private let statsLock = NSLock()
@@ -562,20 +633,56 @@ final class Relay: @unchecked Sendable {
         registry.remove(id)
     }
 
-    /// Queues a frame for this VM (guest-only). Drops it when the VM isn't keeping up.
-    func enqueue(_ frame: [UInt8]) {
-        enum Outcome { case queued, full, closed }
+    /// This connection's number (guest-only: stable while it lasts).
+    var portID: Int { id }
+
+    /// Hands a frame for this VM over as a fault decided (docs/18): lost, blocked or (delayed) queued.
+    func deliver(_ frame: [UInt8], _ verdict: FaultTable.Verdict) {
+        switch verdict {
+        case .pass(let delay): enqueue(frame, delay: delay)
+        case .lost: count(\.droppedLoss, frame.count)
+        case .blocked: count(\.droppedBlocked, frame.count)
+        }
+    }
+
+    /// Queues a frame for this VM (guest-only). Drops it when the VM isn't keeping up. A frame
+    /// with a delay, or any frame while delayed ones wait, goes through the delay line, so none
+    /// overtakes another.
+    private func enqueue(_ frame: [UInt8], delay: Duration) {
+        enum Outcome { case queued, queuedQuietly, full, closed, overflow }
         let outcome: Outcome = writeLock.withLock {
             guard !outgoingClosed else { return .closed }
-            guard outgoing.count < Self.outgoingLimit else { dropped += 1; return .full }
-            outgoing.append(frame)
+            if delay > .zero || !delayLine.isEmpty {
+                guard delayLine.push(frame, due: .now + delay) else { return .overflow }
+            } else {
+                guard outgoing.count < Self.outgoingLimit else { dropped += 1; return .full }
+                outgoing.append(frame)
+            }
+            if wakePending { return .queuedQuietly }
+            wakePending = true
             return .queued
         }
         switch outcome {
+        case .queuedQuietly: break
         case .queued: outgoingReady.signal()
-        case .full: statsLock.withLock { stats?.droppedFull.add(frame.count) }
-        case .closed: statsLock.withLock { stats?.droppedClosed.add(frame.count) }
+        case .full: count(\.droppedFull, frame.count)
+        case .closed: count(\.droppedClosed, frame.count)
+        case .overflow: count(\.droppedOverflow, frame.count)
         }
+    }
+
+    func count(_ counter: WritableKeyPath<NetworkObservation.Port, NetworkObservation.Counter>, _ length: Int) {
+        statsLock.withLock { stats?[keyPath: counter].add(length) }
+    }
+
+    /// A block started: what waits for this VM is dropped (as blocked).
+    func purgeForBlock() {
+        let gone: [[UInt8]] = writeLock.withLock {
+            let out = outgoing + delayLine.removeAll()
+            outgoing.removeAll()
+            return out
+        }
+        statsLock.withLock { for f in gone { stats?.droppedBlocked.add(f.count) } }
     }
 
     /// This port's counters with `macs` (nil outside guest-only mode).
@@ -584,6 +691,8 @@ final class Relay: @unchecked Sendable {
             guard var port = stats else { return nil }
             port.macs = macs
             port.connected = connected
+            let waiting = writeLock.withLock { (count: delayLine.count, bytes: delayLine.bytes) }
+            port.delayed = .init(frames: UInt64(waiting.count), bytes: UInt64(waiting.bytes))
             return port
         }
     }
@@ -601,16 +710,33 @@ final class Relay: @unchecked Sendable {
     private func writeOutgoing() {
         defer { writerDone.signal() }
         while true {
-            outgoingReady.wait()
             var discarded: [[UInt8]] = []
+            var closed = false
+            var wake: ContinuousClock.Instant?
             let next: [UInt8]? = writeLock.withLock {
-                if outgoingClosed { discarded = outgoing; outgoing.removeAll(); return nil }  // closed: drop what's left
-                if outgoing.isEmpty { return nil }
+                if outgoingClosed {  // closed: drop what's left
+                    closed = true
+                    discarded = outgoing + delayLine.removeAll()
+                    outgoing.removeAll()
+                    return nil
+                }
+                // Delayed frames whose time came join the send queue as far as it has room;
+                // the rest wait in the line (the VM may simply not have caught up yet).
+                outgoing += delayLine.popDue(.now, limit: Self.outgoingLimit - outgoing.count)
+                wake = delayLine.nextDue
+                if outgoing.isEmpty { wakePending = false; return nil }  // about to wait: the next frame signals
                 return outgoing.removeFirst()
             }
             countDroppedClosed(discarded)
+            if closed { return }
             guard let next else {
-                if writeLock.withLock({ outgoingClosed }) { return }
+                // Nothing to write: wait for a frame, or for the next delayed one's time.
+                if let wake {
+                    let wait = max(.zero, wake - .now)
+                    _ = outgoingReady.wait(timeout: .now() + .nanoseconds(Int(wait.components.seconds) * 1_000_000_000 + Int(wait.components.attoseconds / 1_000_000_000)))
+                } else {
+                    outgoingReady.wait()
+                }
                 continue
             }
             var header = UInt32(next.count).bigEndian
@@ -619,7 +745,7 @@ final class Relay: @unchecked Sendable {
                 statsLock.withLock { stats?.toGuest.add(next.count) }
             } else {
                 // The VM went away; wake the read loop so run() finishes, and stop writing.
-                countDroppedClosed([next] + writeLock.withLock { let rest = outgoing; outgoing.removeAll(); return rest })
+                countDroppedClosed([next] + writeLock.withLock { let rest = outgoing + delayLine.removeAll(); outgoing.removeAll(); return rest })
                 writeLock.withLock { outgoingClosed = true }
                 Darwin.shutdown(fd, SHUT_RDWR)
                 return
@@ -895,6 +1021,7 @@ if let guestSwitch {
         while true {
             Thread.sleep(forTimeInterval: 1)
             guestSwitch.checkCaptureTime()
+            guestSwitch.expireFaults()
             registry.publish()
         }
     }

@@ -93,6 +93,9 @@ struct NetworkMapView: View {
                     if let capture = model.observations[bus.name]?.current.capture, capture.endedAt == nil {
                         Label("記録中", systemImage: "record.circle").font(.caption2).foregroundStyle(.red)
                     }
+                    if let faults = model.observations[bus.name]?.current.faults, !faults.isEmpty {
+                        Label("障害 \(faults.count)", systemImage: "bolt.horizontal.circle").font(.caption2).foregroundStyle(.orange)
+                    }
                 }
                 .contextMenu {
                     Button("このネットワークを確かめる…") { model.mapCheckRequest = MapCheckRequest(scope: .bus(id: bus.id, name: bus.name)) }
@@ -212,6 +215,11 @@ private struct MapRowView: View {
                 if row.kind == .vm {
                     CheckMark(state: MapChecks.state(bus: map.buses[i].id, in: entry?.record), stale: stale, checking: checking)
                         .position(x: layout.busX(i) - 12, y: mid + 13)
+                    if model.fault(on: map.buses[i].name, macs: port.macs) != nil {
+                        Image(systemName: "bolt.horizontal.circle.fill").font(.caption).foregroundStyle(.orange)
+                            .accessibilityLabel(String(localized: "障害"))
+                            .position(x: layout.busX(i) + 12, y: mid + 13)
+                    }
                 }
                 if let text = MapText.addresses(Array(port.addresses.prefix(1))).map({ port.addresses.count > 1 ? "\($0) +\(port.addresses.count - 1)" : $0 })
                     ?? reported(port).first {
@@ -354,6 +362,11 @@ private struct MapInspector: View {
                 if row.kind == .vm, case .guestOnly = bus.kind, let sample = model.observations[bus.name] {
                     ForEach(ObservationText.ports(of: port.macs, in: sample.current)) { counters in
                         PortCountersView(port: counters, sample: sample)
+                    }
+                }
+                if row.kind == .vm, case .guestOnly = bus.kind {
+                    ForEach(port.macs, id: \.self) { mac in  // one per NIC, if several are on this network
+                        FaultControl(network: bus.name, target: mac, name: port.macs.count > 1 ? "\(row.name) (\(mac))" : row.name)
                     }
                 }
                 let peers = map.members(of: bus.id).map(\.name).filter { $0 != row.name }
@@ -609,12 +622,16 @@ private struct SegmentObservationView: View {
                 .font(.caption)
             }
             Divider()
+            SegmentFaultsView(network: network, map: map, bus: bus, sample: sample)
+            Divider()
             capture(o.capture)
         } else if model.olderHelpers.contains(network) {
             Text("このネットワークのヘルパーは古い版で、数を出せません。つながっている仮想マシンをすべて止めると、新しい版に入れ替わります。")
                 .font(.caption).foregroundStyle(.secondary)
         } else {
             Text("ヘルパーは動いていません。仮想マシンがつながると数え始めます。").font(.caption).foregroundStyle(.secondary)
+            Divider()
+            SegmentFaultsView(network: network, map: map, bus: bus, sample: nil)
             Divider()
             capture(nil)
         }
@@ -650,6 +667,167 @@ private struct SegmentObservationView: View {
     }
 }
 
+/// What a fault does, its time left, and how to remove it (docs/18).
+private struct FaultLine: View {
+    @Environment(AppModel.self) private var model
+    let network: String
+    let fault: NetworkFault
+    let target: String
+    let stale: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "bolt.horizontal.circle.fill").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(target): \(FaultText.describe(fault.spec))").font(.callout)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(stale ? String(localized: "ヘルパーから更新が届かず、確かめられません")
+                         : FaultText.remaining(fault.expiresAt.timeIntervalSince(context.date)))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
+            Spacer()
+            Button("外す") { model.stopFault(network, id: fault.id) }.controlSize(.small)
+        }
+    }
+}
+
+/// A VM's NIC on a guest-only network: its fault, or the button to start one.
+private struct FaultControl: View {
+    @Environment(AppModel.self) private var model
+    let network: String
+    let target: String
+    let name: String
+    @State private var showing = false
+
+    var body: some View {
+        let sample = model.observations[network]
+        if let fault = model.fault(on: network, macs: [target]) {
+            FaultLine(network: network, fault: fault,
+                      target: fault.spec.isSegment ? String(localized: "セグメント全体") : name, stale: sample?.isStale == true)
+        } else if model.canStartFault(network) {
+            Button("障害を入れる…") { showing = true }
+                .sheet(isPresented: $showing) { FaultSheet(network: network, target: target, name: name) }
+        }
+    }
+}
+
+/// The faults of a guest-only segment, and the button for one on the whole segment.
+private struct SegmentFaultsView: View {
+    @Environment(AppModel.self) private var model
+    let network: String
+    let map: NetworkMap
+    let bus: String
+    let sample: ObservationSample?
+    @State private var showing = false
+
+    var body: some View {
+        Text("障害").font(.subheadline.weight(.semibold))
+        if !model.canStartFault(network), (sample?.current.faults ?? []).isEmpty {
+            Text("障害を入れるには、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            let faults = sample?.current.faults ?? []
+            ForEach(faults) { fault in
+                FaultLine(network: network, fault: fault, target: name(of: fault), stale: sample?.isStale == true)
+            }
+            if faults.count > 1 { Button("すべて外す") { model.stopFault(network, id: nil) }.controlSize(.small) }
+            if faults.isEmpty {
+                Button("セグメント全体に障害を入れる…") { showing = true }
+                    .sheet(isPresented: $showing) { FaultSheet(network: network, target: NetworkFault.Spec.everyone, name: network) }
+                Text("仮想マシンひとつに入れるときは、その仮想マシンを選びます。").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func name(of fault: NetworkFault) -> String {
+        if fault.spec.isSegment { return String(localized: "セグメント全体") }
+        return map.rows.first { $0.ports.contains { $0.bus == bus && $0.macs.contains(fault.spec.target) } }?.name ?? fault.spec.target
+    }
+}
+
+/// Choosing a fault for a VM's NIC or the whole segment.
+private struct FaultSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    let network: String
+    let target: String
+    let name: String
+    @State private var block = false
+    @State private var delayMs = 100
+    @State private var lossPercent = 0.0
+    @State private var seconds = 300
+
+    private var isSegment: Bool { target == NetworkFault.Spec.everyone }
+    private var spec: NetworkFault.Spec {
+        block ? .init(target: target, block: true, seconds: seconds)
+            : .init(target: target, delayMs: delayMs, lossPercent: lossPercent, seconds: seconds)
+    }
+    private var valid: Bool { (try? spec.validated()) != nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(isSegment ? String(localized: "ネットワーク「\(network)」全体に障害を入れる")
+                 : String(localized: "「\(name)」の NIC（\(network)）に障害を入れる")).font(.headline)
+            Form {
+                Picker("種類", selection: $block) {
+                    Text("遅延と損失").tag(false)
+                    Text(FaultText.block).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: block) { seconds = block ? 30 : 300 }
+                if !block {
+                    TextField("遅延（ミリ秒、0〜5000）", value: $delayMs, format: .number)
+                    TextField("損失（パーセント、0〜100）", value: $lossPercent, format: .number.precision(.fractionLength(0...1)))
+                }
+                Picker("期限", selection: $seconds) {
+                    ForEach([10, 30, 60, 300, 600, 1800], id: \.self) { Text(FaultText.duration($0)).tag($0) }
+                }
+            }
+            Text(explanation).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("キャンセル", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("障害を入れる") { model.startFault(network, spec); dismiss() }
+                    .keyboardShortcut(.defaultAction).disabled(!valid)
+            }
+        }
+        .padding()
+        .frame(width: 440)
+    }
+
+    private var explanation: String {
+        let scope = block
+            ? (isSegment ? String(localized: "すべての仮想マシンの通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。")
+               : String(localized: "「\(name)」の通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。"))
+            : (isSegment ? String(localized: "すべての仮想マシンへ届くフレームにかかります。行きも帰りも遅れるので、ping の往復は遅延の 2 倍延びます。")
+               : String(localized: "「\(name)」へ届くフレームにかかります（ping の往復は遅延の分だけ延びます）。"))
+        return scope + String(localized: "netd の DHCP・ARP・DNS の応答も対象です。遮断でもゲストのリンクは上がったままです。期限が来ると外れ、アプリを終了しても期限までは続きます。パケットの記録には障害の前のフレームが残るので、落としたフレームも記録にあり、遅延は時刻に出ません。")
+    }
+}
+
+enum FaultText {
+    /// A fault that passes nothing (not the "Disconnect" of a button).
+    static var block: String { String(localized: "fault-block", defaultValue: "遮断") }
+
+    static func describe(_ spec: NetworkFault.Spec) -> String {
+        if spec.block { return block }
+        var parts: [String] = []
+        if spec.delayMs > 0 { parts.append(String(localized: "遅延 \(spec.delayMs) ms")) }
+        if spec.lossPercent > 0 { parts.append(String(localized: "損失 \(spec.lossPercent.formatted(.number.precision(.fractionLength(0...1)))) %")) }
+        return parts.joined(separator: String(localized: "・", comment: "Between the parts of a fault, as in delay 100 ms, loss 1 %"))
+    }
+
+    static func remaining(_ seconds: TimeInterval) -> String {
+        let s = max(0, Int(seconds.rounded(.up)))
+        return String(localized: "残り \(s / 60):\(String(format: "%02d", s % 60))")
+    }
+
+    static func duration(_ seconds: Int) -> String {
+        seconds < 60 ? String(localized: "\(seconds) 秒") : String(localized: "\(seconds / 60) 分")
+    }
+}
+
 /// One connection's counters, with per-second rates when there are two samples.
 private struct PortCountersView: View {
     let port: NetworkObservation.Port
@@ -666,6 +844,10 @@ private struct PortCountersView: View {
             if port.droppedFull.frames > 0 { Text("落とした（キューが満杯）\(Int(port.droppedFull.frames))").font(.caption).foregroundStyle(.orange) }
             if port.droppedClosed.frames > 0 { Text("落とした（切断）\(Int(port.droppedClosed.frames))").font(.caption).foregroundStyle(.secondary) }
             if port.malformed > 0 { Text("壊れたフレーム \(Int(port.malformed))").font(.caption).foregroundStyle(.orange) }
+            if port.droppedLoss.frames > 0 { Text("落とした（損失）\(Int(port.droppedLoss.frames))").font(.caption).foregroundStyle(.orange) }
+            if port.droppedBlocked.frames > 0 { Text("落とした（障害の遮断）\(Int(port.droppedBlocked.frames))").font(.caption).foregroundStyle(.orange) }
+            if port.droppedOverflow.frames > 0 { Text("落とした（遅延の列があふれた）\(Int(port.droppedOverflow.frames))").font(.caption).foregroundStyle(.orange) }
+            if port.delayed.frames > 0 { Text("遅延の列 \(Int(port.delayed.frames)) フレーム・\(Formatting.bytes(Int64(port.delayed.bytes)))").font(.caption).foregroundStyle(.secondary) }
         }
         .font(.caption.monospacedDigit())
     }

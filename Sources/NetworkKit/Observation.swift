@@ -31,9 +31,40 @@ public struct NetworkObservation: Codable, Sendable, Hashable {
         public var droppedClosed = Counter()
         /// Frames from this guest shorter than an Ethernet header (also in `fromGuest`).
         public var malformed: UInt64 = 0
+        // Faults (docs/18); absent in older helpers' files.
+        /// Frames for this guest dropped by a fault's loss.
+        public var droppedLoss = Counter()
+        /// Frames from or for this guest dropped by a block.
+        public var droppedBlocked = Counter()
+        /// Frames for this guest dropped because its delay line was full.
+        public var droppedOverflow = Counter()
+        /// Frames waiting out a delay now (not a running total).
+        public var delayed = Counter()
 
         public init(id: Int, macs: [String] = [], connectedAt: Date, connected: Bool = true) {
             self.id = id; self.macs = macs; self.connectedAt = connectedAt; self.connected = connected
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case id, macs, connectedAt, connected, fromGuest, toGuest, droppedFull, droppedClosed, malformed
+            case droppedLoss, droppedBlocked, droppedOverflow, delayed
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(Int.self, forKey: .id)
+            macs = try c.decode([String].self, forKey: .macs)
+            connectedAt = try c.decode(Date.self, forKey: .connectedAt)
+            connected = try c.decode(Bool.self, forKey: .connected)
+            fromGuest = try c.decode(Counter.self, forKey: .fromGuest)
+            toGuest = try c.decode(Counter.self, forKey: .toGuest)
+            droppedFull = try c.decode(Counter.self, forKey: .droppedFull)
+            droppedClosed = try c.decode(Counter.self, forKey: .droppedClosed)
+            malformed = try c.decode(UInt64.self, forKey: .malformed)
+            droppedLoss = try c.decodeIfPresent(Counter.self, forKey: .droppedLoss) ?? Counter()
+            droppedBlocked = try c.decodeIfPresent(Counter.self, forKey: .droppedBlocked) ?? Counter()
+            droppedOverflow = try c.decodeIfPresent(Counter.self, forKey: .droppedOverflow) ?? Counter()
+            delayed = try c.decodeIfPresent(Counter.self, forKey: .delayed) ?? Counter()
         }
     }
 
@@ -69,6 +100,13 @@ public struct NetworkObservation: Codable, Sendable, Hashable {
     public var undelivered: UInt64 = 0
     /// The capture running now, or the last one.
     public var capture: Capture?
+    /// The faults in force (docs/18); nil from older helpers.
+    public var faults: [NetworkFault]?
+    /// What this helper can do beyond counting: `faults`.
+    public var capabilities: [String]?
+
+    public var supportsFaults: Bool { capabilities?.contains(Self.faultsCapability) == true }
+    public static let faultsCapability = "faults"
 
     public static let keepClosed = 32
 
@@ -175,21 +213,29 @@ public final class CaptureBuffer: @unchecked Sendable {
 /// The helper's control socket for guest-only networks (docs/17): one JSON line each way.
 public enum NetdControl {
     public struct Request: Codable, Sendable {
-        public enum Op: String, Codable, Sendable { case status, startCapture, stopCapture }
+        public enum Op: String, Codable, Sendable { case status, startCapture, stopCapture, startFault, stopFault }
         public var op: Op
         /// For stopCapture: the capture to stop.
         public var capture: String?
+        /// For startFault: what to start.
+        public var fault: NetworkFault.Spec?
+        /// For stopFault: the fault to remove (nil: all of them).
+        public var faultID: String?
 
-        public init(op: Op, capture: String? = nil) { self.op = op; self.capture = capture }
+        public init(op: Op, capture: String? = nil, fault: NetworkFault.Spec? = nil, faultID: String? = nil) {
+            self.op = op; self.capture = capture; self.fault = fault; self.faultID = faultID
+        }
     }
 
     public struct Response: Codable, Sendable {
         public var ok: Bool
         public var error: String?
         public var capture: NetworkObservation.Capture?
+        /// The faults in force after the request (fault requests and status).
+        public var faults: [NetworkFault]?
 
-        public init(ok: Bool, error: String? = nil, capture: NetworkObservation.Capture? = nil) {
-            self.ok = ok; self.error = error; self.capture = capture
+        public init(ok: Bool, error: String? = nil, capture: NetworkObservation.Capture? = nil, faults: [NetworkFault]? = nil) {
+            self.ok = ok; self.error = error; self.capture = capture; self.faults = faults
         }
     }
 

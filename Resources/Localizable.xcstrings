@@ -366,6 +366,16 @@
         }
       }
     },
+    "%@: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: %2$@"
+          }
+        }
+      }
+    },
     "%@、socket_vmnet のネットワーク（%@）と HanaLima の仮想ネットワーク（%@）が同時に使われます。HanaLima はこの組み合わせで動作を確認していますが、macOS の不具合（FB25122122）により、ほかの仮想化ツールが vmnet のネットワークを使い回すと、ブリッジの通信や Mac 本体の IPv4 接続が切れることがあります。その場合は VM を止めて、システム設定で DHCP リースを更新するか Mac を再起動してください。": {
       "localizations": {
         "en": {
@@ -864,6 +874,22 @@
         }
       }
     },
+    "%lld 分": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分"
+          }
+        }
+      }
+    },
     "%lld 台、実行中 %lld 台": {
       "localizations": {
         "en": {
@@ -876,6 +902,22 @@
           "stringUnit": {
             "state": "new",
             "value": "%1$lld 台、実行中 %2$lld 台"
+          }
+        }
+      }
+    },
+    "%lld 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 秒"
           }
         }
       }
@@ -3417,6 +3459,23 @@
         }
       }
     },
+    "fault-block": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "遮断"
+          }
+        }
+      }
+    },
     "git、curl、wget、jq、vim、htop、tmux、unzip を入れます。apt・dnf・apk を見分けます。": {
       "localizations": {
         "en": {
@@ -3685,6 +3744,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS のゲストは救出起動できません。"
+          }
+        }
+      }
+    },
+    "netd の DHCP・ARP・DNS の応答も対象です。遮断でもゲストのリンクは上がったままです。期限が来ると外れ、アプリを終了しても期限までは続きます。パケットの記録には障害の前のフレームが残るので、落としたフレームも記録にあり、遅延は時刻に出ません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "netd's own DHCP, ARP and DNS replies are affected too. While blocked, the guest's link stays up. The fault ends at its deadline and lasts until then even if you quit the app. Packet captures record frames before the fault, so dropped frames still appear and the delay doesn't show in their times."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "netd の DHCP・ARP・DNS の応答も対象です。遮断でもゲストのリンクは上がったままです。期限が来ると外れ、アプリを終了しても期限までは続きます。パケットの記録には障害の前のフレームが残るので、落としたフレームも記録にあり、遅延は時刻に出ません。"
           }
         }
       }
@@ -4142,6 +4217,22 @@
         }
       }
     },
+    "「%@」の NIC（%@）に障害を入れる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a Fault to the NIC of “%1$@” (%2$@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」の NIC（%2$@）に障害を入れる"
+          }
+        }
+      }
+    },
     "「%@」のスナップショット「%@」から新しい仮想マシンを作成": {
       "localizations": {
         "en": {
@@ -4430,6 +4521,22 @@
         }
       }
     },
+    "「%@」の通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops all traffic of “%@”, in both directions. Frames are dropped silently, with no rejection sent back."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。"
+          }
+        }
+      }
+    },
     "「%@」は %@ です。APFS でないと、ディスクが名目のサイズ（%@）を丸ごと使ってしまいます。APFS でフォーマットしたドライブを選んでください。": {
       "localizations": {
         "en": {
@@ -4490,6 +4597,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」は既に存在します。"
+          }
+        }
+      }
+    },
+    "「%@」へ届くフレームにかかります（ping の往復は遅延の分だけ延びます）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to frames delivered to “%@” (a ping round trip grows by the delay)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」へ届くフレームにかかります（ping の往復は遅延の分だけ延びます）。"
           }
         }
       }
@@ -5424,6 +5547,38 @@
         }
       }
     },
+    "すべての仮想マシンの通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops all traffic of every virtual machine, in both directions. Frames are dropped silently, with no rejection sent back."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての仮想マシンの通信を、両方向とも止めます。拒否の応答は返さず、黙って捨てます。"
+          }
+        }
+      }
+    },
+    "すべての仮想マシンへ届くフレームにかかります。行きも帰りも遅れるので、ping の往復は遅延の 2 倍延びます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to frames delivered to every virtual machine. Both ways are delayed, so a ping round trip grows by twice the delay."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての仮想マシンへ届くフレームにかかります。行きも帰りも遅れるので、ping の往復は遅延の 2 倍延びます。"
+          }
+        }
+      }
+    },
     "すべて休止": {
       "localizations": {
         "en": {
@@ -5500,6 +5655,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "すべて削除…"
+          }
+        }
+      }
+    },
+    "すべて外す": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove All"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて外す"
           }
         }
       }
@@ -7638,6 +7809,38 @@
         }
       }
     },
+    "セグメント全体": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whole segment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セグメント全体"
+          }
+        }
+      }
+    },
+    "セグメント全体に障害を入れる…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a Fault to the Whole Segment…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セグメント全体に障害を入れる…"
+          }
+        }
+      }
+    },
     "ソケット": {
       "localizations": {
         "en": {
@@ -8631,6 +8834,22 @@
         }
       }
     },
+    "ネットワーク「%@」全体に障害を入れる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a Fault to the Whole Network “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワーク「%@」全体に障害を入れる"
+          }
+        }
+      }
+    },
     "ネットワークの側から見た流れ": {
       "localizations": {
         "en": {
@@ -9140,6 +9359,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ヘルパーから新しい数が届いていません（止まったか、応えていません）。"
+          }
+        }
+      }
+    },
+    "ヘルパーから更新が届かず、確かめられません": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No updates from the helper; can’t confirm"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルパーから更新が届かず、確かめられません"
           }
         }
       }
@@ -9796,6 +10031,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "ログイン時に自動で起動する仮想マシン"
+          }
+        }
+      }
+    },
+    "・": {
+      "comment": "Between the parts of a fault, as in delay 100 ms, loss 1 %",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " · "
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "・"
           }
         }
       }
@@ -10678,6 +10930,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "仮想マシンは停止しています。"
+          }
+        }
+      }
+    },
+    "仮想マシンひとつに入れるときは、その仮想マシンを選びます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To add one to a single virtual machine, select that virtual machine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仮想マシンひとつに入れるときは、その仮想マシンを選びます。"
           }
         }
       }
@@ -12189,32 +12457,32 @@
     },
     "切断した接続": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切断した接続"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Disconnected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切断した接続"
           }
         }
       }
     },
     "切断した接続（%lld）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切断した接続（%lld）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Disconnected (%lld)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切断した接続（%lld）"
           }
         }
       }
@@ -12622,16 +12890,16 @@
     },
     "古い数（ヘルパーから更新が届いていません）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "古い数（ヘルパーから更新が届いていません）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Old counts (no update from the helper)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古い数（ヘルパーから更新が届いていません）"
           }
         }
       }
@@ -14028,6 +14296,38 @@
         }
       }
     },
+    "損失 %@ %%": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "loss %@ %%"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "損失 %@ %%"
+          }
+        }
+      }
+    },
+    "損失（パーセント、0〜100）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loss (percent, 0–100)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "損失（パーセント、0〜100）"
+          }
+        }
+      }
+    },
     "操作します": {
       "extractionState": "stale",
       "localizations": {
@@ -14519,6 +14819,22 @@
         }
       }
     },
+    "期限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duration"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "期限"
+          }
+        }
+      }
+    },
     "未使用": {
       "localizations": {
         "en": {
@@ -14771,6 +15087,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "止めた"
+          }
+        }
+      }
+    },
+    "残り %lld:%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld:%@ left"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "残り %1$lld:%2$@"
           }
         }
       }
@@ -15719,6 +16051,54 @@
         }
       }
     },
+    "落とした（損失）%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (loss) %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（損失）%lld"
+          }
+        }
+      }
+    },
+    "落とした（遅延の列があふれた）%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (delay line full) %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（遅延の列があふれた）%lld"
+          }
+        }
+      }
+    },
+    "落とした（障害の遮断）%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped (blocked by a fault) %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落とした（障害の遮断）%lld"
+          }
+        }
+      }
+    },
     "行いませんでした。": {
       "localizations": {
         "en": {
@@ -16626,6 +17006,70 @@
         }
       }
     },
+    "遅延 %lld ms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "delay %lld ms"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遅延 %lld ms"
+          }
+        }
+      }
+    },
+    "遅延と損失": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delay and Loss"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遅延と損失"
+          }
+        }
+      }
+    },
+    "遅延の列 %lld フレーム・%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delay line %1$lld frames, %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "遅延の列 %1$lld フレーム・%2$@"
+          }
+        }
+      }
+    },
+    "遅延（ミリ秒、0〜5000）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delay (ms, 0–5000)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遅延（ミリ秒、0〜5000）"
+          }
+        }
+      }
+    },
     "選んだ場所に「%@/…」の同じ名前のフォルダが既にあります。別の場所を選ぶか、そのフォルダを片付けてください。": {
       "localizations": {
         "en": {
@@ -16798,6 +17242,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "隔離中は、起動のたびに HanaLima のドライバーが Lima のホスト側の名前解決（hostResolver）と containerd（nerdctl）を無効にし、eth0 を待たずに起動させます。この lima.yaml の設定は変えません（NIC 0 を戻すとそのまま効きます）。"
+          }
+        }
+      }
+    },
+    "障害": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faults"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害"
+          }
+        }
+      }
+    },
+    "障害 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faults %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害 %lld"
+          }
+        }
+      }
+    },
+    "障害を入れられませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Add the Fault"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害を入れられませんでした"
+          }
+        }
+      }
+    },
+    "障害を入れる": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Fault"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害を入れる"
+          }
+        }
+      }
+    },
+    "障害を入れる…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a Fault…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害を入れる…"
+          }
+        }
+      }
+    },
+    "障害を入れるには、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faults need a newer version of the helper. It is replaced when every connected virtual machine stops."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害を入れるには、ヘルパーの新しい版が要ります。つながっている仮想マシンをすべて止めると入れ替わります。"
+          }
+        }
+      }
+    },
+    "障害を外せませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Remove the Fault"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "障害を外せませんでした"
           }
         }
       }
