@@ -4,7 +4,7 @@
 
 # HanaLima
 
-[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。試験的な機能として、AI のクライアントから MCP で HanaLima を操作できるようになりました。構成を文章か図で伝えると、ネットワークと VM を作り、疎通まで確かめます。
+[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。構成図で、どの VM がどのネットワークにつながっているかを見て、ゲストの中から疎通を確かめられます。ゲスト専用ネットワークでは、すべてのフレームを観測・記録し、遅延・損失・遮断を入れられます。試験的な機能として（v0.15 から）、AI のクライアントから MCP で HanaLima を操作できます。構成を文章か図で伝えると、ネットワークと VM を作り、疎通まで確かめます。
 
 **Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
 
@@ -78,7 +78,7 @@
 
 3. サイドバー下の **＋ 新規仮想マシン** を押し、VM を作ります。テンプレートは最初から Ubuntu LTS（`ubuntu-lts`）になっていて、`alpine` などほかのものも選べます。新規 VM のドライバーは既定で HanaLima です。最初の起動時に OS イメージがダウンロードされます。
 
-固定 IP やブリッジを使う場合は、サイドバーの **ネットワーク** の **＋** からネットワークを作ります。VM の **設定** タブを開き、ネットワーク欄の **NIC を追加** で作成したネットワークを選びます。
+固定 IP やブリッジを使う場合は、サイドバーの **ネットワーク** の **＋** からネットワークを作ります。VM の **設定** タブを開き、ネットワーク欄の **NIC を追加** で作成したネットワークを選びます。ネットワークの画面の上のボタンで、一覧と構成図を切り替えられます。
 
 ### ソースからビルドする
 
@@ -120,13 +120,16 @@ open -a HanaLima --args -AppleLanguages '(en)'
 
 HanaLima は Lima の Go コードをリンクしていません。Lima の公式インターフェースである `limactl` コマンドを呼び出し、JSON 出力（`limactl list --format json`、`limactl watch --json`）を読んでいます。`lima.yaml` の変更は `limactl edit` を通し、Lima 側で検証します。
 
-仮想ネットワークは同梱のヘルパー `hanalima-netd` が担当します。ネットワークごとにユーザーの LaunchAgent として登録し、ソケットアクティベーションで起動します。VM は Lima の `networks: - socket: <パス>` で接続します。プロトコルは socket_vmnet と同じで、ヘルパーがフレームを vmnet のネットワーク（NAT／ホストオンリー）かブリッジのインターフェースへ中継します。ゲスト専用では vmnet を使わず、ヘルパー自身が VM 間のフレームを中継します。ヘルパーに root は不要。必要なのは `scripts/build-app.sh` が付ける `com.apple.security.virtualization` の entitlement だけです。アプリが起動していなくてもネットワークは使え、`limactl start` で起動した VM からも接続できます。
+仮想ネットワークは同梱のヘルパー `hanalima-netd` が担当します。ネットワークごとにユーザーの LaunchAgent として登録し、ソケットアクティベーションで起動します。VM は Lima の `networks: - socket: <パス>` で接続します。プロトコルは socket_vmnet と同じで、ヘルパーがフレームを vmnet のネットワーク（NAT／ホストオンリー）かブリッジのインターフェースへ中継します。ゲスト専用では vmnet を使わず、ヘルパー自身が VM 間のフレームを中継します。ヘルパーに root は不要。必要なのは `scripts/build-app.sh` が付ける `com.apple.security.virtualization` の entitlement だけです。アプリが起動していなくてもネットワークは使え、`limactl start` で起動した VM からも接続できます。ゲスト専用ネットワークのヘルパーは、VM ごとのフレームを数え、パケットを記録し、障害を入れます。その指示は 2 つ目のソケット（`<名前>.ctl.sock`、同じユーザーだけ）で受けます。DHCP のリースはファイルに書き、ヘルパーが起動し直したときに読み戻します。
 
 | パス | 内容 |
 |---|---|
 | `Sources/LimaKit` | `limactl` のラッパー（UI に依存しない） |
 | `Sources/NetworkKit` | 仮想ネットワークの定義、LaunchAgent の管理、DHCP 関連 |
 | `Sources/hanalima-netd` | ネットワークのヘルパー（Lima のソケット ⇄ vmnet の中継／ゲスト専用のスイッチ） |
+| `Sources/AgentKit` | MCP の道具のうち画面の要らない部分（構成の宣言の読み取りと計画）と構成図 |
+| `Sources/MCPKit` | MCP: JSON-RPC、道具の一覧、アプリとのソケット |
+| `Sources/hanalima-mcp` | MCP のクライアントが起動するヘルパー。道具の呼び出しをアプリへ中継する |
 | `Sources/HanaLima` | SwiftUI アプリ |
 | `Driver/` | Lima の外部ドライバー `lima-driver-hanalima`（vmType `hanalima`） |
 | `Prototypes/` | ネットワーク調査用の実験コード（macOS の vmnet の不具合を再現するツールを含む） |
@@ -134,9 +137,10 @@ HanaLima は Lima の Go コードをリンクしていません。Lima の公�
 
 HanaLima が作るファイル:
 
-- `~/Library/Application Support/HanaLima/` — `networks.json`、配置したヘルパー、ネットワークのソケット
+- `~/Library/Application Support/HanaLima/` — `networks.json`、配置したヘルパー、ネットワークのソケットと DHCP のリース、パケットの記録（`Captures/`）
 - `~/Library/LaunchAgents/org.izawa.HanaLima.net.<名前>.plist` — 仮想ネットワークごとに 1 つ
 - `~/Library/Logs/HanaLima/` — ヘルパーのログ
+- `~/.hanalima/` — MCP: アプリとのソケット、`mcp.json`、AI が作ったものとジョブの記録、呼び出しの記録（字数と時間だけ）
 - `<prefix>/lib/lima/lima-driver-hanalima`（Homebrew なら `/opt/homebrew/lib/lima/`）— VM のドライバー。アプリの起動時に毎回コピーします
 
 Lima 自身のファイルは `limactl` が管理します。VM の `~/.lima`、イメージのキャッシュ `~/Library/Caches/lima`、ログイン時の自動起動用の `~/Library/LaunchAgents/io.lima-vm.autostart.<名前>.plist` が該当します。サイドバーの **ストレージ → 使用量** で確認できます。

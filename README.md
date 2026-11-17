@@ -4,7 +4,7 @@
 
 # HanaLima
 
-A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once. As an experiment, an AI client can now drive HanaLima through MCP: describe a lab in a sentence or a sketch, and it builds the networks and VMs and checks the traffic.
+A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once. A network map shows which VMs are on which networks and checks the traffic from inside the guests, and on a guest-only network you can watch and record every frame and add a delay, a loss rate or a block. As an experiment (since v0.15), an AI client can drive HanaLima through MCP: describe a lab in a sentence or a sketch, and it builds the networks and VMs and checks the traffic.
 
 **Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
 
@@ -78,7 +78,7 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
 
 3. Click **＋ New VM** at the bottom of the sidebar and create a VM. The template is preset to Ubuntu LTS (`ubuntu-lts`); you can pick another, such as `alpine`. New VMs run on HanaLima's driver by default. The first start downloads the OS image.
 
-To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab.
+To use a fixed IP or a bridged network, open **Networks** in the sidebar, create a network with **＋**, then choose **Add NIC** in the Network section of the VM's **Settings** tab. The buttons at the top of the Networks screen switch between the list and the map.
 
 ### Building from source
 
@@ -120,13 +120,16 @@ open -a HanaLima --args -AppleLanguages '(en)'
 
 HanaLima does not link Lima's Go code. It drives the `limactl` CLI, Lima's public interface, and reads its JSON output (`limactl list --format json`, `limactl watch --json`). Changes to `lima.yaml` go through `limactl edit`, so Lima validates them.
 
-Virtual networks are provided by `hanalima-netd`, a helper bundled in the app. Each network is registered as a per-user LaunchAgent with socket activation. A VM attaches with Lima's `networks: - socket: <path>` (the socket_vmnet protocol), and the helper relays its frames to a vmnet network (NAT/host-only) or a bridged vmnet interface, or, for a guest-only network, switches frames between the VMs itself with no vmnet. The helper needs no root, only the `com.apple.security.virtualization` entitlement, which `scripts/build-app.sh` applies. Networks keep working when the app is not running, including for VMs started with plain `limactl start`.
+Virtual networks are provided by `hanalima-netd`, a helper bundled in the app. Each network is registered as a per-user LaunchAgent with socket activation. A VM attaches with Lima's `networks: - socket: <path>` (the socket_vmnet protocol), and the helper relays its frames to a vmnet network (NAT/host-only) or a bridged vmnet interface, or, for a guest-only network, switches frames between the VMs itself with no vmnet. The helper needs no root, only the `com.apple.security.virtualization` entitlement, which `scripts/build-app.sh` applies. Networks keep working when the app is not running, including for VMs started with plain `limactl start`. A guest-only network's helper also counts each VM's frames, records packet captures and applies faults, told what to do over a second socket (`<name>.ctl.sock`, your user only); it keeps its DHCP leases in a file and reads them back when it restarts.
 
 | Path | Purpose |
 |---|---|
 | `Sources/LimaKit` | `limactl` wrapper (no UI dependencies) |
 | `Sources/NetworkKit` | Virtual network definitions, LaunchAgent management, DHCP helpers |
 | `Sources/hanalima-netd` | Network helper (Lima socket ⇄ vmnet relay / guest-only switch) |
+| `Sources/AgentKit` | The parts of the MCP tools that need no UI: reading a lab's declaration and planning it, and the network map |
+| `Sources/MCPKit` | MCP: JSON-RPC, the tool catalog, the socket to the app |
+| `Sources/hanalima-mcp` | The helper an MCP client starts; it relays tool calls to the app |
 | `Sources/HanaLima` | SwiftUI app |
 | `Driver/` | Lima external driver `lima-driver-hanalima` (vmType `hanalima`) |
 | `Prototypes/` | Experiments from the networking investigation, including a reproduction of a macOS vmnet bug |
@@ -134,9 +137,10 @@ Virtual networks are provided by `hanalima-netd`, a helper bundled in the app. E
 
 Files HanaLima creates:
 
-- `~/Library/Application Support/HanaLima/` — `networks.json`, the installed helper, network sockets
+- `~/Library/Application Support/HanaLima/` — `networks.json`, the installed helper, network sockets and DHCP leases, packet captures (`Captures/`)
 - `~/Library/LaunchAgents/org.izawa.HanaLima.net.<name>.plist` — one per virtual network
 - `~/Library/Logs/HanaLima/` — helper logs
+- `~/.hanalima/` — MCP: the socket to the app, `mcp.json`, the record of what the AI made and its jobs, and a log of the calls (sizes and times only)
 - `<prefix>/lib/lima/lima-driver-hanalima` (`/opt/homebrew/lib/lima/` with Homebrew) — the VM driver, copied there at every launch
 
 Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/Library/LaunchAgents/io.lima-vm.autostart.<name>.plist` for start at login) are managed by `limactl`. **Storage → Usage** in the sidebar shows them.
