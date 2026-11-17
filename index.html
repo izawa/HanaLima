@@ -63,7 +63,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.16.0 · macOS 26+ · Lima 2.3+ · MIT</span>
+      <span class="eyebrow">● v0.17.0 · macOS 26+ · Lima 2.3+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -420,6 +420,8 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
           <tr><td><span class="en">Bridge to the LAN</span><span class="ja">LAN へのブリッジ</span></td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
           <tr><td><span class="en">Host-only network</span><span class="ja">ホストオンリー</span></td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
           <tr><td><span class="en">Guest-only network (the Mac is not on it)</span><span class="ja">ゲスト専用（Mac は参加しない）</span></td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="hl yes"><span class="en">yes · no vmnet, no route unless you name a router VM; DNS for VM names only</span><span class="ja">yes · vmnet なし、経路はルーターの VM を指定したときだけ、DNS は VM 名だけ</span></td></tr>
+          <tr><td><span class="en">See every frame on the segment (counters, pcap)</span><span class="ja">セグメントの全フレームを見る（数・pcap）</span></td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="hl yes"><span class="en">yes · guest-only</span><span class="ja">yes · ゲスト専用</span></td></tr>
+          <tr><td><span class="en">Add delay, loss or a block</span><span class="ja">遅延・損失・遮断を入れる</span></td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="hl yes"><span class="en">yes · guest-only, per NIC or network, with a time limit</span><span class="ja">yes · ゲスト専用、NIC かネットワークごと、期限つき</span></td></tr>
           <tr><td><span class="en">Works when the GUI isn't running</span><span class="ja">GUI を起動していなくても動く</span></td><td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="hl yes">yes</td></tr>
         </tbody>
       </table>
@@ -543,6 +545,16 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></div>
         <h3><span class="en">Rename a VM</span><span class="ja">VM の名前の変更</span></h3>
         <p><span class="en">Rename a stopped VM from its menu. <code>limactl rename</code> alone changes the MAC addresses Lima derives from the VM's folder and leaves start at login under the old name; HanaLima first writes the current MACs into <code>lima.yaml</code>, so fixed IPs keep working, and moves the registration. Snapshots, the group and the note carry over; the host name becomes <code>lima-&lt;new name&gt;</code> at the next start.</span><span class="ja">停止中の VM の名前を、メニューから変えられます。<code>limactl rename</code> だけでは、Lima が VM のフォルダから作る MAC アドレスが変わり、ログイン時の自動起動も古い名前のまま残ります。HanaLima は先に今の MAC アドレスを <code>lima.yaml</code> に書き込むので、固定 IP はそのまま使えます。自動起動の登録も移します。スナップショット、グループ、メモは引き継ぎ、ホスト名は次の起動で <code>lima-&lt;新しい名前&gt;</code> になります。</span></p>
+      </div>
+      <div class="card reveal"><span class="status done">v0.17</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v18M16 3v18"/><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="8" cy="16" r="1.6"/><path d="M3 8h13M3 16h5"/></svg></div>
+        <h3><span class="en">The network map</span><span class="ja">構成図</span></h3>
+        <p><span class="en">Switch the Networks screen to a map: each network a vertical line, each VM a row, a dot with its address wherever a NIC joins a network. Ask, and HanaLima pings from inside the running VMs over each NIC — the gateway, the router, the other VMs, the outside — and marks the dots with what got through.</span><span class="ja">ネットワークの画面を構成図に切り替えられます。ネットワークを縦の線、VM を行として描き、NIC がつながる所に点とアドレスを出します。頼むと、実行中の VM の中から NIC ごとに ping し（ゲートウェイ、ルーター、ほかの VM、外へ）、届いたかどうかを点の印に出します。</span></p>
+      </div>
+      <div class="card reveal wide"><span class="status done">v0.17</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></div>
+        <h3><span class="en">Watch and disturb a guest-only network</span><span class="ja">ゲスト専用ネットワークを観測し、障害を入れる</span></h3>
+        <p><span class="en">For writing network programs in the guests. On a guest-only network the helper is the switch, so it sees every frame: the map shows each NIC's frames per second and what was dropped and why, and one button records the whole segment to a pcap file. Then make the network worse on purpose — a delay, a loss rate, or a block on one VM's NIC or the whole network, for up to 30 minutes. A block drops frames silently while the guest's link stays up, so the program sees only silence. Faults live in the helper and end on their own.</span><span class="ja">ゲストの中でネットワークのプログラムを作るときのための機能です。ゲスト専用ネットワークではヘルパーがスイッチなので、すべてのフレームが見えます。構成図に NIC ごとの毎秒のフレーム数と、落としたフレームの数と理由を出し、ボタン 1 つでセグメント全体を pcap のファイルに記録します。そのうえで、わざとネットワークを悪くできます。VM の NIC かネットワーク全体に、遅延・損失・遮断を 30 分まで入れられます。遮断はゲストのリンクを上げたままフレームを黙って捨てるので、プログラムからは相手が黙ったように見えます。障害はヘルパーの中にだけあり、期限が来ると外れます。</span></p>
       </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
@@ -773,6 +785,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">AI through MCP (experimental)</span><span class="ja">MCP で AI から操作（試験的）</span></li><li><span class="en">Build a lab from a description</span><span class="ja">文章や図から構成を作る</span></li><li><span class="en">Approvals in the app</span><span class="ja">アプリで許可する操作</span></li><li><span class="en">Traffic checks inside guests</span><span class="ja">ゲストの中から疎通を確認</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.16</h3>
         <ul><li><span class="en">Rename a VM</span><span class="ja">VM の名前の変更</span></li><li><span class="en">Guest architecture with QEMU</span><span class="ja">QEMU でアーキテクチャを選択</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.17</h3>
+        <ul><li><span class="en">Network map</span><span class="ja">構成図</span></li><li><span class="en">Reachability on the map</span><span class="ja">構成図で疎通を確認</span></li><li><span class="en">Guest-only counters and pcap</span><span class="ja">ゲスト専用の数と pcap</span></li><li><span class="en">Delay, loss and block</span><span class="ja">遅延・損失・遮断</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
