@@ -135,6 +135,26 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
         return nil
     }
 
+    /// Takes back the leases a previous run of the helper wrote (its lease file), so the VMs
+    /// that still hold them keep their names in DNS and their addresses: a guest resumed from
+    /// hibernation, or one that outlived a helper update, doesn't ask again until it renews.
+    /// Skips what this network would no longer grant: expired, outside the subnet, the server's
+    /// or someone else's reserved address, another address than the MAC's reservation, taken.
+    public func restore(_ leases: [DHCPLease]) {
+        let time = now()
+        lock.lock()
+        defer { lock.unlock() }
+        for lease in leases {
+            guard let expires = lease.expires, expires > time, let ip = IPv4(lease.ip),
+                  let mac = lease.hwAddress.split(separator: ",").last.flatMap({ DHCPReservation.normalizedMAC(String($0)) }),
+                  subnet.contains(ip), ip > subnet.network, ip < subnet.broadcast, ip != serverIP,
+                  reservations[mac].map({ $0 == ip }) ?? !reservedIPs.contains(ip),
+                  active[mac] == nil, !active.values.contains(where: { $0.ip == ip }) else { continue }
+            active[mac] = Lease(ip: ip, name: lease.name, expires: expires)
+            stateVersion += 1
+        }
+    }
+
     /// Reservations appear only after their VM has asked for an address.
     public var leases: [DHCPLease] {
         let time = now()

@@ -218,6 +218,37 @@ import Testing
         return serverMAC + mac + [8, 0] + ip + [0xc3, 0x50, UInt8(port >> 8), UInt8(port & 255), UInt8(udpLength >> 8), UInt8(udpLength & 255), 0, 0] + message
     }
 
+    @Test func restoresTheLeasesOfTheLastRun() throws {
+        let clock = Clock()
+        let old = server(clock: clock)
+        _ = try #require(handle(old, Self.request(1, hostname: "lima-foo")))
+        _ = try #require(handle(old, Self.request(3, requested: [192, 168, 233, 2])))
+        let file = old.leaseFileText()
+
+        // A new run of the helper reads the file: the guest's name answers without it asking again.
+        let new = server(clock: clock)
+        new.restore(DHCPLeases.parse(file))
+        #expect(new.leases.map(\.ip) == ["192.168.233.2"])
+        #expect(try #require(handle(new, Self.dnsQuery("lima-foo")))[42 + 3] == 0)
+        // The address stays the guest's: another MAC is offered a different one.
+        let offer = try #require(handle(new, Self.request(1, mac: Self.second)))
+        #expect(Self.yiaddr(offer) != [192, 168, 233, 2])
+
+        // What this network wouldn't grant is skipped.
+        let lease = { (ip: String, mac: String, expires: TimeInterval) in
+            DHCPLease(name: "x", ip: ip, hwAddress: "1,\(mac)", expires: clock.read().addingTimeInterval(expires))
+        }
+        let other = server(clock: clock)
+        other.restore([
+            lease("192.168.233.3", "52:55:55:1:2:3", -1),  // expired
+            lease("10.0.0.3", "52:55:55:1:2:3", 60),  // outside the subnet
+            lease("192.168.233.1", "52:55:55:1:2:3", 60),  // the server
+            lease("192.168.233.6", "52:55:55:1:2:4", 60),  // someone else's reservation
+            lease("192.168.233.4", "52:55:55:a:b:c", 60),  // not the MAC's reservation
+        ])
+        #expect(other.leases.isEmpty)
+    }
+
     @Test func dnsAnswersLeasedNamesOnly() throws {
         let server = server()
         _ = try #require(handle(server, Self.request(1, hostname: "lima-foo")))

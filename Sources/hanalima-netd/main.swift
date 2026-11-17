@@ -211,7 +211,9 @@ final class GuestSwitch: @unchecked Sendable {
         dhcp = GuestOnlyDHCP(subnet: subnet, serverIP: config.gatewayAddress ?? IPv4(subnet.network.value + 1),
                              serverMAC: serverMAC, reservations: config.reservations, router: config.routerAddress)
         leasesFile = NetworkPaths.leases(for: config.name)
-        try? FileManager.default.removeItem(at: leasesFile)
+        // The leases of the last run: its VMs may still hold them (resumed from hibernation, or
+        // running across a helper update) and won't ask again until they renew.
+        if let text = try? String(contentsOf: leasesFile, encoding: .utf8) { dhcp.restore(DHCPLeases.parse(text)) }
     }
 
     func attach(_ relay: Relay) { lock.withLock { ports[ObjectIdentifier(relay)] = relay } }
@@ -421,8 +423,6 @@ final class GuestSwitch: @unchecked Sendable {
             try? Data(dhcp.leaseFileText().utf8).write(to: leasesFile, options: .atomic)
         }
     }
-
-    func shutdown() { try? FileManager.default.removeItem(at: leasesFile) }
 }
 
 let guestSwitch: GuestSwitch? = config.isGuestOnly ? GuestSwitch(config: config) : nil
@@ -1000,7 +1000,6 @@ final class Terminator: Sendable {
         for relay in relays { relay.shutdown() }
         holder.discard()
         guestSwitch?.finishCapture()
-        guestSwitch?.shutdown()
         try? FileManager.default.removeItem(at: statusFile)
         exit(code)
     }

@@ -34,7 +34,7 @@ public enum DHCPLeases {
         return leases
     }
 
-    static func parse(_ text: String) -> [DHCPLease] {
+    public static func parse(_ text: String) -> [DHCPLease] {
         var leases: [DHCPLease] = []
         var fields: [String: String] = [:]
         for raw in text.split(whereSeparator: \.isNewline) {
