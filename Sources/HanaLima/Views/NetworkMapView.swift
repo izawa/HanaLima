@@ -644,7 +644,7 @@ private struct SegmentObservationView: View {
     @ViewBuilder private func capture(_ capture: NetworkObservation.Capture?) -> some View {
         if let capture, capture.endedAt == nil {
             Label("パケットを記録中", systemImage: "record.circle").foregroundStyle(.red)
-            Text("\(Int(capture.frames)) フレーム・\(Formatting.bytes(Int64(capture.bytes)))・記録から落とした \(Int(capture.lost))")
+            Text("\(Int(capture.frames)) フレーム・\(Formatting.byteCount(capture.bytes))・記録から落とした \(Int(capture.lost))")
                 .font(.caption).foregroundStyle(.secondary)
             Button("記録を止める") { model.stopCapture(network, id: capture.id) }
         } else if !FileManager.default.fileExists(atPath: NetworkPaths.control(for: network).path) {
@@ -659,7 +659,7 @@ private struct SegmentObservationView: View {
                     Text("このネットワークを流れるすべてのフレームを、中身ごと pcap のファイルに残します。パスワードなどが含まれることがあります。64 MiB か 5 分で止まります。ファイルは ~/Library/Application Support/HanaLima/Captures に、あなただけが読める形で置きます。")
                 }
             if let capture {
-                Text("前の記録: \(Int(capture.frames)) フレーム・\(Formatting.bytes(Int64(capture.bytes)))（\(ObservationText.reason(capture.reason))）")
+                Text("前の記録: \(Int(capture.frames)) フレーム・\(Formatting.byteCount(capture.bytes))（\(ObservationText.reason(capture.reason))）")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("開く") { model.openCapture(capture) }
@@ -853,20 +853,20 @@ private struct PortCountersView: View {
             if port.droppedLoss.frames > 0 { Text("落とした（損失）\(Int(port.droppedLoss.frames))").font(.caption).foregroundStyle(.orange) }
             if port.droppedBlocked.frames > 0 { Text("落とした（障害の遮断）\(Int(port.droppedBlocked.frames))").font(.caption).foregroundStyle(.orange) }
             if port.droppedOverflow.frames > 0 { Text("落とした（遅延の列があふれた）\(Int(port.droppedOverflow.frames))").font(.caption).foregroundStyle(.orange) }
-            if port.delayed.frames > 0 { Text("遅延の列 \(Int(port.delayed.frames)) フレーム・\(Formatting.bytes(Int64(port.delayed.bytes)))").font(.caption).foregroundStyle(.secondary) }
+            if port.delayed.frames > 0 { Text("遅延の列 \(Int(port.delayed.frames)) フレーム・\(Formatting.byteCount(port.delayed.bytes))").font(.caption).foregroundStyle(.secondary) }
         }
         .font(.caption.monospacedDigit())
     }
 
     private func line(_ label: String, _ c: NetworkObservation.Counter, _ rate: (frames: Double, bytes: Double)?) -> some View {
-        let perSecond = rate.map { String(localized: "（毎秒 \(Int($0.frames.rounded())) フレーム・\(Formatting.bytes(Int64($0.bytes)))）") } ?? ""
-        return Text("\(label) \(Int(c.frames)) フレーム・\(Formatting.bytes(Int64(c.bytes)))\(perSecond)")
+        let perSecond = rate.map { String(localized: "（毎秒 \(Int($0.frames.rounded())) フレーム・\(Formatting.byteCount(UInt64(max(0, $0.bytes.rounded()))))）") } ?? ""
+        return Text("\(label) \(Int(c.frames)) フレーム・\(Formatting.byteCount(c.bytes))\(perSecond)")
     }
 }
 
 enum ObservationText {
     static func counter(_ c: NetworkObservation.Counter) -> String {
-        String(localized: "\(Int(c.frames)) フレーム・\(Formatting.bytes(Int64(c.bytes)))")
+        String(localized: "\(Int(c.frames)) フレーム・\(Formatting.byteCount(c.bytes))")
     }
 
     /// The VM whose NIC on `bus` has one of the port's MACs, or the MACs themselves.

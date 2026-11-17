@@ -7,6 +7,14 @@ enum Formatting {
         return ByteCountFormatter.string(fromByteCount: value, countStyle: .memory)
     }
 
+    /// A byte count, where zero is a count too ("0 bytes"), not a missing value as in `bytes`.
+    static func byteCount(_ value: UInt64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .memory
+        formatter.allowsNonnumericFormatting = false
+        return formatter.string(fromByteCount: Int64(clamping: value))
+    }
+
     /// A rough time left: seconds under a minute (by 5), minutes under an hour, then hours and minutes.
     static func remaining(_ seconds: Double) -> String {
         let style = Duration.UnitsFormatStyle(allowedUnits: [.hours, .minutes, .seconds], width: .abbreviated,
