@@ -56,6 +56,27 @@ public enum DHCPLeases {
     }
 
     /// The most recent lease of `instance` inside `subnet`.
+    /// The address of a VM's NIC: the newest lease for its MAC, else one under the VM's name
+    /// (a guest that identifies itself by a DUID leaves no MAC in the lease). With a MAC, a
+    /// lease by name counts only if it has no MAC: one that has belongs to another NIC (two NICs
+    /// of one VM on the same network both lease under its name).
+    public static func address(mac: String?, instance: String, in subnet: IPv4Subnet, leases: [DHCPLease]) -> (ip: String, byMAC: Bool)? {
+        let inSubnet = leases.filter { IPv4($0.ip).map(subnet.contains) == true }
+        guard let mac else { return address(of: instance, in: subnet, leases: inSubnet).map { ($0, false) } }
+        if let lease = inSubnet.filter({ Self.mac(of: $0) == mac }).max(by: { ($0.expires ?? .distantPast) < ($1.expires ?? .distantPast) }) {
+            return (lease.ip, true)
+        }
+        return address(of: instance, in: subnet, leases: inSubnet.filter { Self.mac(of: $0) == nil }).map { ($0, false) }
+    }
+
+    /// bootpd writes `hw_address=1,52:55:55:…` (the hardware type first). Only type 1 is an
+    /// Ethernet MAC; `ff,…` is a client identifier (a DUID), even when it is six bytes long.
+    public static func mac(of lease: DHCPLease) -> String? {
+        let parts = lease.hwAddress.split(separator: ",", maxSplits: 1)
+        guard parts.count == 2, parts[0] == "1" else { return nil }
+        return DHCPReservation.normalizedMAC(String(parts[1]))
+    }
+
     public static func address(of instance: String, in subnet: IPv4Subnet, leases: [DHCPLease]) -> String? {
         leases
             .filter { $0.limaInstance == instance && IPv4($0.ip).map(subnet.contains) == true }

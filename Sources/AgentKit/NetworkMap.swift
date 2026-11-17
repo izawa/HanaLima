@@ -134,7 +134,7 @@ public struct NetworkMap: Equatable, Sendable {
                             addresses.append(Address(ip: r.ip, source: .reservation))
                         }
                         if inst.isRunning, !net.isBridged, let subnet = net.subnet,
-                           let lease = leaseAddress(mac: mac, instance: inst.name, in: subnet, leases: live),
+                           let lease = DHCPLeases.address(mac: mac, instance: inst.name, in: subnet, leases: live),
                            !addresses.contains(where: { $0.ip == lease.ip }) {
                             addresses.append(Address(ip: lease.ip, source: lease.byMAC ? .lease : .leaseByName))
                         }
@@ -184,19 +184,6 @@ public struct NetworkMap: Equatable, Sendable {
 
     /// The lease of the NIC with `mac` in `subnet`; without a match by MAC (a client that
     /// identifies itself otherwise), the instance's newest lease there, as elsewhere in the app.
-    static func leaseAddress(mac: String?, instance: String, in subnet: IPv4Subnet, leases: [DHCPLease]) -> (ip: String, byMAC: Bool)? {
-        let inSubnet = leases.filter { IPv4($0.ip).map(subnet.contains) == true }
-        if let mac, let lease = inSubnet.filter({ leaseMAC($0) == mac }).max(by: { ($0.expires ?? .distantPast) < ($1.expires ?? .distantPast) }) {
-            return (lease.ip, true)
-        }
-        return DHCPLeases.address(of: instance, in: subnet, leases: inSubnet).map { ($0, false) }
-    }
-
-    /// bootpd writes `hw_address=1,52:55:55:…` (the hardware type first).
-    static func leaseMAC(_ lease: DHCPLease) -> String? {
-        DHCPReservation.normalizedMAC(String(lease.hwAddress.split(separator: ",").last ?? ""))
-    }
-
     // MARK: - Ordering
 
     /// How many buses `row`'s wire crosses without a dot, with the buses in `order` (ids).

@@ -146,7 +146,7 @@ public final class GuestOnlyDHCP: @unchecked Sendable {
         defer { lock.unlock() }
         for lease in leases {
             guard let expires = lease.expires, expires > time, let ip = IPv4(lease.ip),
-                  let mac = lease.hwAddress.split(separator: ",").last.flatMap({ DHCPReservation.normalizedMAC(String($0)) }),
+                  let mac = DHCPLeases.mac(of: lease),
                   subnet.contains(ip), ip > subnet.network, ip < subnet.broadcast, ip != serverIP,
                   reservations[mac].map({ $0 == ip }) ?? !reservedIPs.contains(ip),
                   active[mac] == nil, !active.values.contains(where: { $0.ip == ip }) else { continue }

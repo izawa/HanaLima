@@ -211,6 +211,26 @@ import Testing
         #expect(DHCPLeases.address(of: "dev", in: IPv4Subnet(cidr: "192.168.201.0/24")!, leases: leases) == nil)
     }
 
+    @Test func findsEachNICOfAVMByItsMAC() {
+        let subnet = IPv4Subnet(cidr: "10.0.0.0/24")!
+        let soon = Date.now.addingTimeInterval(60)
+        // Two NICs of one VM on one network: both leases carry the VM's name.
+        let leases = [
+            DHCPLease(name: "lima-vm", ip: "10.0.0.4", hwAddress: "1,52:55:55:aa:e1:6a", expires: soon),
+            DHCPLease(name: "lima-vm", ip: "10.0.0.2", hwAddress: "1,52:55:55:a9:fd:f9", expires: soon.addingTimeInterval(1)),
+        ]
+        #expect(DHCPLeases.address(mac: "52:55:55:aa:e1:6a", instance: "vm", in: subnet, leases: leases)! == ("10.0.0.4", true))
+        #expect(DHCPLeases.address(mac: "52:55:55:a9:fd:f9", instance: "vm", in: subnet, leases: leases)! == ("10.0.0.2", true))
+        // A NIC without a lease of its own doesn't borrow the other NIC's by name.
+        #expect(DHCPLeases.address(mac: "52:55:55:00:00:01", instance: "vm", in: subnet, leases: leases) == nil)
+        // A lease by DUID (no MAC) is found by name; without a MAC, any lease by name.
+        for id in ["ff,1:2:3:4:5:6:7:8:9", "ff,55:d3:dd:1f:0:1"] {  // a six-byte identifier is no MAC either
+            let duid = [DHCPLease(name: "lima-vm", ip: "10.0.0.7", hwAddress: id, expires: soon)]
+            #expect(DHCPLeases.address(mac: "52:55:55:00:00:01", instance: "vm", in: subnet, leases: duid)! == ("10.0.0.7", false))
+        }
+        #expect(DHCPLeases.address(mac: nil, instance: "vm", in: subnet, leases: leases)?.ip == "10.0.0.2")
+    }
+
     @Test func readsSystemLeaseFile() {
         // World-readable on macOS; may be empty on a fresh machine.
         _ = DHCPLeases.load()

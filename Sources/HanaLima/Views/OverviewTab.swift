@@ -20,7 +20,7 @@ struct OverviewTab: View {
     private func nicAddress(_ net: NetworkAttachment) -> String? {
         guard let path = net.socket, let vn = model.virtualNetwork(forSocket: path) else { return nil }
         if let r = model.reservation(of: instance, on: vn) { return String(localized: "\(r.ip)（固定）") }
-        return model.address(of: instance, on: vn)
+        return model.address(of: instance, on: vn, mac: net.macAddress)
     }
 
     /// NIC 0: Lima's user-mode network, or none in the driver's isolation profile.

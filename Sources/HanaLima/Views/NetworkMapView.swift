@@ -359,13 +359,15 @@ private struct MapInspector: View {
                 }
                 if row.routerOf.contains(bus.id) { Text("このネットワークのルーターです。").font(.callout) }
                 if row.kind == .vm { checkResults(row.name, port.macs, probes: { $0.bus == bus.id }) }
-                if row.kind == .vm, case .guestOnly = bus.kind, let sample = model.observations[bus.name] {
-                    ForEach(ObservationText.ports(of: port.macs, in: sample.current)) { counters in
-                        PortCountersView(port: counters, sample: sample)
-                    }
-                }
                 if row.kind == .vm, case .guestOnly = bus.kind {
-                    ForEach(port.macs, id: \.self) { mac in  // one per NIC, if several are on this network
+                    // Per NIC: its counters and its fault. Several NICs on one network get their MAC as a heading.
+                    ForEach(port.macs, id: \.self) { mac in
+                        if port.macs.count > 1 { Text("NIC \(mac)").font(.caption.monospaced().weight(.semibold)) }
+                        if let sample = model.observations[bus.name] {
+                            ForEach(ObservationText.ports(of: [mac], in: sample.current)) { counters in
+                                PortCountersView(port: counters, sample: sample)
+                            }
+                        }
                         FaultControl(network: bus.name, target: mac, name: port.macs.count > 1 ? "\(row.name) (\(mac))" : row.name)
                     }
                 }

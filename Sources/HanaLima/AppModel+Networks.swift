@@ -87,9 +87,11 @@ extension AppModel {
     }
 
     /// The VM's current address on `network`, from the DHCP leases.
-    func address(of instance: LimaInstance, on network: VirtualNetwork) -> String? {
+    /// The leased address of `instance` on `network`; with `mac`, of that NIC (a VM may have
+    /// several NICs on one network).
+    func address(of instance: LimaInstance, on network: VirtualNetwork, mac: String? = nil) -> String? {
         guard let subnet = network.subnet else { return nil }
-        return DHCPLeases.address(of: instance.name, in: subnet, leases: dhcpLeases)
+        return DHCPLeases.address(mac: mac.flatMap(DHCPReservation.normalizedMAC), instance: instance.name, in: subnet, leases: dhcpLeases)?.ip
     }
 
     /// The network map (docs/16), with the VMs in the sidebar's order.
