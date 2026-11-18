@@ -18,7 +18,10 @@ en0: NO IPv4
 == after: both stopped (SIGINT)
 en0: NO IPv4
 
-== later: en0 regained its IPv4 on its own a few seconds after both stopped
-en0: inet 192.168.100.4 (default route on en0)
+== later: en0 did NOT regain its IPv4
+An earlier note here said it came back a few seconds later. That was wrong: it was read with
+`ipconfig getifaddr en0`, which returns configd's cached address. The kernel address stayed
+gone (configd's SIOCDIFADDR failed with EADDRNOTAVAIL at 11:34:11 JST) until
+`sudo ipconfig set en0 DHCP` at 11:53. Check with `ifconfig en0`.
 
 macOS 27.2.1, gateway 10.254.127.1, both processes stopped with SIGINT.

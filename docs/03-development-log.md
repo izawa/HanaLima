@@ -204,7 +204,7 @@ Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v
 
 2026-11-17 に、開発機の macOS が 27.0.1 から 27.2.1 に上がっていた（再起動のあとで気づいた）。docs/04 の確認表に沿って、自動で確かめられるものから確かめた。Lima は 2.3.0 のまま。
 - vmnet と entitlement: `NetworkEndToEndTests`・`DHCPReservationEndToEndTests`・`BridgeEndToEndTests`（ユーザーの確認のうえで en0）が通った。ブリッジのあとも en0 の IPv4 は残った。
-- vmnet の不具合（FB25122122）: `Prototypes/vmnet-bridge100-repro` で、27.2.1 でも再現した（`results-2026-11-18/steps.txt`）。インターフェースを止めた `vmnet_network` で開始し直すと、bridge100 を取り、en0 と従来のブリッジを外し、en0 の IPv4 が消える。どの呼び出しも 1000 を返す。27.0.1 と違い、両方を止めた数秒後に en0 の IPv4 は自分で戻った（27.0.1 では `sudo ipconfig set en0 DHCP` か再起動が要った）。HanaLima の netd は `vmnet_network` を使い回さないので当たらず、回避はそのまま要る。
+- vmnet の不具合（FB25122122）: `Prototypes/vmnet-bridge100-repro` で、27.2.1 でも再現した（`results-2026-11-18/steps.txt`）。インターフェースを止めた `vmnet_network` で開始し直すと、bridge100 を取り、en0 と従来のブリッジを外し、en0 の IPv4 が消える。どの呼び出しも 1000 を返す。27.0.1 と同じく、両方を止めても en0 の IPv4 は戻らなかった。最初は「数秒後に自分で戻った」と記録したが、これは誤りだった。`ipconfig getifaddr en0` は configd が覚えているアドレスを返す。configd は消えたことに気づかず、11:34:11 にも `v4(en0:192.168.100.4)` を出していた（カーネルからは消えていて、configd の `SIOCDIFADDR` は「Can't assign requested address」で失敗していた）。18 分後の 11:52 に、git push がゲートウェイに届かず気づいた。`ifconfig en0` に `inet` が無く、configd は「router ARP failure: en0」を出していた。ユーザーが `sudo ipconfig set en0 DHCP` を実行し、同じアドレスに戻った。確かめるときは `ifconfig en0` の `inet` を見る。HanaLima の netd は `vmnet_network` を使い回さないので当たらず、回避はそのまま要る。
 - ディスクのコピーとシンボリックリンク: `ExternalDiskTests` と `ExternalDiskEndToEndTests` が通った（別のボリュームへ移して起動・拡張・戻す、`limactl clone` で共有したディスクの独立）。
 - launchd: アプリの更新のあと、demo・lan・lab の登録が新しいヘルパーに付け替わり、最後の終了コードは 0（`spawn failed` は無い）。
 - Lima の CLI と `LibexecLima`: `EndToEndTests` が通り、`limactl info` の `vmTypes` に `hanalima` が出る。

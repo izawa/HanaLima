@@ -22,6 +22,7 @@ struct BridgeEndToEndTests {
                      "run scripts/build-app.sh first")
         try HelperInstaller.installIfNeeded(from: NetworkEndToEndTests.bundledHelper)
         let hostIP = try #require(hostAddress(), "\(interface) has no IPv4 address")
+        try #require(hostHas(hostIP), "\(interface): configd has \(hostIP), the kernel doesn't")
 
         let original = try NetworkStore.load().filter { $0.name != network.name }
         try NetworkStore.save(original + [network])
@@ -41,9 +42,9 @@ struct BridgeEndToEndTests {
             _ = try await drain(client.start(vm))
             #expect(NetworkDaemonStatus.load(for: network.name)?.clients.count == 1)
             let ip = try await lima0Address()
-            print("boot \(boot): lima0 \(ip), host \(interface) \(hostAddress() ?? "none")")
+            print("boot \(boot): lima0 \(ip), host \(interface) has \(hostIP): \(hostHas(hostIP))")
             #expect(!ip.isEmpty)
-            #expect(hostAddress() == hostIP)
+            #expect(hostHas(hostIP))
             let ping = try await client.runner.run(["shell", vm, "ping", "-c", "2", "-W", "2", hostIP])
             #expect(ping.stdoutString.contains("2 packets received"))
             // Beyond the Mac: the LAN's router, through the bridged interface (on Wi-Fi this goes
@@ -60,20 +61,31 @@ struct BridgeEndToEndTests {
         }
         _ = try await drain(client.delete(vm))
         agents.uninstall(network.name)
-        #expect(hostAddress() == hostIP)
+        #expect(hostHas(hostIP))
     }
 
+    /// The interface's primary IPv4 address, from configd.
     private func hostAddress() -> String? {
+        let ip = run("/usr/sbin/ipconfig", ["getifaddr", interface]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return ip.isEmpty ? nil : ip
+    }
+
+    /// Whether the kernel still has `ip` on the interface. configd's copy (`ipconfig getifaddr`)
+    /// kept the address after vmnet had removed it (FB25122122, docs/03 §35), so ask `ifconfig`.
+    private func hostHas(_ ip: String) -> Bool {
+        run("/sbin/ifconfig", [interface, "inet"]).matches(of: /inet (\d+\.\d+\.\d+\.\d+)/).contains { $0.1 == ip }
+    }
+
+    private func run(_ path: String, _ arguments: [String]) -> String {
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/sbin/ipconfig")
-        p.arguments = ["getifaddr", interface]
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = arguments
         let pipe = Pipe()
         p.standardOutput = pipe
         try? p.run()
         let out = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
         p.waitUntilExit()
-        let ip = out.trimmingCharacters(in: .whitespacesAndNewlines)
-        return ip.isEmpty ? nil : ip
+        return out
     }
 
     /// The LAN's DHCP server may answer a few seconds after `limactl start` returns, so poll.
