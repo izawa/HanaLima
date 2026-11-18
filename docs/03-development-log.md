@@ -203,12 +203,13 @@ Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v
 ## 35. macOS 27.2.1 への更新（2026-11-18、確認の途中）
 
 2026-11-17 に、開発機の macOS が 27.0.1 から 27.2.1 に上がっていた（再起動のあとで気づいた）。docs/04 の確認表に沿って、自動で確かめられるものから確かめた。Lima は 2.3.0 のまま。
-- vmnet と entitlement: `NetworkEndToEndTests`・`DHCPReservationEndToEndTests` が通った（NAT・ホストオンリー、DHCP 予約）。ブリッジ（`BridgeEndToEndTests`）と vmnet の不具合の再現（`Prototypes/vmnet-bridge100-repro`）は、en0 と Mac 本体の IPv4 に触るので、まだ流していない。
+- vmnet と entitlement: `NetworkEndToEndTests`・`DHCPReservationEndToEndTests`・`BridgeEndToEndTests`（ユーザーの確認のうえで en0）が通った。ブリッジのあとも en0 の IPv4 は残った。
+- vmnet の不具合（FB25122122）: `Prototypes/vmnet-bridge100-repro` で、27.2.1 でも再現した（`results-2026-11-18/steps.txt`）。インターフェースを止めた `vmnet_network` で開始し直すと、bridge100 を取り、en0 と従来のブリッジを外し、en0 の IPv4 が消える。どの呼び出しも 1000 を返す。27.0.1 と違い、両方を止めた数秒後に en0 の IPv4 は自分で戻った（27.0.1 では `sudo ipconfig set en0 DHCP` か再起動が要った）。HanaLima の netd は `vmnet_network` を使い回さないので当たらず、回避はそのまま要る。
 - ディスクのコピーとシンボリックリンク: `ExternalDiskTests` と `ExternalDiskEndToEndTests` が通った（別のボリュームへ移して起動・拡張・戻す、`limactl clone` で共有したディスクの独立）。
 - launchd: アプリの更新のあと、demo・lan・lab の登録が新しいヘルパーに付け替わり、最後の終了コードは 0（`spawn failed` は無い）。
 - Lima の CLI と `LibexecLima`: `EndToEndTests` が通り、`limactl info` の `vmTypes` に `hanalima` が出る。
 - ドライバー: `DriverEndToEndTests`（画面の写しを含む）、一時停止・休止・スナップショットの E2E、ゲスト専用ネットワークの E2E 一式、`GroupEndToEndTests` が通った。Ubuntu LTS の一時停止も通った。
-- まだ確かめていないもの: 外付けドライブの抜き差しの通知、外付けの空き容量の表示、hanalima の VM の画面のサムネイルの目視（手作業）、ブリッジと vmnet の不具合の再現（ユーザーの確認が要る）。
+- まだ確かめていないもの: 外付けドライブの抜き差しの通知、外付けの空き容量の表示、hanalima の VM の画面のサムネイルの目視（手作業）。
 
 ## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。

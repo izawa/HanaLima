@@ -1,0 +1,24 @@
+== step3: network started
+bridge100: flags=8a63<UP,BROADCAST,SMART,RUNNING,ALLMULTI,SIMPLEX,MULTICAST> mtu 1500
+	inet 10.254.127.1 netmask 0xffffff00 broadcast 10.254.127.255
+	member: vmenet0 flags=3<LEARNING,DISCOVER>
+en0: 	inet 192.168.100.4 netmask 0xffffff00 broadcast 192.168.100.255
+== step4: network interface stopped
+en0: 	inet 192.168.100.4 netmask 0xffffff00 broadcast 192.168.100.255
+== step5: legacy bridged on en0
+bridge100: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	member: vmenet0 flags=3<LEARNING,DISCOVER>
+	member: en0 flags=3<LEARNING,DISCOVER>
+en0: 	inet 192.168.100.4 netmask 0xffffff00 broadcast 192.168.100.255
+== step6: network interface started again on the same object
+bridge100: flags=8a63<UP,BROADCAST,SMART,RUNNING,ALLMULTI,SIMPLEX,MULTICAST> mtu 1500
+	inet 10.254.127.1 netmask 0xffffff00 broadcast 10.254.127.255
+	member: vmenet1 flags=3<LEARNING,DISCOVER>
+en0: NO IPv4
+== after: both stopped (SIGINT)
+en0: NO IPv4
+
+== later: en0 regained its IPv4 on its own a few seconds after both stopped
+en0: inet 192.168.100.4 (default route on en0)
+
+macOS 27.2.1, gateway 10.254.127.1, both processes stopped with SIGINT.
