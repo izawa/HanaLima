@@ -2830,6 +2830,22 @@
         }
       }
     },
+    "NIC（%lld）": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC（%lld）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NICs (%lld)"
+          }
+        }
+      }
+    },
     "OS のイメージなどは、最初に使うときにここへダウンロードされ、次からは再利用されます。削除しても仮想マシンには影響しません。": {
       "localizations": {
         "en": {

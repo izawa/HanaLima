@@ -349,35 +349,65 @@ private struct MapInspector: View {
                 Divider()
                 Text(bus.name).font(.subheadline.weight(.semibold))
                 Text(MapText.kind(bus.kind)).font(.caption).foregroundStyle(.secondary)
-                if !port.macs.isEmpty { LabeledContent("MAC", value: port.macs.joined(separator: ", ")) }
-                let reported = port.macs.flatMap { model.mapChecks[row.name]?.record.observed[$0] ?? [] }
-                LabeledContent("IP", value: MapText.addresses(port.addresses)
-                    ?? (reported.isEmpty ? MapText.unknownAddress(bus.kind, running: row.running)
-                        : String(localized: "\(reported.joined(separator: ", "))（ゲストの答え）")))
+                // Several NICs of the VM on this network: each gets a box of its own below, with
+                // its MAC and address, instead of both NICs' values on one line here.
+                let several = port.nics.count > 1
+                if !several {
+                    if let mac = port.macs.first { LabeledContent("MAC", value: mac) }
+                    LabeledContent("IP", value: address(port.addresses, row: row, bus: bus, macs: port.macs))
+                }
                 if case .guestOnly = bus.kind, row.kind == .vm {
                     LabeledContent("DNS の名前", value: "lima-\(row.name).hanalima")
                 }
                 if row.routerOf.contains(bus.id) { Text("このネットワークのルーターです。").font(.callout) }
                 if row.kind == .vm { checkResults(row.name, port.macs, probes: { $0.bus == bus.id }) }
-                if row.kind == .vm, case .guestOnly = bus.kind {
-                    // Per NIC: its counters and its fault. Several NICs on one network get their MAC as a heading.
-                    ForEach(port.macs, id: \.self) { mac in
-                        // Several NICs on one network: each under the guest's name for it and its MAC.
-                        let nic = port.nics.first { $0.mac == mac }?.interface.map { "\($0) (\(mac))" } ?? mac
-                        if port.macs.count > 1 { Text(nic).font(.caption.monospaced().weight(.semibold)) }
-                        if let sample = model.observations[bus.name] {
-                            ForEach(ObservationText.ports(of: [mac], in: sample.current)) { counters in
-                                PortCountersView(port: counters, sample: sample)
+                if several {
+                    Text("NIC（\(port.nics.count)）").font(.subheadline.weight(.semibold)).padding(.top, 4)
+                    ForEach(Array(port.nics.enumerated()), id: \.offset) { _, nic in
+                        let label = nic.interface ?? nic.mac ?? "NIC"
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(label).font(.callout.monospaced().weight(.semibold))
+                            if let mac = nic.mac { LabeledContent("MAC", value: mac) }
+                            // Only this NIC's own address: a lease found by the VM's name may be the other NIC's.
+                            LabeledContent("IP", value: address(nic.addresses.filter { $0.source != .leaseByName }, row: row, bus: bus,
+                                                                macs: nic.mac.map { [$0] } ?? []))
+                            if let mac = nic.mac {
+                                nicTraffic(row: row, bus: bus, mac: mac, name: "\(row.name) \(nic.interface ?? mac) (\(mac))")
                             }
                         }
-                        FaultControl(network: bus.name, target: mac, name: port.macs.count > 1 ? "\(row.name) \(nic)" : row.name)
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
                     }
+                } else if let mac = port.macs.first {
+                    nicTraffic(row: row, bus: bus, mac: mac, name: row.name)
                 }
                 let peers = map.members(of: bus.id).map(\.name).filter { $0 != row.name }
                 if !peers.isEmpty { LabeledContent("同じネットワーク", value: peers.joined(separator: ", ")) }
             }
         }
         if row.ports.isEmpty { Text("HanaLima や Lima のネットワークにはつながっていません。").font(.callout).foregroundStyle(.secondary) }
+    }
+
+    /// The address to show for NICs with `macs`: the map's, else the one the guest reported in the
+    /// last check, else why it isn't known.
+    private func address(_ addresses: [NetworkMap.Address], row: NetworkMap.Row, bus: NetworkMap.Bus, macs: [String]) -> String {
+        let reported = macs.flatMap { model.mapChecks[row.name]?.record.observed[$0] ?? [] }
+        return MapText.addresses(addresses)
+            ?? (reported.isEmpty ? MapText.unknownAddress(bus.kind, running: row.running)
+                : String(localized: "\(reported.joined(separator: ", "))（ゲストの答え）"))
+    }
+
+    /// On a guest-only network: the NIC's counters and its fault.
+    @ViewBuilder private func nicTraffic(row: NetworkMap.Row, bus: NetworkMap.Bus, mac: String, name: String) -> some View {
+        if row.kind == .vm, case .guestOnly = bus.kind {
+            if let sample = model.observations[bus.name] {
+                ForEach(ObservationText.ports(of: [mac], in: sample.current)) { counters in
+                    PortCountersView(port: counters, sample: sample)
+                }
+            }
+            FaultControl(network: bus.name, target: mac, name: name)
+        }
     }
 
     /// The probes `filter` picks from `vm`'s last run, and the addresses the guest had on `macs`.
