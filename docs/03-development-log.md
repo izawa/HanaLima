@@ -209,7 +209,8 @@ Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v
 - launchd: アプリの更新のあと、demo・lan・lab の登録が新しいヘルパーに付け替わり、最後の終了コードは 0（`spawn failed` は無い）。
 - Lima の CLI と `LibexecLima`: `EndToEndTests` が通り、`limactl info` の `vmTypes` に `hanalima` が出る。
 - ドライバー: `DriverEndToEndTests`（画面の写しを含む）、一時停止・休止・スナップショットの E2E、ゲスト専用ネットワークの E2E 一式、`GroupEndToEndTests` が通った。Ubuntu LTS の一時停止も通った。
-- まだ確かめていないもの: 外付けドライブの抜き差しの通知、外付けの空き容量の表示、hanalima の VM の画面のサムネイルの目視（手作業）。
+- 画面のサムネイル: 画面を有効にした使い捨ての hanalima の Alpine で、概要タブにドライバーのウインドウの写し（`CGWindowListCreateImage`）が出た。
+- まだ確かめていないもの: 外付けドライブの抜き差しの通知、外付けの空き容量の表示（手作業）。
 
 ## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
