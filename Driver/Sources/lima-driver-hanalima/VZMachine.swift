@@ -84,7 +84,12 @@ final class VZMachine: @unchecked Sendable {
     /// Takes every connected NIC's link down and up again (VZ's `attachment` to nil and back),
     /// so the guest's DHCP client confirms its lease: after a long pause the guest's timers
     /// (its monotonic clock stood still) still trust a lease the server may have let go.
-    func relinkNetworks(downFor seconds: TimeInterval = 1) async {
+    /// Three seconds, not less: after a short relink the guest's DHCP request sometimes never
+    /// reached the network (whether it wasn't sent or was lost isn't known), and Alpine's dhcpcd
+    /// kept its lease without asking again. HibernateLeaseEndToEndTests on macOS 27.2.1
+    /// (2026-11-18): down for 0.3 s, 7 of 11 resumes left netd's lease unrenewed; for 1 s, 7 of
+    /// 7 renewed it; for 3 s, 11 of 11.
+    func relinkNetworks(downFor seconds: TimeInterval = 3) async {
         let saved: [(VZNetworkDevice, VZNetworkDeviceAttachment)] = queue.sync {
             machine.networkDevices.compactMap { device in device.attachment.map { (device, $0) } }
         }
