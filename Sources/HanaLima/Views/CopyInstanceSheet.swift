@@ -80,7 +80,7 @@ struct CopyInstanceSheet: View {
     }
 
     private func diskText(_ instance: LimaInstance?) -> String {
-        let used = instance.map { Formatting.bytes(model.diskAllocatedSize(of: $0)) } ?? "—"
+        let used = instance.map { Formatting.fileSize(model.diskAllocatedSize(of: $0)) } ?? "—"
         if let instance, case .external(let url) = model.diskPlacement(of: instance) {
             return String(localized: "ディスク（今 \(used)）は、同じ外付けドライブ（\(DiskLocationText.describe(url))）の上にコピーします。APFS のクローンなので、すぐに終わり、最初は容量をほとんど使いません（どちらかが書き込んだ分だけ増えます）。")
         }

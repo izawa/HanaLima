@@ -296,10 +296,10 @@ private struct DownloadProgressView: View {
 
     /// "412 MB / 902 MB · 11.8 MB/秒 · 残り 約 42 秒"
     private var detailText: String {
-        var parts = [Formatting.bytes(progress.received)]
-        if let total = progress.total { parts[0] += " / " + Formatting.bytes(total) }
+        var parts = [Formatting.fileSize(progress.received)]
+        if let total = progress.total { parts[0] += " / " + Formatting.fileSize(total) }
         if let speed = progress.bytesPerSecond, speed > 0 {
-            parts.append(String(localized: "\(Formatting.bytes(Int64(speed)))/秒"))
+            parts.append(String(localized: "\(Formatting.fileSize(Int64(speed)))/秒"))
         }
         if let seconds = progress.secondsRemaining {
             parts.append(String(localized: "残り 約 \(Formatting.remaining(seconds))"))

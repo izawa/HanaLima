@@ -46,14 +46,14 @@ struct StorageView: View {
                 Text("仮想マシンはそのまま使えます。次に仮想マシンを作るときや、containerd などの部品が必要になったときに、ダウンロードし直します。")
             } else {
                 let unused = model.storage?.unusedDownloads ?? []
-                Text("どの仮想マシンも使っていないイメージ \(unused.count) 個（\(Formatting.bytes(unused.reduce(0) { $0 + $1.size }))）を削除します。同じテンプレートで仮想マシンを作るときに、ダウンロードし直します。\n\n\(unused.map(\.fileName).joined(separator: "\n"))")
+                Text("どの仮想マシンも使っていないイメージ \(unused.count) 個（\(Formatting.fileSize(unused.reduce(0) { $0 + $1.size }))）を削除します。同じテンプレートで仮想マシンを作るときに、ダウンロードし直します。\n\n\(unused.map(\.fileName).joined(separator: "\n"))")
             }
         }
     }
 
     private var subtitle: String {
         guard let report = model.storage else { return "" }
-        return String(localized: "合計 \(Formatting.bytes(report.limaTotal + report.cacheTotal))")
+        return String(localized: "合計 \(Formatting.fileSize(report.limaTotal + report.cacheTotal))")
     }
 
     private func form(_ report: StorageReport) -> some View {
@@ -79,7 +79,7 @@ struct StorageView: View {
                 HStack {
                     Text("仮想マシンとディスク")
                     Spacer()
-                    Text(Formatting.bytes(report.limaTotal)).monospacedDigit()
+                    Text(Formatting.fileSize(report.limaTotal)).monospacedDigit()
                 }
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
@@ -108,7 +108,7 @@ struct StorageView: View {
                 ForEach(report.downloads) { item in
                     LabeledContent {
                         HStack(spacing: 8) {
-                            Text(Formatting.bytes(item.size)).monospacedDigit()
+                            Text(Formatting.fileSize(item.size)).monospacedDigit()
                             RevealIcon(url: item.directory)
                         }
                     } label: {
@@ -135,7 +135,7 @@ struct StorageView: View {
                 HStack {
                     Text("ダウンロードしたイメージ（キャッシュ）")
                     Spacer()
-                    Text(Formatting.bytes(report.cacheTotal)).monospacedDigit()
+                    Text(Formatting.fileSize(report.cacheTotal)).monospacedDigit()
                 }
             } footer: {
                 Text(model.isAnyOperationRunning
@@ -160,9 +160,9 @@ struct StorageView: View {
 
     /// "1.2 GB", "1.2 GB ＋ 外部 300 MB", "… ＋ スナップショット 40 MB".
     private func sizeText(_ row: Row) -> String {
-        var parts = [Formatting.bytes(row.size)]
-        if row.externalDisk != nil { parts.append(String(localized: "外部 \(Formatting.bytes(row.externalSize))")) }
-        if row.snapshotSize > 0 { parts.append(String(localized: "スナップショット \(Formatting.bytes(row.snapshotSize))")) }
+        var parts = [Formatting.fileSize(row.size)]
+        if row.externalDisk != nil { parts.append(String(localized: "外部 \(Formatting.fileSize(row.externalSize))")) }
+        if row.snapshotSize > 0 { parts.append(String(localized: "スナップショット \(Formatting.fileSize(row.snapshotSize))")) }
         return parts.joined(separator: String(localized: " ＋ ", comment: "Between sizes, as in 1.2 GB + external 300 MB"))
     }
 
@@ -172,7 +172,7 @@ struct StorageView: View {
             ForEach(leftovers) { item in
                 LabeledContent {
                     HStack(spacing: 8) {
-                        Text(Formatting.bytes(item.size)).monospacedDigit()
+                        Text(Formatting.fileSize(item.size)).monospacedDigit()
                         RevealIcon(url: item.url)
                         Button("削除…") { deletingLeftover = item }
                             .disabled(model.isMeasuringStorage)
@@ -195,7 +195,7 @@ struct StorageView: View {
                 if let item = deletingLeftover { Task { await model.deleteLeftover(item) } }
             }
         } message: {
-            Text("\(deletingLeftover?.url.path ?? "")（\(Formatting.bytes(deletingLeftover?.size ?? 0))）を削除します。この操作は取り消せません。")
+            Text("\(deletingLeftover?.url.path ?? "")（\(Formatting.fileSize(deletingLeftover?.size ?? 0))）を削除します。この操作は取り消せません。")
         }
     }
 

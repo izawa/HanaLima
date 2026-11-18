@@ -2,9 +2,16 @@ import LimaKit
 import SwiftUI
 
 enum Formatting {
+    /// A size set in GiB (memory, a disk's capacity): 1 GB = 2³⁰ bytes, so 4 GiB reads "4 GB".
     static func bytes(_ value: Int64?) -> String {
         guard let value, value > 0 else { return "—" }
         return ByteCountFormatter.string(fromByteCount: value, countStyle: .memory)
+    }
+
+    /// Space on a volume (free, used, a file's size): 1 GB = 10⁹ bytes, as Finder counts.
+    static func fileSize(_ value: Int64?) -> String {
+        guard let value, value > 0 else { return "—" }
+        return ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
     /// A byte count, where zero is a count too ("0 bytes"), not a missing value as in `bytes`.

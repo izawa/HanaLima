@@ -125,7 +125,7 @@ struct GroupRunSheet: View {
             guard !plan.steps.isEmpty else { return nil }
             let needed = plan.steps.reduce(Int64(0)) { $0 + $1.memory } + Int64(gib)
             guard let free = request.freeSpace else { return nil }
-            let text = String(localized: "保存には最大 \(Formatting.bytes(needed)) を使います（空き \(Formatting.bytes(free))）。")
+            let text = String(localized: "保存には最大 \(Formatting.fileSize(needed)) を使います（空き \(Formatting.fileSize(free))）。")
             return (text, free < needed)
         case .stop:
             return nil

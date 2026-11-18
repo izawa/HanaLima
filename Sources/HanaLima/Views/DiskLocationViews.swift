@@ -60,7 +60,7 @@ struct DiskLocationSection: View {
             }
             if case .missing = placement {} else {
                 LabeledContent("使用量") {
-                    Text(Formatting.bytes(model.diskAllocatedSize(of: instance))).monospacedDigit()
+                    Text(Formatting.fileSize(model.diskAllocatedSize(of: instance))).monospacedDigit()
                 }
             }
             HStack {
@@ -120,8 +120,8 @@ struct DiskLocationSection: View {
     private var backFits: Bool { internalAvailable > model.diskAllocatedSize(of: instance) + 1 << 30 }
 
     private var backMessage: String {
-        let size = Formatting.bytes(model.diskAllocatedSize(of: instance))
-        let free = Formatting.bytes(internalAvailable)
+        let size = Formatting.fileSize(model.diskAllocatedSize(of: instance))
+        let free = Formatting.fileSize(internalAvailable)
         if backFits, let owner = model.sharedDiskOwners[instance.name] {
             return String(localized: "ディスク（\(size)）を Mac の内蔵ディスクにコピーします。外付けドライブ上のディスクは「\(owner)」のものなので残します。内蔵の空き: \(free)。")
         }
@@ -156,9 +156,9 @@ enum DiskLocationText {
         case .sameVolume:
             String(localized: "Mac の内蔵ディスクと同じディスクです。移しても空き容量は増えません。外付けドライブなど、別のディスクを選んでください。")
         case .notAPFS(let fs):
-            String(localized: "「\(check.volumeName)」は \(fs.isEmpty ? "APFS 以外" : fs) です。APFS でないと、ディスクが名目のサイズ（\(Formatting.bytes(nominal))）を丸ごと使ってしまいます。APFS でフォーマットしたドライブを選んでください。")
+            String(localized: "「\(check.volumeName)」は \(fs.isEmpty ? "APFS 以外" : fs) です。APFS でないと、ディスクが名目のサイズ（\(Formatting.fileSize(nominal))）を丸ごと使ってしまいます。APFS でフォーマットしたドライブを選んでください。")
         case .notEnoughSpace:
-            String(localized: "空き容量が足りません（必要 \(Formatting.bytes(check.required))、空き \(Formatting.bytes(check.available))）。")
+            String(localized: "空き容量が足りません（必要 \(Formatting.fileSize(check.required))、空き \(Formatting.fileSize(check.available))）。")
         case .alreadyExists:
             String(localized: "選んだ場所に「\(ExternalDisk.folderName)/…」の同じ名前のフォルダが既にあります。別の場所を選ぶか、そのフォルダを片付けてください。")
         case .notWritable:
@@ -185,7 +185,7 @@ struct ExternalFolderPicker: View {
         }
         if let check {
             if check.isOK {
-                Label("「\(check.volumeName)」（\(check.fileSystem.uppercased())）・空き \(Formatting.bytes(check.available))。保存先: \(destinationText(check))",
+                Label("「\(check.volumeName)」（\(check.fileSystem.uppercased())）・空き \(Formatting.fileSize(check.available))。保存先: \(destinationText(check))",
                       systemImage: "checkmark.circle.fill")
                     .font(.callout).foregroundStyle(.green)
                     .help(check.target.deletingLastPathComponent().path)
@@ -201,8 +201,12 @@ struct ExternalFolderPicker: View {
 
     /// The target doesn't exist yet, so describe it from the chosen folder.
     private func destinationText(_ check: ExternalDisk.DestinationCheck) -> String {
-        let inside = check.target.deletingLastPathComponent().pathComponents.suffix(2).joined(separator: "/")
-        return folder.map { "\(DiskLocationText.describe(folder: $0)) › \(inside)" } ?? check.target.path
+        guard let folder else { return check.target.path }
+        // Relative to the chosen folder: "HanaLima Disks/<name>", or "<name>" when the folder is
+        // already such a folder (ExternalDisk.target doesn't add another level).
+        let inside = check.target.deletingLastPathComponent().pathComponents
+            .dropFirst(folder.pathComponents.count).joined(separator: "/")
+        return "\(DiskLocationText.describe(folder: folder)) › \(inside)"
     }
 
     private func choose() {
@@ -253,7 +257,7 @@ struct MoveDiskSheet: View {
             Form {
                 Section {
                     Text("「\(instance.name)」のディスクを移動").font(.headline)
-                    Text("仮想マシンのディスク（いちばん大きなファイル、今 \(Formatting.bytes(model.diskAllocatedSize(of: instance)))）だけを、選んだ場所へ移します。設定やログは ~/.lima に残り、移したあとも、これまでどおり起動・編集できます。")
+                    Text("仮想マシンのディスク（いちばん大きなファイル、今 \(Formatting.fileSize(model.diskAllocatedSize(of: instance)))）だけを、選んだ場所へ移します。設定やログは ~/.lima に残り、移したあとも、これまでどおり起動・編集できます。")
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Section {
