@@ -67,7 +67,10 @@ struct LimaDriverHanaLima {
             guard st.st_mode & S_IFMT == S_IFSOCK else { throw DriverError("refusing to remove a non-socket at \(path)") }
             unlink(path)
         }
-        defer { unlink(path) }
+        // Removed at exit only if it is still this process's: a driver left behind after its VM
+        // stopped may exit after the next one bound the same path.
+        let socketFile = SocketFile(path: path)
+        defer { socketFile.remove() }
 
         let core = DriverCore(instanceDir: URL(fileURLWithPath: instanceDir, isDirectory: true))
         let service = DriverService(core: core)
@@ -100,7 +103,23 @@ struct LimaDriverHanaLima {
             continuation.finish()
         }
 
+        // Ends the process with only this process's sockets removed. Closing the gRPC server
+        // would have NIO remove the socket file by its path, also when a later driver (this
+        // one was left behind after its VM stopped) has bound the same path since; at this
+        // point the host agent is gone or going, so nothing waits on the server.
+        @Sendable func exitKeepingLaterSockets() -> Never {
+            control.close()
+            socketFile.remove()
+            exit(0)
+        }
+
         log("serving on \(path)")
+        // Outside the task group below, whose first finished task ends the serving.
+        Task {
+            // Bound: note the socket as ours (not after a failed bind: the file would be another's).
+            guard (try? await server.listeningAddress) != nil else { return }
+            socketFile.claim()
+        }
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask { try await server.serve() }
@@ -111,8 +130,7 @@ struct LimaDriverHanaLima {
                     for await _ in signals {
                         log("shutdown requested")
                         try? await core.stop()
-                        server.beginGracefulShutdown()
-                        break
+                        exitKeepingLaterSockets()
                     }
                 }
                 // Don't outlive the Lima process that spawned us when there is no VM to keep:
@@ -126,9 +144,11 @@ struct LimaDriverHanaLima {
                         guard await core.isIdle, getppid() == 1 else { orphaned = 0; continue }
                         orphaned += 1
                         if orphaned >= 3 {
-                            log("the Lima process that started the driver is gone and no VM is running; exiting")
-                            server.beginGracefulShutdown()
-                            break
+                            await core.exitIfIdle {
+                                log("the Lima process that started the driver is gone and no VM is running; exiting")
+                                exitKeepingLaterSockets()
+                            }
+                            orphaned = 0  // something started meanwhile
                         }
                     }
                 }

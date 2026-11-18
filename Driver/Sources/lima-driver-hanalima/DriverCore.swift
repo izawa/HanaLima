@@ -847,6 +847,12 @@ actor DriverCore {
     /// For the watchdog: no VM and nothing in progress.
     var isIdle: Bool { run == nil && !busy }
 
+    /// Runs `exit` if there is still no VM and nothing in progress, checked and run in one go on
+    /// this actor, so no request (a snapshot restore, say) can start between the check and the exit.
+    func exitIfIdle(_ exit: @Sendable () -> Never) {
+        if isIdle { exit() }
+    }
+
     // MARK: - Snapshots
 
     /// `limactl snapshot` on a `hanalima` VM: the same APFS-clone snapshots as the app's

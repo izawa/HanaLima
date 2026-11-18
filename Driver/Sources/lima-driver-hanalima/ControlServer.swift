@@ -8,10 +8,13 @@ import LimaKit
 final class ControlServer: @unchecked Sendable {
     private let listener: Int32
     private let path: String
+    /// Removed at close only if it is still this server's (a later driver may own the path).
+    private let file: SocketFile
     private let handler: @Sendable (DriverControl.Request) async -> DriverControl.Response
 
     init(path: String, handler: @escaping @Sendable (DriverControl.Request) async -> DriverControl.Response) throws {
         self.path = path
+        file = SocketFile(path: path)
         self.handler = handler
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { throw DriverError("socket: \(String(cString: strerror(errno)))") }
@@ -30,6 +33,7 @@ final class ControlServer: @unchecked Sendable {
             throw DriverError("listen on \(path): \(String(cString: strerror(err)))")
         }
         chmod(path, 0o600)
+        file.claim()
         listener = fd
         Thread.detachNewThread { self.acceptLoop() }
     }
@@ -88,6 +92,6 @@ final class ControlServer: @unchecked Sendable {
     func close() {
         shutdown(listener, SHUT_RDWR)
         Darwin.close(listener)
-        unlink(path)
+        file.remove()
     }
 }
