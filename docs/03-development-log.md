@@ -200,7 +200,7 @@ Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v
 - 2.3 の初回起動では、ゲストエージェントの「events closed unexpectedly」の警告が数回出るが、そのまま READY になる。
 - socket_vmnet の片付け: `/etc/sudoers.d/lima` が 2.3 の `limactl sudoers` と合わなくなっていた（変わったのは `--pidfile` の位置と `pkill -F` の空白だけで、権限の範囲は同じ）。このファイルと `/opt/socket_vmnet` は、2026-10-09 に当時の HanaLima のセットアップ画面（a0fd62a、2026-10-12 に削除）が入れたもので、Homebrew の管理外。使う VM が無いので、ユーザーが両方を削除した。HanaLima は導入を Lima の手順に任せているので、Lima の更新で sudoers が合わなくなっても知らせない。
 
-## 35. macOS 27.2.1 への更新（2026-11-18、確認の途中）
+## 35. macOS 27.2.1 への更新（2026-11-18）
 
 2026-11-17 に、開発機の macOS が 27.0.1 から 27.2.1 に上がっていた（再起動のあとで気づいた）。docs/04 の確認表に沿って、自動で確かめられるものから確かめた。Lima は 2.3.0 のまま。
 - vmnet と entitlement: `NetworkEndToEndTests`・`DHCPReservationEndToEndTests`・`BridgeEndToEndTests`（ユーザーの確認のうえで en0）が通った。ブリッジのあとも en0 の IPv4 は残った。
@@ -210,7 +210,10 @@ Lima 2.3.0（2026-11-06 リリース）に上げた。リリースノートと v
 - Lima の CLI と `LibexecLima`: `EndToEndTests` が通り、`limactl info` の `vmTypes` に `hanalima` が出る。
 - ドライバー: `DriverEndToEndTests`（画面の写しを含む）、一時停止・休止・スナップショットの E2E、ゲスト専用ネットワークの E2E 一式、`GroupEndToEndTests` が通った。Ubuntu LTS の一時停止も通った。
 - 画面のサムネイル: 画面を有効にした使い捨ての hanalima の Alpine で、概要タブにドライバーのウインドウの写し（`CGWindowListCreateImage`）が出た。
-- まだ確かめていないもの: 外付けドライブの抜き差しの通知、外付けの空き容量の表示（手作業）。
+- 外付けドライブの抜き差しの通知: ディスクを外付けに置いた VM（macOS27）が、HDD をつなぐと「停止」、取り出すと「ディスクが見つからない」に変わった。
+- 外付けの空き容量: 移動のシートに「空き 7.25 TB」と出た。Finder の 7.97 TB と同じバイト数で、HanaLima は 1 TB を 2⁴⁰ バイトで数える（`ByteCountFormatter` の `.memory`）ので数字が違う。Finder と単位を揃えるかは未定。選んだフォルダが `HanaLimaDisks` のときに、保存先の表示で同じ名前が 2 回出ることにも気づいた（置き場所そのものは正しい）。
+
+確認表の項目はすべて済んだ。
 
 ## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
