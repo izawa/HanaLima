@@ -52,7 +52,10 @@ struct DriverLeftBehindEndToEndTests {
         #expect(FileManager.default.fileExists(atPath: grpc), "before the old driver goes, Lima's socket is there")
         // The old driver goes now, after the new one bound the same paths.
         old.terminate()
-        old.waitUntilExit()
+        // Not waitUntilExit(): it spins the run loop, which can miss the exit on a
+        // cooperative thread and hang the test (it did, for an hour).
+        for _ in 0..<100 where old.isRunning { try await Task.sleep(for: .milliseconds(100)) }
+        try #require(!old.isRunning, "the old driver exits")
         #expect(FileManager.default.fileExists(atPath: control), "the new driver's control socket stays")
         #expect(FileManager.default.fileExists(atPath: grpc), "Lima's socket to the new driver stays")
         let status = try DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 5)
