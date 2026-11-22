@@ -45,10 +45,7 @@ struct LogTab: View {
     /// serialv.log (VZ), serial.log and serialp.log (QEMU): whichever exist.
     private var serialFiles: [String] {
         guard let dir = instanceDir else { return [] }
-        // The main console first: virtio for VZ, the first serial port for QEMU.
-        let order = instance?.vmType?.lowercased() == "qemu"
-            ? ["serial.log", "serialp.log", "serialv.log"] : ["serialv.log", "serial.log", "serialp.log"]
-        return order.filter {
+        return BootLogs.serialFiles(vmType: instance?.vmType).filter {
             FileManager.default.fileExists(atPath: dir.appending(path: $0).path)
         }
     }

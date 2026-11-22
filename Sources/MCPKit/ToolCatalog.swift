@@ -93,13 +93,15 @@ public enum ToolCatalog {
         name: "vm",
         title: "Operate VMs",
         description: "Start, stop, restart, pause, resume, hibernate, or create/restore a snapshot of existing VMs, "
+            + "or read one VM's logs from its last start (boot_logs: why a start failed or isn't ready; works while it starts; "
+            + "the text comes with wait, or later from `job` get with output true), "
             + "as a job. For VMs not made through MCP the user must approve it in the HanaLima app first: tell them, then wait with `job`.",
         inputSchema: [
             "type": "object",
             "properties": [
                 "key": ["type": "string", "description": "Idempotency key: resending the same key and arguments returns the same job"],
                 "action": ["type": "string", "enum": ["start", "stop", "restart", "pause", "resume", "hibernate",
-                                                      "snapshot_create", "snapshot_restore"]],
+                                                      "snapshot_create", "snapshot_restore", "boot_logs"]],
                 "targets": ["type": "array", "items": ["type": "string"], "description": "VM names"],
                 "group": ["type": "string", "description": "Instead of targets: a group (start, stop, hibernate only)"],
                 "tag": ["type": "string", "description": "Snapshot name (snapshot_create, snapshot_restore)"],
@@ -123,7 +125,7 @@ public enum ToolCatalog {
                 "after": ["type": "integer", "minimum": 0],
                 "waitSeconds": ["type": "integer", "minimum": 1, "maximum": 120],
                 "detail": ["type": "boolean", "description": "All per-VM rows instead of failures only"],
-                "output": ["type": "boolean", "description": "exec jobs: append the end of each VM's output (get only)"],
+                "output": ["type": "boolean", "description": "exec and boot_logs jobs: append each VM's output or log excerpt (get only)"],
             ],
             "required": ["id"],
             "additionalProperties": false,

@@ -117,6 +117,11 @@ struct MCPEndToEndTests {
             try require(try jobHeader(executed.text).state == .succeeded, executed.text)
             try require(executed.text.contains("via 10.29.0.1"), executed.text)
 
+            // The last start's logs of a VM MCP made: no approval, the text in the answer.
+            let logs = try client.call("vm", arguments: ["key": UUID().uuidString, "action": "boot_logs", "targets": [names[1]], "wait": 30]).text
+            try require(try jobHeader(logs).state == .succeeded && logs.contains("# boot_logs")
+                        && logs.contains("== ha.stderr.log (modified ") && logs.contains("requirement "), logs)
+
             // Reading the map, the checks and the network's observation (read only; nothing is run).
             let mapped = try client.call("inspect", arguments: ["topics": ["map"], "ids": names]).text.split(separator: "\n")
             try require(mapped.contains { $0.hasPrefix("e2e-mcp\tguestOnly\t10.29.0.0/24\t") && $0.hasSuffix("\t10.29.0.1\thanalima-e2e-mgw\tfalse") }

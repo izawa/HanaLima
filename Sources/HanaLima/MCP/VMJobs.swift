@@ -15,6 +15,8 @@ final class VMJobs {
     enum Action: String, CaseIterable {
         case start, stop, restart, pause, resume, hibernate
         case snapshotCreate = "snapshot_create", snapshotRestore = "snapshot_restore"
+        /// The end of one VM's logs from its last start (BootLogs): why it failed or isn't ready.
+        case bootLogs = "boot_logs"
         /// The `exec` tool (not a `vm` action): a script in each target.
         case exec
 
@@ -100,13 +102,19 @@ final class VMJobs {
             }
         }
         let text = JobStore.text(job, detail: job.results.count <= 3)
-        return job.tool == "exec" && job.state.isFinished ? text + "\n" + outputText(job.id) : text
+        let hasOutput = job.tool == "exec" || job.summary.hasPrefix(Action.bootLogs.rawValue + " ")
+        return hasOutput && job.state.isFinished ? text + "\n" + outputText(job.id) : text
     }
 
     /// The kept output of an exec job, VM by VM.
     private func outputText(_ id: String) -> String {
         let parts = (outputs[id] ?? [:]).sorted { $0.key < $1.key }.map { "--- \($0.key)\n\($0.value)" }
-        return parts.isEmpty ? "--- no output kept (not an exec job, or HanaLima restarted)" : parts.joined(separator: "\n")
+        guard parts.isEmpty else { return parts.joined(separator: "\n") }
+        guard let job = store.job(id), job.state.isFinished else { return "--- no output yet: the job is still running" }
+        // Reading logs again is harmless; running a script again may not be.
+        return job.summary.hasPrefix(Action.bootLogs.rawValue + " ")
+            ? "--- the excerpt isn't kept (HanaLima restarted): ask again with a new key"
+            : "--- no output kept (not an exec job, or HanaLima restarted)"
     }
 
     /// `vm`: validates, plans, and files a job waiting for approval.
@@ -126,6 +134,7 @@ final class VMJobs {
             throw Failure.invalid("key already used by job \(id) with different arguments")
         }
         let names = try targets(object, action: action)
+        if action == .bootLogs, names.count != 1 { throw Failure.invalid("boot_logs takes one VM in targets") }
         let tag = object["tag"]?.stringValue
         if [.snapshotCreate, .snapshotRestore].contains(action), (tag ?? "").isEmpty {
             throw Failure.invalid("tag is required for \(action.rawValue)")
@@ -329,6 +338,8 @@ final class VMJobs {
         guard let name = model.currentName(of: step), let inst = model.instance(named: name) else {
             return "not found (deleted or made again)"
         }
+        // Reading the logs works in any state, starting included: that is when they are wanted.
+        if action == .bootLogs { return nil }
         if model.isBusy(name) { return "busy with another operation" }
         switch action {
         case .restart: return inst.isRunning ? model.diskUnusableReason(name)?.title : "not running"
@@ -347,7 +358,7 @@ final class VMJobs {
                 if matches.count != 1 { return matches.isEmpty ? "no snapshot named \(tag)" : "\(matches.count) snapshots are named \(tag); restore one in the app" }
             }
             return inst.usesVirtualization ? nil : "only vz and hanalima VMs (QEMU snapshots are made in the app)"
-        case .start, .stop, .hibernate: return nil
+        case .start, .stop, .hibernate, .bootLogs: return nil
         }
     }
 
@@ -377,6 +388,17 @@ final class VMJobs {
             if let failure = result.error { error = failure }
             else if let exit = result.exit, exit != 0 { error = "exit \(exit)" }
             else { error = nil }
+        case .bootLogs:
+            guard let inst = model.instance(named: name) else { return .failed("not found") }
+            let (dir, vmType, id) = (inst.instanceDir, inst.vmType, step.id)
+            // The folder must still hold the VM that was approved (one made again under the name is not).
+            let text = await Task.detached { () -> String? in
+                guard InstanceMetadata.load(instanceDir: dir)?.id == id else { return nil }
+                return BootLogs.excerpt(instanceDir: dir, vmType: vmType)
+            }.value
+            guard let text else { return .failed("not the VM approved (deleted or made again)") }
+            outputs[plan.jobID, default: [:]][step.name] = text
+            error = nil
         case .start, .stop, .hibernate: error = nil
         }
         return error.map(GroupStepReport.failed) ?? .done

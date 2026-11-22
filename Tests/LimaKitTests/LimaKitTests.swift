@@ -344,6 +344,7 @@ import Testing
     @Test func stripsANSI() {
         #expect(LogFileFollower.stripANSI("\u{1B}[1;32mOK\u{1B}[0m done\u{1B}[?25h") == "OK done")
         #expect(LogFileFollower.stripANSI("\u{1B}[=3h\u{1B}[=3hBdsDxe") == "BdsDxe")
+        #expect(LogFileFollower.stripANSI("\u{1B}]3008;end=c7;exit=success\u{1B}\\$ ls\u{1B}]0;title\u{07}") == "$ ls")
     }
 }
 

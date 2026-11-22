@@ -169,7 +169,7 @@ Rawgenzo の `OperationSurface` は同じ役割を持つが、パッケージと
 | `inspect` | `topics?`（`context`・`vms`・`networks`・`groups`・`templates`・`examples`・`snapshots`・`jobs`・`map`・`checks`・`observation`・`help`）、`ids?`、`query?`、`cursor?`、`limit?` | `revision`、項目、`next?`。既定は `context`（2.1 の表） |
 | `plan` | `key`、宣言 | 計画の ID、変更（作る・そのまま・作れない）、HanaLima が埋めた値、作れない点と案、承認の要る点、期限 |
 | `apply` | `plan`、`key` | ジョブの ID と状態（承認待ちなら理由） |
-| `vm` | `key`、`targets`、`action`（`start`・`stop`・`restart`・`pause`・`resume`・`hibernate`・`snapshot_create`・`snapshot_restore`）、`tag?` | ジョブ |
+| `vm` | `key`、`targets`、`action`（`start`・`stop`・`restart`・`pause`・`resume`・`hibernate`・`snapshot_create`・`snapshot_restore`・`boot_logs`）、`tag?` | ジョブ |
 | `exec` | `key`、`targets`、`script`、`timeoutSeconds?`、`outputBytes?` | ジョブ |
 | `delete` | `key`、`vms?`、`networks?` | ジョブ |
 | `job` | `id`、`action?`（`get`・`wait`・`cancel`）、`after?`、`waitSeconds?`、`detail?`（`summary`・`errors`・`output`）、`cursor?` | 状態、通番、段階、結果、`next?` |
@@ -367,6 +367,12 @@ VM の記録に印を書くだけにはしない。`limactl clone` は記録ご�
   - `checks`: 人が構成図から走らせた検査の、ping ごとの結果。MCP からは走らせない（検査はゲストでコマンドを実行するため）。結果はアプリのメモリにだけあり、終了すると消える。
   - `observation`: ゲスト専用ネットワーク（docs/17・18）ごとの数の要約と、入っている障害。数は、ヘルパーが起動してからの累計（フレーム数/バイト数）。画面は構成図を開いている間だけ状態のファイルを読むので、`inspect` は呼ばれたときに 1 回だけ読む。毎秒の数は出さず、`uptime` を添えて、AI が 2 回読んだ差から出せるようにした。`ids` にネットワークを書くと、接続ごとの行も返す。
   - 書式の組み立ては AgentKit の `MapInspection` に置いて単体で試し、MAC から VM の名前を引く処理（`NetworkMap.endpoint`）は構成図の画面と共用にした。障害を MCP から入れることは、承認の扱いを決めるまで道具に入れない。
+- **起動しないときの診断（2026-11-22）。** `vm` の操作 `boot_logs` で、1 台の VM の最後の起動のログの末尾を返す。まず失敗したジョブの行（`limactl start` のエラー）を読み、足りないときや起動が終わらないときに使う。起動の途中でも読める。
+  - 読むのは、ホストエージェントのログ（`ha.stderr.log`）の warning 以上の 12 件、Lima のイベント（`ha.stdout.log`）のエラーと cloud-init の行の 8 件と最後に達した起動の要件、シリアルコンソールの最後の 12 行。シリアルは、最初に読めて中身のあるファイルを、vz と hanalima は `serialv.log`、QEMU は `serial.log` から探す。
+  - Lima はこれらを起動のたびに作り直すので、どれも最後の起動のものになる。ただし、Lima がファイルを開く前に起動が失敗したときは前の起動のものが残るので、ファイルごとに更新時刻を添える。起動の回ごとにファイルの状態を覚える仕組み（Codex の対照設計の案）は、そのため作らなかった。
+  - 大きさは、ファイルの末尾 32 KiB だけを読み、1 行 512 バイト、出どころごとに約 1.3 KB（合わせて約 4 KB）まで。制御文字は空白にし、シリアルの ANSI と OSC のエスケープを取り除く（OSC は systemd 257 以降が各コマンドの前後に書くもので、ログタブの表示からも消える）。ファイルはリンクをたどらずに開き、種類と大きさは開いたものから確かめる。
+  - ログは Mac の外へ出るので、人の VM ではアプリの画面で承認されてから読む（2026-11-22 ユーザー判断。`exec` と同じ扱い）。承認のシートには、シリアルコンソールで端末を使っていればその入出力も含まれうることを書いた。MCP で作った VM は承認なし。
+  - 抜き出したログは `exec` の出力と同じくアプリのメモリにだけ置き、状態ファイルにも呼び出しの記録にも書かない。`wait` で答えに付くか、あとで `job` の `get` に `output: true` を付けて読む。アプリを起動し直したあとは「残っていない、新しいキーで頼み直す」と返す。
 
 実測（2026-11-11、開発に使っている MCP クライアント、2 章の試験の依頼）:
 

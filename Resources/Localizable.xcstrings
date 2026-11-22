@@ -14825,6 +14825,22 @@
         }
       }
     },
+    "最後の起動のログの末尾（ホストエージェントの警告とエラー、Lima のイベント、シリアルコンソールの最近の出力。合わせて約 4 KB まで）を AI に渡します。ログはゲストのホスト名や起動中の出力を含みます。シリアルコンソールで端末を使っていれば、その入出力も含まれることがあります。どれも MCP クライアントを通って Mac の外へ送られます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gives the AI the end of the logs from the last start (the host agent's warnings and errors, Lima's events and the serial console's recent output; about 4 KB in all). The logs include the guest's host name and boot output, and, if someone used a terminal on the serial console, what was typed and shown there. All of it leaves the Mac through the MCP client."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の起動のログの末尾（ホストエージェントの警告とエラー、Lima のイベント、シリアルコンソールの最近の出力。合わせて約 4 KB まで）を AI に渡します。ログはゲストのホスト名や起動中の出力を含みます。シリアルコンソールで端末を使っていれば、その入出力も含まれることがあります。どれも MCP クライアントを通って Mac の外へ送られます。"
+          }
+        }
+      }
+    },
     "期限": {
       "localizations": {
         "en": {
@@ -16784,6 +16800,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "起動のごく初期（cloud-init の bootcmd）に /bin/sh で実行されます。"
+          }
+        }
+      }
+    },
+    "起動のログを読む": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the Start Logs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動のログを読む"
           }
         }
       }

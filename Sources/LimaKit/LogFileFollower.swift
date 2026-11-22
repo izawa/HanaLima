@@ -63,8 +63,10 @@ public final class LogFileFollower {
         return Chunk(reset: reset, lines: lines)
     }
 
-    /// Removes ANSI escape sequences (colors, cursor movement) that serial consoles emit.
+    /// Removes ANSI escape sequences (colors, cursor movement) that serial consoles emit, and
+    /// operating system commands (OSC: `ESC ]` … `BEL` or `ESC \`), such as the context markers
+    /// systemd 257+ writes around each command (OSC 3008).
     public static func stripANSI(_ s: String) -> String {
-        s.replacing(/\x1B\[[0-9;?=<>]*[ -\/]*[@-~]|\x1B[()][0-9A-Za-z]|\x1B[=>]/, with: "")
+        s.replacing(/\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)|\x1B\[[0-9;?=<>]*[ -\/]*[@-~]|\x1B[()][0-9A-Za-z]|\x1B[=>]/, with: "")
     }
 }
