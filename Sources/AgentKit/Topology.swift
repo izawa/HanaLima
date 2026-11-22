@@ -51,13 +51,20 @@ public struct TopologySpec: Equatable, Sendable {
         public var gatewayAllow: [String]?
         /// Bundled provisioning examples, in order (DeclaredProvisioning says which may be named).
         public var provision: [ProvisionExample.ID]
+        public var portForwards: [PortForward]
         public init(ref: String, template: String? = nil, cpus: Int? = nil, memoryGiB: Double? = nil, diskGiB: Double? = nil,
                     usernet: Bool? = nil, bootstrapUsernet: Bool = false, nics: [NIC] = [], gatewayAllow: [String]? = nil,
-                    provision: [ProvisionExample.ID] = []) {
+                    provision: [ProvisionExample.ID] = [], portForwards: [PortForward] = []) {
             self.ref = ref; self.template = template; self.cpus = cpus; self.memoryGiB = memoryGiB; self.diskGiB = diskGiB
             self.usernet = usernet; self.bootstrapUsernet = bootstrapUsernet; self.nics = nics; self.gatewayAllow = gatewayAllow
-            self.provision = provision
+            self.provision = provision; self.portForwards = portForwards
         }
+    }
+    /// A guest TCP port reachable at the Mac's 127.0.0.1:hostPort.
+    public struct PortForward: Equatable, Sendable {
+        public var guestPort: Int
+        public var hostPort: Int
+        public init(guestPort: Int, hostPort: Int) { self.guestPort = guestPort; self.hostPort = hostPort }
     }
     public struct Assumption: Equatable, Sendable {
         public var path: String
@@ -98,8 +105,22 @@ public struct PlannerFacts: Sendable {
         public var ownedByMCP: Bool
         /// For a VM MCP made: what it was made from and what it is now.
         public var made: Made?
-        public init(name: String, id: UUID?, ownedByMCP: Bool, made: Made? = nil) {
-            self.name = name; self.id = id; self.ownedByMCP = ownedByMCP; self.made = made
+        /// Host TCP ports its configuration forwards to (any address), as ranges.
+        public var hostPorts: [ClosedRange<Int>]
+        public init(name: String, id: UUID?, ownedByMCP: Bool, made: Made? = nil, hostPorts: [ClosedRange<Int>] = []) {
+            self.name = name; self.id = id; self.ownedByMCP = ownedByMCP; self.made = made; self.hostPorts = hostPorts
+        }
+
+        /// The host TCP ports of a configuration's `portForwards` (UDP-only, ignore and socket rules aren't ports).
+        public static func hostPorts(_ config: LimaKit.JSONValue?) -> [ClosedRange<Int>] {
+            (config?["portForwards"]?.arrayValue ?? []).compactMap { rule in
+                guard rule["ignore"]?.boolValue != true, rule["hostSocket"] == nil, rule["proto"]?.stringValue != "udp" else { return nil }
+                if let port = rule["hostPort"]?.intValue { return port...port }
+                if let range = rule["hostPortRange"]?.arrayValue, range.count == 2, let a = range[0].intValue, let b = range[1].intValue, a <= b { return a...b }
+                // A rule without a host port forwards to the same port as the guest's.
+                if let port = rule["guestPort"]?.intValue { return port...port }
+                return nil
+            }
         }
     }
     /// A VM MCP made, to tell whether a declaration still describes it.
@@ -169,6 +190,7 @@ public struct TopologyPlan: Equatable, Sendable {
         public var memoryBytes: Int64
         /// The examples it gets (the gateway is shown apart).
         public var provision: [ProvisionExample.ID] = []
+        public var portForwards: [TopologySpec.PortForward] = []
         /// What the VM is made from (template, sizes, every set expression, the bootstrap): the
         /// ledger keeps it, and an existing VM is reused only for the same fingerprint.
         public var fingerprint: String

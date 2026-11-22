@@ -426,3 +426,42 @@ private func made(_ vm: TopologyPlan.PlannedVM, usernet: Bool? = nil, group: Str
     spec.vms[1].provision = [.swap, .swap]
     #expect(TopologyPlanner.plan(spec, facts: facts()).problems.contains { $0.path == "/vms/1/provision" && $0.message == "Duplicate example" })
 }
+
+@Test func portForwardsAreDecodedAndChecked() throws {
+    let json = try MCPKit.JSONValue.parse(#"""
+    {"vms":[{"ref":"a","portForwards":[{"guestPort":80,"hostPort":18080},{"guestPort":53,"hostPort":5353,"proto":"udp"},
+                                        {"guestPort":22,"hostPort":80},{"guestPort":80,"hostPort":18081},{"hostPort":1}]},
+            {"ref":"b","portForwards":[{"guestPort":80,"hostPort":18080}]}]}
+    """#)
+    let problems = TopologySpec.decode(json).problems
+    #expect(problems.contains { $0.path == "/vms/0/portForwards/1/proto" })
+    #expect(problems.contains { $0.path == "/vms/0/portForwards/2/guestPort" })                                // 22
+    #expect(problems.contains { $0.path == "/vms/0/portForwards/2/hostPort" && $0.code == "UNSUPPORTED" })   // privileged
+    #expect(problems.contains { $0.path == "/vms/0/portForwards/3/guestPort" && $0.message.contains("Duplicate guest port") })
+    #expect(problems.contains { $0.path == "/vms/0/portForwards/4" })                                          // no guestPort
+    // A malformed rule keeps the positions of the rules after it.
+    let shifted = TopologySpec.decode(try MCPKit.JSONValue.parse(#"{"vms":[{"ref":"a","portForwards":[{"hostPort":2000},{"guestPort":22,"hostPort":2001}]}]}"#))
+    #expect(shifted.problems.contains { $0.path == "/vms/0/portForwards/1/guestPort" })
+    #expect(problems.contains { $0.path == "/vms/1/portForwards/0/hostPort" && $0.message.contains("already forwarded for a") })
+}
+
+@Test func portForwardsComeFirstAndConflictWithOtherVMs() throws {
+    var spec = trial()
+    spec.vms[0].portForwards = [.init(guestPort: 8000, hostPort: 18000), .init(guestPort: 443, hostPort: 18443)]
+    let plan = TopologyPlanner.plan(spec, facts: facts())
+    #expect(plan.problems.isEmpty)
+    let client = try #require(plan.vms.first { $0.name == "client1" })
+    #expect(client.options.setExpressions.contains(
+        #".portForwards = [{"guestPort":8000,"hostIP":"127.0.0.1","hostPort":18000,"proto":"tcp"},{"guestPort":443,"hostIP":"127.0.0.1","hostPort":18443,"proto":"tcp"}] + (.portForwards // [])"#))
+    #expect(plan.text(planID: "p", expires: .now).contains("ports=127.0.0.1:18000→8000,127.0.0.1:18443→443"))
+
+    // Another VM's configuration already forwards to the port (a range counts, a UDP rule doesn't).
+    let config = try LimaKit.JSONValue.parseYAML(#"""
+    {"portForwards":[{"guestPort":53,"hostPort":18000,"proto":"udp"},{"guestPortRange":[18400,18500],"hostPortRange":[18400,18500]}]}
+    """#)
+    let ports = PlannerFacts.ExistingVM.hostPorts(config)
+    #expect(ports == [18400...18500])
+    var f = facts()
+    f.vms = [.init(name: "other", id: nil, ownedByMCP: false, hostPorts: ports)]
+    #expect(TopologyPlanner.plan(spec, facts: f).problems.map(\.path) == ["/vms/0/portForwards/1/hostPort"])
+}

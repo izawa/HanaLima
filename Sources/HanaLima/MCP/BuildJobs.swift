@@ -86,11 +86,16 @@ final class BuildJobs {
         PlannerFacts(
             vms: model.instances.map { inst in
                 let id = model.metadata[inst.name]?.id
-                guard let id, let entry = state.ownedVMs[id] else { return .init(name: inst.name, id: id, ownedByMCP: false) }
+                // Its forwards, and its SSH port (fixed in its config, or the one it has while running).
+                let ssh = [inst.config?["ssh"]?["localPort"]?.intValue, inst.isRunning ? inst.sshLocalPort : nil]
+                    .compactMap { $0 }.filter { $0 > 0 }.map { $0...$0 }
+                let ports = PlannerFacts.ExistingVM.hostPorts(inst.config) + ssh
+                guard let id, let entry = state.ownedVMs[id] else { return .init(name: inst.name, id: id, ownedByMCP: false, hostPorts: ports) }
                 return .init(name: inst.name, id: id, ownedByMCP: true,
                              made: .init(fingerprint: entry.fingerprint, madeSettings: entry.settings,
                                          settings: PlannerFacts.Made.settings(of: inst), usernet: inst.usesUsernet,
-                                         group: model.metadata[inst.name]?.group, bootstrapPending: entry.bootstrapped != true))
+                                         group: model.metadata[inst.name]?.group, bootstrapPending: entry.bootstrapped != true),
+                             hostPorts: ports)
             },
             networks: model.virtualNetworks,
             ownedNetworks: Set(model.virtualNetworks.map(\.name).filter(state.ownsNetwork)),

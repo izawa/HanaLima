@@ -99,6 +99,18 @@ public enum TopologyPlanner {
                     result.approvals.append("\(id.rawValue) on \(vm.ref): \(approval)")
                 }
             }
+            // Before the template's rules and Lima's automatic ones: the first rule that matches applies.
+            if !vm.portForwards.isEmpty {
+                let rules = vm.portForwards.map {
+                    PortForwardConfig(guestPort: $0.guestPort, hostPort: $0.hostPort, proto: "tcp", hostIP: "127.0.0.1").json
+                }
+                expressions.append(".portForwards = " + LimaKit.JSONValue.array(rules).jsonText + " + (.portForwards // [])")
+            }
+            for (j, forward) in vm.portForwards.enumerated() {
+                if let other = facts.vms.first(where: { $0.name != vm.ref && $0.hostPorts.contains { $0.contains(forward.hostPort) } }) {
+                    problem("CONFLICT", path + "/portForwards/\(j)/hostPort", "Host port \(forward.hostPort) is forwarded for \(other.name) already")
+                }
+            }
             let entries = DeclaredProvisioning.entries(vm.provision, gatewayAllow: vm.gatewayAllow)
             if !entries.isEmpty { expressions.append(".provision += " + LimaKit.JSONValue.array(entries.map(\.json)).jsonText) }
             let memory = vm.memoryGiB ?? spec.defaults.memoryGiB
@@ -121,7 +133,7 @@ public enum TopologyPlanner {
             }
             result.vms.append(.init(action: action, name: vm.ref, options: options, template: pinned,
                                     bootstrapUsernet: vm.bootstrapUsernet, nics: nics, memoryBytes: memoryBytes,
-                                    provision: vm.provision, fingerprint: fingerprint))
+                                    provision: vm.provision, portForwards: vm.portForwards, fingerprint: fingerprint))
         }
         let declaredSubnets = spec.networks.compactMap { IPv4Subnet(cidr: $0.cidr) }
         for (i, declaration) in spec.networks.enumerated() {

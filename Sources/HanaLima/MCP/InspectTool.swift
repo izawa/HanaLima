@@ -412,6 +412,14 @@ struct InspectTool {
             server (the network's DHCP server address) answers only `lima-<vm>` names and refuses the rest, so the \
             resolver moves on to the router; busybox `nslookup` doesn't move on and fails, which is expected.
             """,
+            "ports": """
+            A VM's portForwards (guestPort, hostPort; TCP) make a guest port reachable at the Mac's 127.0.0.1:hostPort, \
+            also with NIC 0 off (over vsock). Host ports are 1024-65535 and must not be forwarded for another VM. \
+            Lima forwards when the guest listens, so nothing is checked at build time. The service must listen on the \
+            guest's 127.0.0.1 or on every address (0.0.0.0), not only on a NIC's address. If it doesn't answer, check \
+            that it listens (exec: netstat -ltn or ss -ltn), then vm boot_logs for a host agent warning (the port taken \
+            on the Mac, say). Other guest ports still forward automatically to the same port on 127.0.0.1 when free.
+            """,
             "boot_logs": """
             When a start fails, read the job's failed row first: it has limactl's error. If that isn't enough, \
             or a start stays busy, call vm with action boot_logs for that one VM (wait to get the text in the answer, \

@@ -24,6 +24,9 @@ extension TopologyPlan {
             if vm.options.setExpressions.contains(where: { $0.hasPrefix(".provision += ") && $0.contains("/etc/hanalima/gateway.conf") }) {
                 detail += " gateway"
             }
+            if !vm.portForwards.isEmpty {
+                detail += " ports=" + vm.portForwards.map { "127.0.0.1:\($0.hostPort)→\($0.guestPort)" }.joined(separator: ",")
+            }
             if !vm.provision.isEmpty { detail += " provision=" + vm.provision.map(\.rawValue).joined(separator: ",") }
             lines.append(row(vm.action.rawValue, vm.name, detail))
         }

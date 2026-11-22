@@ -89,7 +89,7 @@ struct MCPEndToEndTests {
               "networks":[{"ref":"e2e-mcp","mode":"guestOnly","cidr":"10.29.0.0/24","router":"hanalima-e2e-mgw"}],
               "vms":[
                 {"ref":"hanalima-e2e-mgw","nics":[{"network":"e2e-mcp","ip":"10.29.0.1"}],"gateway":{"allow":["*"]}},
-                {"ref":"hanalima-e2e-mc1","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}]},
+                {"ref":"hanalima-e2e-mc1","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}],"portForwards":[{"guestPort":8000,"hostPort":38471}]},
                 {"ref":"hanalima-e2e-mc2","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}],"provision":["swap"]}
               ]
             }
@@ -116,6 +116,19 @@ struct MCPEndToEndTests {
             ])
             try require(try jobHeader(executed.text).state == .succeeded, executed.text)
             try require(executed.text.contains("via 10.29.0.1"), executed.text)
+
+            // The declared forward: a listener in mc1 (no NIC 0, so over vsock) answers at the Mac's 127.0.0.1:38471.
+            let listening = try client.call("exec", arguments: [
+                "key": UUID().uuidString, "targets": [names[1]], "wait": 60,
+                "script": #"setsid sh -c 'while true; do printf "HTTP/1.0 200 OK\r\n\r\nhanalima-e2e-port\n" | nc -l -p 8000 >/dev/null 2>&1; done' </dev/null >/dev/null 2>&1 &"#,
+            ]).text
+            try require(try jobHeader(listening).state == .succeeded, listening)
+            var answered = ""
+            for _ in 0..<30 where !answered.contains("hanalima-e2e-port") {
+                answered = try run(URL(filePath: "/usr/bin/curl"), ["-s", "--max-time", "2", "http://127.0.0.1:38471/"], timeout: 5).text
+                if !answered.contains("hanalima-e2e-port") { Thread.sleep(forTimeInterval: 1) }
+            }
+            try require(answered.contains("hanalima-e2e-port"), "no answer at 127.0.0.1:38471: \(answered)")
 
             // The declared example ran: mc2 has its swap file on.
             let swapped = try client.call("exec", arguments: [

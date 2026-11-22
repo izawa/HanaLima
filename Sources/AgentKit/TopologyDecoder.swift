@@ -25,7 +25,7 @@ extension TopologySpec {
         let vms: [VM] = reader.array(root, "vms", at: "").enumerated().map { i, value in
             let path = "/vms/\(i)"
             let o = reader.object(value, at: path, keys: ["ref", "template", "cpus", "memoryGiB", "diskGiB",
-                                                         "usernet", "bootstrapUsernet", "nics", "gateway", "provision"])
+                                                         "usernet", "bootstrapUsernet", "nics", "gateway", "provision", "portForwards"])
             let nics: [NIC] = reader.array(o, "nics", at: path).enumerated().map { j, value in
                 let p = path + "/nics/\(j)"
                 let nic = reader.object(value, at: p, keys: ["network", "ip"])
@@ -52,12 +52,22 @@ extension TopologySpec {
                 }
                 if provision.contains(id) { reader.invalid(p, "Duplicate example") } else { provision.append(id) }
             }
+            let forwards: [PortForward] = reader.array(o, "portForwards", at: path).enumerated().map { j, value in
+                let p = path + "/portForwards/\(j)"
+                let rule = reader.object(value, at: p, keys: ["guestPort", "hostPort", "proto"])
+                if let proto = reader.string(rule, "proto", at: p), proto != "tcp" { reader.invalid(p + "/proto", "Only tcp is supported") }
+                guard let guest = reader.integer(rule, "guestPort", at: p), let host = reader.integer(rule, "hostPort", at: p) else {
+                    reader.invalid(p, "guestPort and hostPort are required")
+                    return PortForward(guestPort: 0, hostPort: 0)  // kept, so later rules keep their positions
+                }
+                return PortForward(guestPort: guest, hostPort: host)
+            }
             return VM(ref: reader.string(o, "ref", at: path, required: true) ?? "",
                       template: reader.string(o, "template", at: path), cpus: reader.integer(o, "cpus", at: path),
                       memoryGiB: reader.number(o, "memoryGiB", at: path), diskGiB: reader.number(o, "diskGiB", at: path),
                       usernet: reader.boolean(o, "usernet", at: path),
                       bootstrapUsernet: reader.boolean(o, "bootstrapUsernet", at: path) ?? false,
-                      nics: nics, gatewayAllow: allow, provision: provision)
+                      nics: nics, gatewayAllow: allow, provision: provision, portForwards: forwards)
         }
         let assumptions: [Assumption] = reader.array(root, "assumptions", at: "").enumerated().map { i, value in
             let path = "/assumptions/\(i)"
@@ -98,6 +108,7 @@ func declarationProblems(_ spec: TopologySpec) -> [PlanProblem] {
         problems.append(.init(code: "UNSUPPORTED", path: "/networks/\(i)/mode", message: "Only guestOnly is supported",
                               alternative: "guestOnly; bridges and other modes are made in the app"))
     }
+    var hostPortClaims: [Int: String] = [:]
     for (i, vm) in spec.vms.enumerated() {
         let path = "/vms/\(i)"
         resources(vm.cpus, vm.memoryGiB, vm.diskGiB, at: path)
@@ -105,6 +116,26 @@ func declarationProblems(_ spec: TopologySpec) -> [PlanProblem] {
             invalid(path + "/nics", "At least one NIC is required when usernet is false")
         }
         if Set(vm.provision).count != vm.provision.count { invalid(path + "/provision", "Duplicate example") }
+        if vm.portForwards.count > 32 { invalid(path + "/portForwards", "At most 32 port forwards per VM") }
+        var guestPorts = Set<Int>()
+        for (j, forward) in vm.portForwards.enumerated().prefix(32) where forward.guestPort != 0 || forward.hostPort != 0 {
+            let p = path + "/portForwards/\(j)"
+            if !(1...65535).contains(forward.guestPort) || forward.guestPort == 22 {
+                invalid(p + "/guestPort", "Guest port must be 1–65535, not 22 (Lima's SSH)")
+            }
+            if !(1024...65535).contains(forward.hostPort) {
+                problems.append(.init(code: "UNSUPPORTED", path: p + "/hostPort", message: "Host port must be 1024–65535 (no privileged ports)",
+                                      alternative: "a free port in 1024–65535"))
+            }
+            if !guestPorts.insert(forward.guestPort).inserted {
+                invalid(p + "/guestPort", "Duplicate guest port in this VM (only the first rule would apply)")
+            }
+            if let other = hostPortClaims[forward.hostPort] {
+                invalid(p + "/hostPort", "Host port \(forward.hostPort) is already forwarded for \(other)")
+            } else {
+                hostPortClaims[forward.hostPort] = vm.ref
+            }
+        }
     }
     return problems
 }
