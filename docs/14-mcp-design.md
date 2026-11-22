@@ -169,7 +169,7 @@ Rawgenzo の `OperationSurface` は同じ役割を持つが、パッケージと
 | `inspect` | `topics?`（`context`・`vms`・`networks`・`groups`・`templates`・`examples`・`snapshots`・`jobs`・`map`・`checks`・`observation`・`help`）、`ids?`、`query?`、`cursor?`、`limit?` | `revision`、項目、`next?`。既定は `context`（2.1 の表） |
 | `plan` | `key`、宣言 | 計画の ID、変更（作る・そのまま・作れない）、HanaLima が埋めた値、作れない点と案、承認の要る点、期限 |
 | `apply` | `plan`、`key` | ジョブの ID と状態（承認待ちなら理由） |
-| `vm` | `key`、`targets`、`action`（`start`・`stop`・`restart`・`pause`・`resume`・`hibernate`・`snapshot_create`・`snapshot_restore`・`boot_logs`）、`tag?` | ジョブ |
+| `vm` | `key`、`targets`、`action`（`start`・`stop`・`restart`・`pause`・`resume`・`hibernate`・`snapshot_create`・`snapshot_restore`・`boot_logs`・`copy`）、`tag?`、`newName?` | ジョブ |
 | `exec` | `key`、`targets`、`script`、`timeoutSeconds?`、`outputBytes?` | ジョブ |
 | `delete` | `key`、`vms?`、`networks?` | ジョブ |
 | `job` | `id`、`action?`（`get`・`wait`・`cancel`）、`after?`、`waitSeconds?`、`detail?`（`summary`・`errors`・`output`）、`cursor?` | 状態、通番、段階、結果、`next?` |
@@ -385,6 +385,11 @@ VM の記録に印を書くだけにはしない。`limactl clone` は記録ご�
   - 断るもの: ゲストの 22 番（Lima の SSH）、Mac の側の 1024 未満、同じ VM の中で重なるゲストのポート、宣言の中で重なる Mac の側のポート、既にある VM の設定（転送の規則と、固定した SSH のポート、動いている VM の SSH のポート）と重なる Mac の側のポート。VM ごとに 32 件まで。
   - Lima はゲストが待ち受けたときに転送を始めるので、構築の時点では確かめない。サービスはゲストの 127.0.0.1 か全アドレスで待ち受ける必要がある。届かないときの調べ方（`exec` で待ち受けを見て、`boot_logs` でホストエージェントの警告を見る）を `inspect` の help に書いた。
   - E2E は NIC 0 の無い Alpine のクライアントに転送を宣言し、ゲストの中で `nc` で待ち受けたサーバーに Mac の 127.0.0.1 から届くこと（vsock の SSH を通る転送）を確かめる。
+- **VM の複製（`vm` の `copy`、2026-11-22）。** 停止中の 1 台を `newName` の名前で複製する。中身はアプリの複製と同じ処理（`AppModel.copyNow`、画面の複製もこれを通す）で、APFS のクローン、新しい MAC（DHCP のリースは別になり、固定 IP は元に残る）、空のログ、外付けのディスクのクローン、親の記録。複製は止まったまま、元と同じグループに入る。
+  - 2026-11-22 ユーザー判断で、人の VM も承認つきで複製できる。MCP で作った VM の複製は MCP のもの（台帳に載せ、承認なし）。人の VM の複製は、アプリで承認されてから行い、複製も人のもののまま（台帳に載せない）。複製を MCP のものにすると、人の VM のディスクの中身を AI が承認なしで読めてしまうため。承認のシートにもそう書いた。
+  - 複製は宣言から作ったものではないので、台帳に宣言の要約が無く、計画で「そのまま」使われることはない。
+  - 複製できないとき（動いている、処理中、インストールの途中、休止中、ディスクのある外付けドライブが無い）は、依頼の時点で断り、承認のあとに状態が変わっていれば失敗として返す（飛ばして成功にしない）。`tag` は付けられない（今の状態を複製する）。途中で失敗したら、作りかけの VM は残して知らせる（アプリの複製と同じ）。
+  - E2E は MCP で作ったルーターを複製し、同じキーで送り直すと同じジョブが返ること、複製が止まったまま同じグループにいて親が記録されていること、MCP の `delete` で消せること（台帳に載っていること）を確かめる。人の VM の承認の流れは、E2E では承認を自動にしているので画面では見ていない。
 - **起動しないときの診断（2026-11-22）。** `vm` の操作 `boot_logs` で、1 台の VM の最後の起動のログの末尾を返す。まず失敗したジョブの行（`limactl start` のエラー）を読み、足りないときや起動が終わらないときに使う。起動の途中でも読める。
   - 読むのは、ホストエージェントのログ（`ha.stderr.log`）の warning 以上の 12 件、Lima のイベント（`ha.stdout.log`）のエラーと cloud-init の行の 8 件と最後に達した起動の要件、シリアルコンソールの最後の 12 行。シリアルは、最初に読めて中身のあるファイルを、vz と hanalima は `serialv.log`、QEMU は `serial.log` から探す。
   - Lima はこれらを起動のたびに作り直すので、どれも最後の起動のものになる。ただし、Lima がファイルを開く前に起動が失敗したときは前の起動のものが残るので、ファイルごとに更新時刻を添える。起動の回ごとにファイルの状態を覚える仕組み（Codex の対照設計の案）は、そのため作らなかった。

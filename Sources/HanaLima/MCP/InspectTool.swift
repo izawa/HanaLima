@@ -420,6 +420,13 @@ struct InspectTool {
             that it listens (exec: netstat -ltn or ss -ltn), then vm boot_logs for a host agent warning (the port taken \
             on the Mac, say). Other guest ports still forward automatically to the same port on 127.0.0.1 when free.
             """,
+            "copy": """
+            vm with action copy, one stopped VM in targets and an unused newName: the app's copy (an instant APFS \
+            clone; new MAC addresses, so the copy gets its own DHCP leases and the source keeps its fixed IPs). The \
+            copy stays stopped, in the source's group. A copy of a VM made through MCP is MCP's (no approval); \
+            copying the user's VM needs their approval in the app, and the copy stays theirs (each later operation \
+            on it asks again). A copy wasn't made from a declaration, so a plan won't reuse it as a declared VM.
+            """,
             "boot_logs": """
             When a start fails, read the job's failed row first: it has limactl's error. If that isn't enough, \
             or a start stays busy, call vm with action boot_logs for that one VM (wait to get the text in the answer, \

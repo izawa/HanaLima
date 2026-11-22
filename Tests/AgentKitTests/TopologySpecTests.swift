@@ -196,7 +196,7 @@ private func made(_ vm: TopologyPlan.PlannedVM, usernet: Bool? = nil, group: Str
     #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("NIC 0 was removed") })
     changed = f
     changed.vms[0].made?.fingerprint = nil
-    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("before HanaLima recorded") })
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("no record of a declaration") })
     changed = f
     changed.vms[0].made?.group = "Small-Lab"  // a group's spelling changed: the same group
     #expect(TopologyPlanner.plan(trial(), facts: changed).problems.isEmpty)

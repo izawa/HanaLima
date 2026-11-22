@@ -245,7 +245,7 @@ public enum TopologyPlanner {
     private static func difference(_ made: PlannerFacts.Made?, fingerprint: String, usernet: Bool,
                                    bootstrapUsernet: Bool, group: String?) -> String? {
         guard let made else { return "its settings can't be read" }
-        guard let recorded = made.fingerprint else { return "was made before HanaLima recorded what VMs are made from" }
+        guard let recorded = made.fingerprint else { return "has no record of a declaration it was made from (a copy, or made before that was recorded)" }
         guard recorded == fingerprint else { return "was made from a different declaration (template, sizes, NICs, NIC 0 or provisioning)" }
         // The same declaration: has anyone changed the VM since?
         guard let before = made.madeSettings, let now = made.settings else { return "its settings can't be compared with how it was made" }
@@ -280,6 +280,9 @@ public enum TopologyPlanner {
         case .invalidRouter: "Router must be a usable address in the subnet, excluding the DHCP server"
         }
     }
+
+    /// A VM name MCP accepts: what a declaration's ref may be.
+    public static func isValidVMName(_ name: String) -> Bool { validName(name, limit: 76) && CreateOptions.isValidName(name) }
 
     private static func validName(_ name: String, limit: Int) -> Bool {
         !name.isEmpty && name.count <= limit && name.wholeMatch(of: /[a-z][a-z0-9-]*/) != nil && !name.hasSuffix("-")

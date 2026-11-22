@@ -28,6 +28,8 @@ struct MCPEndToEndTests {
             defer { try? logHandle.close() }
             let client = Client(helper: app.appending(path: "Contents/Helpers/hanalima-mcp"), home: home, log: logHandle)
             let names = ["hanalima-e2e-mgw", "hanalima-e2e-mc1", "hanalima-e2e-mc2"]
+            let copyName = "hanalima-e2e-mcopy"
+            let made = names + [copyName]  // what cleanup removes
             let process = Process()
             process.executableURL = app.appending(path: "Contents/MacOS/HanaLima")
             process.environment = ProcessInfo.processInfo.environment.merging([
@@ -40,7 +42,7 @@ struct MCPEndToEndTests {
             // Cleanup must finish inside defer; an unstructured Task could outlive the test.
             defer {
                 do {
-                    let remaining = try existingVMs(limactl).filter { names.contains($0) }
+                    let remaining = try existingVMs(limactl).filter { made.contains($0) }
                     if !remaining.isEmpty {
                         // Only include networks actually created before a possible build failure.
                         let networks = try storedNames("networks", supportFile("networks.json"))
@@ -56,11 +58,11 @@ struct MCPEndToEndTests {
                 }
                 stop(process)
                 do {
-                    for name in try existingVMs(limactl) where names.contains(name) {
+                    for name in try existingVMs(limactl) where made.contains(name) {
                         let result = try run(limactl, ["delete", "--force", name], timeout: 60)
                         try require(result.status == 0, "Fallback deletion of \(name): \(result.text)")
                     }
-                    try require(try Set(existingVMs(limactl)).isDisjoint(with: names), "Cleanup left test VMs behind")
+                    try require(try Set(existingVMs(limactl)).isDisjoint(with: made), "Cleanup left test VMs behind")
                 } catch {
                     Issue.record("Cleanup failed: \(error). App log: \(log.path)")
                 }
@@ -162,12 +164,24 @@ struct MCPEndToEndTests {
                 "key": UUID().uuidString, "action": "stop", "group": "hanalima-e2e-mcp", "wait": 120,
             ])
             try require(try jobHeader(stopped.text).state == .succeeded, stopped.text)
+
+            // A copy of a VM MCP made is MCP's: no approval, stopped, in the group; the same key returns the same job.
+            let copyArguments: [String: Any] = ["key": "e2e-copy-" + UUID().uuidString, "action": "copy",
+                                                "targets": [names[0]], "newName": copyName, "wait": 120]
+            let copied = try client.call("vm", arguments: copyArguments).text
+            try require(try jobHeader(copied).state == .succeeded, copied)
+            let resent = try client.call("vm", arguments: copyArguments).text
+            try require(try jobHeader(resent).id == jobHeader(copied).id, resent)
+            let copyRow = try client.call("inspect", arguments: ["topics": ["vms"], "ids": [copyName]]).text
+            try require(copyRow.contains("state\tstopped") && copyRow.contains("group\thanalima-e2e-mcp")
+                        && copyRow.contains("parent\t\(names[0])"), copyRow)
+
             let deleted = try client.call("delete", arguments: [
-                "key": UUID().uuidString, "vms": names, "networks": ["e2e-mcp"],
+                "key": UUID().uuidString, "vms": made, "networks": ["e2e-mcp"],
             ])
             let finished = try client.wait(deleted.text, seconds: 120)
             try require(try jobHeader(finished).state == .succeeded, finished)
-            try require(try Set(existingVMs(limactl)).isDisjoint(with: names), "limactl still lists test VMs")
+            try require(try Set(existingVMs(limactl)).isDisjoint(with: made), "limactl still lists test VMs")
             try require(try !storedNames("networks", supportFile("networks.json")).contains("e2e-mcp"), "Network e2e-mcp remains")
             try require(try !storedNames("groups", supportFile("groups.json")).contains("hanalima-e2e-mcp"), "Test group remains")
         } catch {

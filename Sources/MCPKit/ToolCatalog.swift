@@ -94,17 +94,18 @@ public enum ToolCatalog {
         title: "Operate VMs",
         description: "Start, stop, restart, pause, resume, hibernate, or create/restore a snapshot of existing VMs, "
             + "or read one VM's logs from its last start (boot_logs: why a start failed or isn't ready; works while it starts; "
-            + "the text comes with wait, or later from `job` get with output true), "
+            + "the text comes with wait, or later from `job` get with output true), or copy one stopped VM as newName, "
             + "as a job. For VMs not made through MCP the user must approve it in the HanaLima app first: tell them, then wait with `job`.",
         inputSchema: [
             "type": "object",
             "properties": [
                 "key": ["type": "string", "description": "Idempotency key: resending the same key and arguments returns the same job"],
                 "action": ["type": "string", "enum": ["start", "stop", "restart", "pause", "resume", "hibernate",
-                                                      "snapshot_create", "snapshot_restore", "boot_logs"]],
+                                                      "snapshot_create", "snapshot_restore", "boot_logs", "copy"]],
                 "targets": ["type": "array", "items": ["type": "string"], "description": "VM names"],
                 "group": ["type": "string", "description": "Instead of targets: a group (start, stop, hibernate only)"],
                 "tag": ["type": "string", "description": "Snapshot name (snapshot_create, snapshot_restore)"],
+                "newName": ["type": "string", "description": "copy: the new VM's name (one stopped VM in targets; the copy stays stopped, in its group)"],
                 "wait": waitProperty,
             ],
             "required": ["key", "action"],

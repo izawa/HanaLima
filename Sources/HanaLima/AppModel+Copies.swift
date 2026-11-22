@@ -42,65 +42,111 @@ extension AppModel {
         }
     }
 
-    /// Why `name` can't be copied now, or nil.
-    func copyBlocker(_ name: String) -> String? {
-        guard let inst = instance(named: name) else { return "" }
-        if inst.isRunning { return String(localized: "停止すると複製できます。") }
-        if isBusy(name) { return String(localized: "処理中は複製できません。") }
-        if pendingInstall(name) != nil { return String(localized: "OS のインストールが終わると複製できます。") }
-        if isHibernated(name) { return String(localized: "休止中は複製できません。起動して再開するか、保存した状態を捨ててください。") }
-        if case .missing = diskPlacement(of: inst) {
-            return String(localized: "ディスクのある外付けドライブを接続すると複製できます。")
+    /// Why `name` can't be copied now (the person's words), or nil.
+    func copyBlocker(_ name: String) -> String? { copyBlock(name)?.text }
+
+    enum CopyBlock {
+        case missing, running, busy, installing, hibernated, diskMissing
+        var text: String {
+            switch self {
+            case .missing: ""
+            case .running: String(localized: "停止すると複製できます。")
+            case .busy: String(localized: "処理中は複製できません。")
+            case .installing: String(localized: "OS のインストールが終わると複製できます。")
+            case .hibernated: String(localized: "休止中は複製できません。起動して再開するか、保存した状態を捨ててください。")
+            case .diskMissing: String(localized: "ディスクのある外付けドライブを接続すると複製できます。")
+            }
         }
+        /// For MCP, in English.
+        var reason: String {
+            switch self {
+            case .missing: "not found"
+            case .running: "stop the VM first"
+            case .busy: "busy with another operation"
+            case .installing: "its OS install isn't finished"
+            case .hibernated: "hibernated; start it or discard the saved state first"
+            case .diskMissing: "the external drive with its disk isn't connected"
+            }
+        }
+    }
+
+    func copyBlock(_ name: String) -> CopyBlock? {
+        guard let inst = instance(named: name) else { return .missing }
+        if inst.isRunning { return .running }
+        if isBusy(name) { return .busy }
+        if pendingInstall(name) != nil { return .installing }
+        if isHibernated(name) { return .hibernated }
+        if case .missing = diskPlacement(of: inst) { return .diskMissing }
         return nil
     }
 
     /// Copies the stopped VM `source` as `name`: an APFS clone, so it is instant and takes no
     /// space until either VM writes. A moved disk gets its own clone on the same drive.
     func copy(_ source: String, as name: String, note: String, thenStart: Bool, snapshot: SnapshotRef? = nil) {
-        guard let client, let src = instance(named: source), copyBlocker(source) == nil else { return }
+        guard copyBlocker(source) == nil else { return }
+        selection = .instance(name)
+        Task {
+            do {
+                _ = try await copyNow(source, as: name, note: note, snapshot: snapshot)
+                if thenStart { start(name) }
+            } catch {
+                alert = AlertMessage(title: String(localized: "\(name) の複製に失敗しました"), message: error.localizedDescription)
+            }
+        }
+    }
+
+    struct CopyFailure: LocalizedError {
+        var errorDescription: String?
+    }
+
+    /// `copy`, waited for: the copy's record. The copy stays busy until it is finished, so
+    /// nothing starts it or reads its record halfway. A failure leaves what was made in place
+    /// (the operation shows the error), as the app always has.
+    func copyNow(_ source: String, as name: String, note: String, snapshot: SnapshotRef? = nil) async throws -> InstanceMetadata {
+        guard let client, let src = instance(named: source) else { throw CopyFailure(errorDescription: CopyBlock.missing.reason) }
+        if let block = copyBlock(source) { throw CopyFailure(errorDescription: block.text) }
         let sourceDir = URL(filePath: src.dir, directoryHint: .isDirectory)
         let config = (try? String(contentsOf: sourceDir.appending(path: "lima.yaml"), encoding: .utf8)) ?? ""
         let sourceRecord = metadata[source]
         let copyDir = sourceDir.deletingLastPathComponent().appending(path: name, directoryHint: .isDirectory)
-        selection = .instance(name)
+        // Another operation on the name: leave its state alone.
+        guard !isBusy(name) else { throw CopyFailure(errorDescription: CopyBlock.busy.text) }
         pendingGroups[name] = sourceRecord?.group  // shown in the source's group while it copies
-        run(.clone, on: name, client.clone(source, as: name, set: InstanceCopy.cloneExpressions(sourceConfig: config)),
-            keepBusy: true) { [weak self] ok in
-            guard let self else { return }
-            guard ok else { self.pendingGroups[name] = nil; return }
-            Task {
-                do {
-                    var record = try await InstanceCopy.finish(copyDir: copyDir, name: name, source: sourceRecord,
-                                                               sourceName: source, snapshot: snapshot?.label,
-                                                               note: note) { fraction in
-                        Task { @MainActor in self.operations[name]?.fraction = fraction }
-                    }
-                    // The source's group as it is now: it may have moved while the disk was copied.
-                    if let group = self.metadata[source]?.group {
-                        record.group = group
-                        try record.save()
-                    }
-                    self.metadata[name] = record
-                    switch snapshot {
-                    case .disk(let s):
-                        try DiskSnapshot.restore(s, of: sourceDir, into: copyDir)
-                    case .lima(let tag):
-                        for try await entry in client.applySnapshot(name, tag: tag) { _ = entry }
-                    case nil:
-                        break
-                    }
-                    self.operations[name] = nil
-                } catch {
-                    self.operations[name]?.isRunning = false
-                    self.operations[name]?.error = error.localizedDescription
-                    self.alert = AlertMessage(title: String(localized: "\(name) の複製に失敗しました"),
-                                              message: error.localizedDescription)
-                }
-                self.pendingGroups[name] = nil
-                await self.refresh()
-                if self.operations[name] == nil, thenStart { self.start(name) }
+        if let error = await perform(.clone, on: name, client.clone(source, as: name, set: InstanceCopy.cloneExpressions(sourceConfig: config)),
+                                     keepBusy: true) {
+            pendingGroups[name] = nil
+            throw CopyFailure(errorDescription: error)
+        }
+        do {
+            var record = try await InstanceCopy.finish(copyDir: copyDir, name: name, source: sourceRecord,
+                                                       sourceName: source, snapshot: snapshot?.label,
+                                                       note: note) { fraction in
+                Task { @MainActor in self.operations[name]?.fraction = fraction }
             }
+            // The source's group as it is now: it may have moved while the disk was copied.
+            if let group = metadata[source]?.group {
+                record.group = group
+                try record.save()
+            }
+            metadata[name] = record
+            switch snapshot {
+            case .disk(let s):
+                try DiskSnapshot.restore(s, of: sourceDir, into: copyDir)
+            case .lima(let tag):
+                for try await entry in client.applySnapshot(name, tag: tag) { _ = entry }
+            case nil:
+                break
+            }
+            operations[name] = nil
+            pendingGroups[name] = nil  // before the refresh, which lays out the groups from the record
+            await refresh()
+            return record
+        } catch {
+            operations[name]?.isRunning = false
+            operations[name]?.error = error.localizedDescription
+            pendingGroups[name] = nil
+            await refresh()
+            throw error
         }
     }
 

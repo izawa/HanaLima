@@ -47,6 +47,12 @@ struct AgentApprovalSheet: View {
                         Text("実行するスクリプト（ログインユーザー、各仮想マシンで最長 \(exec.timeout.components.seconds) 秒）")
                     }
                 }
+                if plan.action == .copy {
+                    Section {
+                        Text("複製は止まったまま、元と同じグループに入ります。あなたの仮想マシンの複製なので、あなたのものとして扱い、AI がその後に操作するときも、そのたびに承認を求めます。")
+                            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 if plan.action == .bootLogs {
                     Section {
                         Text("最後の起動のログの末尾（ホストエージェントの警告とエラー、Lima のイベント、シリアルコンソールの最近の出力。合わせて約 4 KB まで）を AI に渡します。ログはゲストのホスト名や起動中の出力を含みます。シリアルコンソールで端末を使っていれば、その入出力も含まれることがあります。どれも MCP クライアントを通って Mac の外へ送られます。")
@@ -84,7 +90,7 @@ struct AgentApprovalSheet: View {
         var height = 170 + 46 * CGFloat(max(plan.steps.count, 1)) + 40 * CGFloat(confirmations)
         if !plan.skipped.isEmpty { height += 50 + 46 * CGFloat(plan.skipped.count) }
         if plan.exec != nil { height += 220 }
-        if plan.action == .bootLogs { height += 90 }
+        if plan.action == .bootLogs || plan.action == .copy { height += 90 }
         return min(height, 640)
     }
 
@@ -100,6 +106,7 @@ struct AgentApprovalSheet: View {
         case .snapshotRestore: String(localized: "スナップショット「\(plan.tag ?? "")」に戻す")
         case .exec: String(localized: "スクリプトの実行")
         case .bootLogs: String(localized: "起動のログを読む")
+        case .copy: String(localized: "「\(plan.newName ?? "")」として複製")
         }
     }
 

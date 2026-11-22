@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import LimaKit
 import MCPKit
@@ -17,6 +18,8 @@ final class VMJobs {
         case snapshotCreate = "snapshot_create", snapshotRestore = "snapshot_restore"
         /// The end of one VM's logs from its last start (BootLogs): why it failed or isn't ready.
         case bootLogs = "boot_logs"
+        /// One stopped VM copied as `newName` (the app's copy): stopped, in the source's group.
+        case copy
         /// The `exec` tool (not a `vm` action): a script in each target.
         case exec
 
@@ -44,6 +47,8 @@ final class VMJobs {
         var snapshotIDs: [String: UUID] = [:]
         /// exec: what to run and its limits.
         var exec: ExecRequest?
+        /// copy: the new VM's name.
+        var newName: String?
     }
 
     struct ExecRequest {
@@ -121,7 +126,7 @@ final class VMJobs {
     func submit(_ arguments: MCPKit.JSONValue) throws -> Job {
         store.expireStale()
         guard let object = arguments.objectValue else { throw Failure.invalid("arguments must be an object") }
-        let known: Set = ["key", "targets", "group", "action", "tag"]
+        let known: Set = ["key", "targets", "group", "action", "tag", "newName"]
         if let unknown = object.keys.first(where: { !known.contains($0) }) { throw Failure.invalid("unknown argument: \(unknown)") }
         guard let key = object["key"]?.stringValue, !key.isEmpty else { throw Failure.invalid("key is required (any string unique to this request)") }
         guard let raw = object["action"]?.stringValue, let action = Action(rawValue: raw) else {
@@ -135,12 +140,27 @@ final class VMJobs {
         }
         let names = try targets(object, action: action)
         if action == .bootLogs, names.count != 1 { throw Failure.invalid("boot_logs takes one VM in targets") }
+        let newName = object["newName"]?.stringValue
+        if action == .copy {
+            guard names.count == 1 else { throw Failure.invalid("copy takes one VM in targets") }
+            guard let newName, TopologyPlanner.isValidVMName(newName) else {
+                throw Failure.invalid("newName is required: lowercase letters, digits and single hyphens, starting with a letter")
+            }
+            if object["tag"] != nil { throw Failure.invalid("copy copies the VM as it is now; tag isn't supported") }
+            if model.instance(named: newName) != nil || model.isBusy(newName) { throw Failure.invalid("a VM named \(newName) exists") }
+            if let block = model.copyBlock(names[0]) { throw Failure.invalid("can't copy \(names[0]): \(block.reason)") }
+        } else if object["newName"] != nil {
+            throw Failure.invalid("newName is only for copy")
+        }
         let tag = object["tag"]?.stringValue
         if [.snapshotCreate, .snapshotRestore].contains(action), (tag ?? "").isEmpty {
             throw Failure.invalid("tag is required for \(action.rawValue)")
         }
         let summary = "\(action.rawValue) \(names.joined(separator: ", "))" + (tag.map { " (\($0))" } ?? "")
-        return try file(makePlan(action: action, names: names, tag: tag, summary: summary), key: key, tool: "vm", input: arguments)
+            + (newName.map { " → \($0)" } ?? "")
+        var plan = makePlan(action: action, names: names, tag: tag, summary: summary)
+        plan.newName = newName
+        return try file(plan, key: key, tool: "vm", input: arguments)
     }
 
     /// Files `draft` as a job: at once, after the person's approval, or (nothing to do) finished.
@@ -358,7 +378,8 @@ final class VMJobs {
                 if matches.count != 1 { return matches.isEmpty ? "no snapshot named \(tag)" : "\(matches.count) snapshots are named \(tag); restore one in the app" }
             }
             return inst.usesVirtualization ? nil : "only vz and hanalima VMs (QEMU snapshots are made in the app)"
-        case .start, .stop, .hibernate, .bootLogs: return nil
+        // Checked as the step runs, so a copy that can't be made fails rather than being skipped.
+        case .start, .stop, .hibernate, .bootLogs, .copy: return nil
         }
     }
 
@@ -399,6 +420,19 @@ final class VMJobs {
             guard let text else { return .failed("not the VM approved (deleted or made again)") }
             outputs[plan.jobID, default: [:]][step.name] = text
             error = nil
+        case .copy:
+            guard let newName = plan.newName else { return .failed("no new name") }
+            if let block = model.copyBlock(name) { return .failed("can't copy: \(block.reason)") }
+            if model.instance(named: newName) != nil || model.isBusy(newName) { return .failed("a VM named \(newName) exists") }
+            do {
+                let record = try await model.copyNow(name, as: newName, note: "")
+                // A copy of a VM MCP made is MCP's too. One of the person's VMs stays theirs: its
+                // disk is theirs, and MCP may not read it without asking (docs/14 §6.1).
+                if state.ownsVM(step.id) { state.recordVM(record.id, name: newName, job: plan.jobID) }
+                error = nil
+            } catch let failure {
+                error = "copy: \(failure.localizedDescription) (\(newName) may remain; check it in the app)"
+            }
         case .start, .stop, .hibernate: error = nil
         }
         return error.map(GroupStepReport.failed) ?? .done

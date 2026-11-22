@@ -1,22 +1,6 @@
 {
   "sourceLanguage": "ja",
   "strings": {
-    "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@: adds the provisioning example “Log In Automatically on the Consoles (Screen and Serial)”. Anyone who can open the screen or the serial console gets this user's shell (with sudo) without a password."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。"
-          }
-        }
-      }
-    },
     "": {
       "localizations": {
         "ja": {
@@ -378,6 +362,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@/秒"
+          }
+        }
+      }
+    },
+    "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: adds the provisioning example “Log In Automatically on the Consoles (Screen and Serial)”. Anyone who can open the screen or the serial console gets this user's shell (with sudo) without a password."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。"
           }
         }
       }
@@ -2848,16 +2848,16 @@
     },
     "NIC（%lld）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NIC（%lld）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "NICs (%lld)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC（%lld）"
           }
         }
       }
@@ -4203,6 +4203,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」という名前のグループがすでにあります。"
+          }
+        }
+      }
+    },
+    "「%@」として複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy as “%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」として複製"
           }
         }
       }
@@ -16245,6 +16261,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "複製した仮想マシンは、コピー元と共有している部分も、それぞれの使用量に数えています（APFS のクローンの共有分は調べられないため）。実際の合計は、表示より少なくなります。"
+          }
+        }
+      }
+    },
+    "複製は止まったまま、元と同じグループに入ります。あなたの仮想マシンの複製なので、あなたのものとして扱い、AI がその後に操作するときも、そのたびに承認を求めます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The copy stays stopped, in the same group as the original. As a copy of your VM, it is treated as yours: each later operation on it by AI asks for your approval too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製は止まったまま、元と同じグループに入ります。あなたの仮想マシンの複製なので、あなたのものとして扱い、AI がその後に操作するときも、そのたびに承認を求めます。"
           }
         }
       }

@@ -763,10 +763,11 @@ final class AppModel {
     /// Like `run`, but waits for the command and returns its error (nil: it succeeded), without
     /// an alert: for group-wide operations, which report all results together (docs/12 5.4).
     /// Returns "busy" without starting anything if `name` is busy.
+    /// `keepBusy`: on success `name` stays busy, for a caller that has more to do (a copy).
     func perform(_ kind: Operation.Kind, on name: String,
-                 _ stream: @autoclosure () -> AsyncThrowingStream<LogEntry, Error>) async -> String? {
+                 _ stream: @autoclosure () -> AsyncThrowingStream<LogEntry, Error>, keepBusy: Bool = false) async -> String? {
         guard begin(kind, on: name) else { return String(localized: "処理中です。") }
-        return await follow(kind, on: name, stream(), keepBusy: false, quiet: true)
+        return await follow(kind, on: name, stream(), keepBusy: keepBusy, quiet: true)
     }
 
     /// Marks `name` busy with `kind`; false if it already is.
