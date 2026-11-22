@@ -119,6 +119,26 @@ public struct NetworkObservation: Codable, Sendable, Hashable {
         guard seconds > 0, new.frames >= old.frames, new.bytes >= old.bytes else { return nil }
         return (Double(new.frames - old.frames) / seconds, Double(new.bytes - old.bytes) / seconds)
     }
+
+    /// A sample older than this when read: the helper stopped or hangs (shown as old, never as zero).
+    public static let staleAfter: TimeInterval = 3
+
+    public func isStale(at now: Date) -> Bool { now.timeIntervalSince(sampledAt) > Self.staleAfter }
+
+    /// What a guest-only network's status file says now.
+    public enum Reading: Equatable, Sendable {
+        case sample(NetworkObservation)
+        /// A helper with VMs attached that doesn't count (from before docs/17).
+        case olderHelper
+        /// No helper is running (it starts at the first VM and exits when idle).
+        case notRunning
+
+        public static func load(network: String) -> Reading {
+            guard let status = NetworkDaemonStatus.load(for: network) else { return .notRunning }
+            if let observation = status.observation { return .sample(observation) }
+            return status.clients.isEmpty ? .notRunning : .olderHelper
+        }
+    }
 }
 
 // MARK: - pcap

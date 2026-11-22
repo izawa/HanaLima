@@ -116,6 +116,17 @@ struct MCPEndToEndTests {
             ])
             try require(try jobHeader(executed.text).state == .succeeded, executed.text)
             try require(executed.text.contains("via 10.29.0.1"), executed.text)
+
+            // Reading the map, the checks and the network's observation (read only; nothing is run).
+            let mapped = try client.call("inspect", arguments: ["topics": ["map"], "ids": names]).text.split(separator: "\n")
+            try require(mapped.contains { $0.hasPrefix("e2e-mcp\tguestOnly\t10.29.0.0/24\t") && $0.hasSuffix("\t10.29.0.1\thanalima-e2e-mgw\tfalse") }
+                        && mapped.contains { $0.hasPrefix("\(names[1])\ttrue\te2e-mcp\t1\t10.29.0.") }, mapped.joined(separator: "\n"))
+            let checked = try client.call("inspect", arguments: ["topics": ["checks"], "ids": [names[1]]]).text
+            try require(checked.contains("\(names[1])\t-\t-\t-\t-\tnotChecked"), checked)
+            let observed = try client.call("inspect", arguments: ["topics": ["observation"], "ids": ["e2e-mcp"]]).text.split(separator: "\n")
+            try require(observed.contains { $0.hasPrefix("e2e-mcp\tfresh\t") && $0.hasSuffix("\t0") }
+                        && names.allSatisfy { name in observed.contains { $0.hasPrefix("port\te2e-mcp\t\(name)\t") && $0.contains("\ttrue\t") } },
+                        observed.joined(separator: "\n"))
             let stopped = try client.call("vm", arguments: [
                 "key": UUID().uuidString, "action": "stop", "group": "hanalima-e2e-mcp", "wait": 120,
             ])

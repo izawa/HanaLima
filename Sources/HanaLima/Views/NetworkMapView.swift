@@ -778,7 +778,7 @@ private struct SegmentFaultsView: View {
 
     private func name(of fault: NetworkFault) -> String {
         if fault.spec.isSegment { return String(localized: "セグメント全体") }
-        return map.rows.first { $0.ports.contains { $0.bus == bus && $0.macs.contains(fault.spec.target) } }?.name ?? fault.spec.target
+        return map.endpoint(on: bus, macs: [fault.spec.target]).map(ObservationText.label) ?? fault.spec.target
     }
 }
 
@@ -902,12 +902,12 @@ enum ObservationText {
     /// The VM whose NIC on `bus` has one of the port's MACs, or the MACs themselves.
     /// With several NICs of the owner on this bus, the guest's name for the NIC follows (`guest1 lima1`).
     static func portName(_ port: NetworkObservation.Port, map: NetworkMap, bus: String) -> String {
-        for row in map.rows {
-            guard let nics = row.ports.first(where: { $0.bus == bus && !Set($0.macs).isDisjoint(with: port.macs) })?.nics else { continue }
-            guard nics.count > 1, let nic = nics.first(where: { $0.mac.map(port.macs.contains) == true }) else { return row.name }
-            return "\(row.name) \(nic.interface ?? nic.mac ?? "")"
-        }
+        if let endpoint = map.endpoint(on: bus, macs: port.macs) { return label(endpoint) }
         return port.macs.isEmpty ? String(localized: "接続 \(port.id)") : port.macs.joined(separator: ", ")
+    }
+
+    static func label(_ endpoint: (vm: String, nic: String?)) -> String {
+        endpoint.nic.map { "\(endpoint.vm) \($0)" } ?? endpoint.vm
     }
 
     /// The ports (live first, then disconnected) whose learned MACs include one of `macs`.

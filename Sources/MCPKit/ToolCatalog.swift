@@ -61,18 +61,20 @@ public enum ToolCatalog {
     public static let inspect = MCPToolDefinition(
         name: "inspect",
         title: "Inspect HanaLima",
-        description: "Read VMs, networks, groups, templates, provisioning examples, snapshots or help. "
-            + "No topics = context (what building a topology needs). Changes nothing.",
+        description: "Read VMs, networks, groups, templates, provisioning examples, snapshots, the network map, "
+            + "the user's last reachability checks, guest-only traffic counters and faults, or help. "
+            + "No topics = context (what building a topology needs). Changes nothing and runs no checks.",
         inputSchema: [
             "type": "object",
             "properties": [
                 "topics": [
                     "type": "array",
                     "items": ["type": "string", "enum": ["context", "vms", "networks", "groups", "templates",
-                                                         "examples", "snapshots", "jobs", "help"]],
+                                                         "examples", "snapshots", "jobs", "map", "checks",
+                                                         "observation", "help"]],
                 ],
                 "ids": ["type": "array", "items": ["type": "string"],
-                        "description": "VM or network names for detail rows (vms, networks, snapshots)"],
+                        "description": "VM names (vms, snapshots, map, checks) or network names (networks; observation, which then adds per-connection rows)"],
                 "query": ["type": "string", "description": "Filter for templates (required for them), or the help topic"],
                 "limit": ["type": "integer", "minimum": 1, "maximum": 100],
                 "cursor": ["type": "string"],

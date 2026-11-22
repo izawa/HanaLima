@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import LimaKit
 import MCPKit
@@ -31,6 +32,9 @@ struct InspectTool {
             case "examples": sections.append(examples())
             case "snapshots": sections.append(try snapshots(ids))
             case "jobs": sections.append(jobs())
+            case "map": sections.append(map(ids, limit: limit, offset: offset))
+            case "checks": sections.append(checks(ids, limit: limit, offset: offset))
+            case "observation": sections.append(observation(ids, limit: limit, offset: offset))
             case "help": sections.append(Self.help(query))
             default: throw Failure.invalid("unknown topic: \(topic)")
             }
@@ -257,6 +261,54 @@ struct InspectTool {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - map, checks, observation (docs/16–18; read only)
+
+    /// The VM names in `ids` that don't exist, as error lines.
+    private func missingVMs(_ ids: [String]) -> [String] {
+        ids.filter { model.instance(named: $0) == nil }.map { "error\t\($0)\tnot found" }
+    }
+
+    /// The people's last check results (run from the map; MCP never runs them).
+    private var mapCheckResults: MapInspection.Checks {
+        Dictionary(uniqueKeysWithValues: model.mapChecks.map { ($0.key, ($0.value.record, model.isMapCheckStale($0.key))) })
+    }
+
+    private func map(_ ids: [String], limit: Int, offset: Int) -> String {
+        let map = model.networkMap
+        let buses = MapInspection.buses(map, vms: ids)
+        let links = MapInspection.links(map, checks: mapCheckResults, vms: ids)
+        return (["# map buses \(buses.count)", MapInspection.busHeader] + buses
+                + ["# map links \(links.count)", MapInspection.linkHeader]
+                + Self.page(links, limit: limit, offset: offset) { $0 } + missingVMs(ids)).joined(separator: "\n")
+    }
+
+    private func checks(_ ids: [String], limit: Int, offset: Int) -> String {
+        let known = ids.isEmpty ? nil : ids.filter { model.instance(named: $0) != nil }
+        let rows = MapInspection.checks(model.networkMap, checks: mapCheckResults, vms: known)
+        return (["# checks \(rows.count)", MapInspection.checkHeader]
+                + Self.page(rows, limit: limit, offset: offset) { $0 } + missingVMs(ids)).joined(separator: "\n")
+    }
+
+    /// Reads each guest-only network's status file once; with `ids`, also its connections.
+    private func observation(_ ids: [String], limit: Int, offset: Int) -> String {
+        let guestOnly = model.virtualNetworks.filter(\.isGuestOnly)
+        let selected = ids.isEmpty ? guestOnly : guestOnly.filter { ids.contains($0.name) }
+        let map = model.networkMap
+        var summaries: [String] = [], faults: [String] = [], ports: [String] = []
+        for net in selected {
+            let rows = MapInspection.observation(network: net.name, bus: net.socketPath,
+                                                 reading: .load(network: net.name), map: map, now: .now, ports: !ids.isEmpty)
+            summaries.append(rows.summary); faults += rows.faults; ports += rows.ports
+        }
+        var lines = ["# observation \(summaries.count)", MapInspection.observationHeader] + summaries
+        if !faults.isEmpty { lines += [MapInspection.faultHeader] + faults }
+        if !ports.isEmpty { lines += [MapInspection.portHeader] + Self.page(ports, limit: limit, offset: offset) { $0 } }
+        for id in ids where !selected.contains(where: { $0.name == id }) {
+            lines.append("error\t\(id)\t" + (model.virtualNetworks.contains { $0.name == id } ? "not a guestOnly network" : "not found"))
+        }
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - templates, examples, snapshots, jobs
 
     private func templates(query: String, limit: Int, offset: Int) throws -> String {
@@ -320,6 +372,26 @@ struct InspectTool {
 
     static func help(_ topic: String) -> String {
         let topics: [String: String] = [
+            "map": """
+            ids are VM names for map and checks but network names for observation: ask for one kind per call. \
+            map: buses (macOnBus false = the Mac has no interface there; gateway on a guestOnly bus is the \
+            helper's DHCP/DNS address, router the VM handed out as the default route) and one link per VM and bus, \
+            NIC 0 (nic0) and vzNAT. addresses: ip/source (reservation, lease, leaseByName = found by host name, not \
+            tied to this NIC, observed = the guest reported it at the user's last check, observed-stale = since then the VM or its networks changed). Exits are exit:nic0 \
+            and exit:vzNAT. check: the user's last check from the map (- = none, partial(n/m) = n of m NICs got \
+            every reply, stale/ = the VM or its networks changed since). checks: one row per ping, with when and why \
+            not; notChecked = never checked, noTargets = checked but nothing to ping. A reply proves that exchange only; no reply doesn't prove isolation. Checks are run by the user in \
+            the app, never by MCP, and are forgotten when the app quits.
+            """,
+            "observation": """
+            observation (guestOnly networks only): what the network's helper relayed. state: fresh, stale (no \
+            sample for 3 s: the helper stopped or hangs), notRunning (no status to read: usually no VM attached), olderHelper (restart its VMs \
+            to replace it). Counters are frames/bytes (flooded, undelivered, malformed: frames), cumulative since the \
+            helper's run started (run); read twice in the same run and divide the difference by the uptime difference (seconds). delayed is what waits \
+            in a delay now, not a total. fault rows: delay and loss apply to frames delivered to the target, a \
+            block drops both ways while the guest's link stays up; target * = the whole network; each ends at \
+            expiresAt. Name a network in ids for per-connection rows (endpoint = VM, or VM/NIC; paged with limit).
+            """,
             "isolation": """
             A VM without NIC 0 (usernet: false, vmType hanalima) reaches only the networks it is attached to; \
             SSH, the guest agent and port forwarding go over vsock. Ubuntu 26.04 (systemd 256+) works from \

@@ -28,10 +28,11 @@ extension AppModel {
         var samples: [String: ObservationSample] = [:]
         var older: Set<String> = []
         for network in virtualNetworks where network.isGuestOnly {
-            guard let status = NetworkDaemonStatus.load(for: network.name) else { continue }
-            guard let current = status.observation else {
-                if !status.clients.isEmpty { older.insert(network.name) }
-                continue
+            let current: NetworkObservation
+            switch NetworkObservation.Reading.load(network: network.name) {
+            case .sample(let sample): current = sample
+            case .olderHelper: older.insert(network.name); continue
+            case .notRunning: continue
             }
             // The sample before, if from the same run: a restarted helper counts from zero again.
             var previous: NetworkObservation?
@@ -39,7 +40,7 @@ extension AppModel {
                 previous = last.current.sequence < current.sequence ? last.current : last.previous
             }
             samples[network.name] = ObservationSample(current: current, previous: previous,
-                                                      isStale: Date.now.timeIntervalSince(current.sampledAt) > 3)
+                                                      isStale: current.isStale(at: .now))
         }
         if samples != observations { observations = samples }
         if older != olderHelpers { olderHelpers = older }

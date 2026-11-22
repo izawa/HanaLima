@@ -85,6 +85,17 @@ public struct NetworkMap: Equatable, Sendable {
     /// The VMs (not the Mac) with a NIC on `bus`.
     public func members(of bus: String) -> [Row] { rows.filter { $0.ports.contains { $0.bus == bus } } }
 
+    /// The VM whose NIC on `bus` has one of `macs`; `nic` names that NIC (the guest's name, else
+    /// its MAC) only when the VM has several NICs on the bus.
+    public func endpoint(on bus: String, macs: [String]) -> (vm: String, nic: String?)? {
+        for row in rows {
+            guard let nics = row.ports.first(where: { $0.bus == bus && !Set($0.macs).isDisjoint(with: macs) })?.nics else { continue }
+            guard nics.count > 1, let nic = nics.first(where: { $0.mac.map(macs.contains) == true }) else { return (row.name, nil) }
+            return (row.name, nic.interface ?? nic.mac)
+        }
+        return nil
+    }
+
     // MARK: - Building
 
     /// - Parameters:
