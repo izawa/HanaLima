@@ -285,6 +285,22 @@
         }
       }
     },
+    "%@ を、あなたのゲスト専用ネットワーク「%@」に DHCP でつなぎます。そのネットワークにいるほかの仮想マシンと通信できるようになります。ネットワークの設定は変えません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connects %1$@ to your guest-only network “%2$@” by DHCP. They can then talk to the other VMs on that network. The network's settings stay as they are."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ を、あなたのゲスト専用ネットワーク「%2$@」に DHCP でつなぎます。そのネットワークにいるほかの仮想マシンと通信できるようになります。ネットワークの設定は変えません。"
+          }
+        }
+      }
+    },
     "%@ を処理しています…": {
       "localizations": {
         "en": {

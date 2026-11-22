@@ -90,12 +90,17 @@ final class BuildJobs {
                 let ssh = [inst.config?["ssh"]?["localPort"]?.intValue, inst.isRunning ? inst.sshLocalPort : nil]
                     .compactMap { $0 }.filter { $0 > 0 }.map { $0...$0 }
                 let ports = PlannerFacts.ExistingVM.hostPorts(inst.config) + ssh
-                guard let id, let entry = state.ownedVMs[id] else { return .init(name: inst.name, id: id, ownedByMCP: false, hostPorts: ports) }
+                let nics = (inst.networks ?? []).compactMap { n in
+                    n.socket.flatMap { socket in n.macAddress.flatMap(DHCPReservation.normalizedMAC).map { "\(socket) \($0)" } }
+                }
+                guard let id, let entry = state.ownedVMs[id] else {
+                    return .init(name: inst.name, id: id, ownedByMCP: false, hostPorts: ports, nics: nics)
+                }
                 return .init(name: inst.name, id: id, ownedByMCP: true,
                              made: .init(fingerprint: entry.fingerprint, madeSettings: entry.settings,
                                          settings: PlannerFacts.Made.settings(of: inst), usernet: inst.usesUsernet,
                                          group: model.metadata[inst.name]?.group, bootstrapPending: entry.bootstrapped != true),
-                             hostPorts: ports)
+                             hostPorts: ports, nics: nics)
             },
             networks: model.virtualNetworks,
             ownedNetworks: Set(model.virtualNetworks.map(\.name).filter(state.ownsNetwork)),
@@ -187,6 +192,15 @@ final class BuildJobs {
                 continue
             }
             jobs.setCurrent(id, vm.name)
+            // An existing network may have been changed since the plan (made a bridge, say).
+            let changed = plan.networks.filter { $0.action == .existing }.map(\.network).first { planned in
+                vm.nics.contains { $0.network == planned.name } && model.virtualNetworks.first { $0.name == planned.name } != planned
+            }
+            if let changed {
+                record(vm.name, "\(changed.name) changed since the plan; not started (plan again)")
+                failed.insert(vm.name)
+                continue
+            }
             let error = await start(vm)
             if error != nil, routers.contains(vm.name) { routerFailed = true }
             if let error { record(vm.name, error); failed.insert(vm.name) }
@@ -224,7 +238,9 @@ final class BuildJobs {
         // needn't ask for the details or check again itself.
         let checks = jobs.job(id)?.results.filter { $0.target.contains(" ") } ?? []
         let verified = checks.filter { $0.outcome == "done" }.count
-        jobs.setNote(id, "built \(plan.networks.count) network(s), \(plan.vms.count) VM(s); traffic checks verified \(verified) of \(checks.count)"
+        let attached = plan.networks.filter { $0.action == .existing }.count
+        jobs.setNote(id, "built \(plan.networks.count - attached) network(s)" + (attached > 0 ? " and attached to \(attached) existing" : "")
+            + ", \(plan.vms.count) VM(s); traffic checks verified \(verified) of \(checks.count)"
             + (plan.verifyOutside.map { " (outside: \($0))" } ?? ""))
         finish(id)
     }

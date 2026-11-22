@@ -31,7 +31,13 @@ struct BuildApprovalSheet: View {
                         ForEach(plan.vms.filter { $0.action == .create && $0.provision.contains(.consoleLogin) }.map(\.name), id: \.self) { name in
                             Text("\(name): プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。")
                         }
-                        ForEach(plan.approvals.filter { !$0.hasPrefix("consoleLogin on ") }, id: \.self) { Text(verbatim: $0) }
+                        ForEach(plan.networks.filter(\.theUsers).map(\.network.name), id: \.self) { network in
+                            let names = plan.vms.filter { vm in vm.nics.contains { $0.network == network } }.map(\.name)
+                            if !names.isEmpty {
+                                Text("\(names.joined(separator: ", ")) を、あなたのゲスト専用ネットワーク「\(network)」に DHCP でつなぎます。そのネットワークにいるほかの仮想マシンと通信できるようになります。ネットワークの設定は変えません。")
+                            }
+                        }
+                        ForEach(plan.approvals.filter { !$0.hasPrefix("consoleLogin on ") && !$0.hasPrefix("connect ") }, id: \.self) { Text(verbatim: $0) }
                     }
                 }
             }

@@ -11,6 +11,7 @@ extension TopologyPlan {
             let n = entry.network
             var detail = "\(n.mode.rawValue) \(n.subnet?.description ?? "?")"
             if !n.router.isEmpty { detail += " router=\(n.router)" }
+            if entry.action == .existing { detail += entry.theUsers ? " (the user's; DHCP only)" : " (made through MCP; DHCP only)" }
             detail += " dhcp=\(n.gateway)"
             lines.append(row(entry.action.rawValue, n.name, detail))
         }

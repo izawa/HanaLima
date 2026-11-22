@@ -16,11 +16,12 @@ extension TopologySpec {
                                 usernet: reader.boolean(d, "usernet", at: "/defaults"))
         let networks: [Network] = reader.array(root, "networks", at: "").enumerated().map { i, value in
             let path = "/networks/\(i)"
-            let o = reader.object(value, at: path, keys: ["ref", "mode", "cidr", "router"])
+            let o = reader.object(value, at: path, keys: ["ref", "mode", "cidr", "router", "existing"])
+            let existing = reader.string(o, "existing", at: path)
             return Network(ref: reader.string(o, "ref", at: path, required: true) ?? "",
-                           mode: reader.string(o, "mode", at: path, required: true) ?? "",
-                           cidr: reader.string(o, "cidr", at: path, required: true) ?? "",
-                           router: reader.string(o, "router", at: path))
+                           mode: reader.string(o, "mode", at: path, required: existing == nil) ?? "",
+                           cidr: reader.string(o, "cidr", at: path, required: existing == nil) ?? "",
+                           router: reader.string(o, "router", at: path), existing: existing)
         }
         let vms: [VM] = reader.array(root, "vms", at: "").enumerated().map { i, value in
             let path = "/vms/\(i)"
@@ -104,7 +105,12 @@ func declarationProblems(_ spec: TopologySpec) -> [PlanProblem] {
     if spec.vms.count > 16 { invalid("/vms", "At most 16 VMs are supported") }
     if spec.networks.count > 4 { invalid("/networks", "At most 4 networks are supported") }
     resources(spec.defaults.cpus, spec.defaults.memoryGiB, spec.defaults.diskGiB, at: "/defaults")
-    for (i, network) in spec.networks.enumerated() where network.mode != "guestOnly" {
+    for (i, network) in spec.networks.enumerated() where network.existing != nil {
+        for (key, given) in [("mode", !network.mode.isEmpty), ("cidr", !network.cidr.isEmpty), ("router", network.router != nil)] where given {
+            invalid("/networks/\(i)/" + key, "An existing network is used as it is: give existing alone")
+        }
+    }
+    for (i, network) in spec.networks.enumerated() where network.existing == nil && network.mode != "guestOnly" {
         problems.append(.init(code: "UNSUPPORTED", path: "/networks/\(i)/mode", message: "Only guestOnly is supported",
                               alternative: "guestOnly; bridges and other modes are made in the app"))
     }

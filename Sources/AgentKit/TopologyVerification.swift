@@ -44,9 +44,11 @@ public enum TopologyVerification {
                 !network.router.isEmpty && vm.nics.contains { $0.network == network.name && $0.ip == network.router }
             }
             let clients = members.filter { $0.name != router?.name }
+            // An existing network's router isn't in the plan, but its clients still route through it.
+            let routed = router != nil || (entry.action == .existing && !network.router.isEmpty)
             for (index, client) in clients.enumerated() {
                 let vm = client.name
-                if router != nil {
+                if routed {
                     append(vm, "route", "\(vm) → default route via \(network.router)", """
                     routes=$(ip route show default 2>/dev/null)
                     routes=$(echo $routes)
@@ -64,7 +66,7 @@ public enum TopologyVerification {
                           command: "ping -c 2 -W 2 \(quote("lima-" + peer))", reason: "no reply")
                 }
             }
-            if router != nil, let host = plan.verifyOutside {
+            if routed, let host = plan.verifyOutside {
                 for vm in members where scripts[vm.name]?.checks.contains(where: { $0.id == "outside" }) != true {
                     probe(vm.name, "outside", "\(vm.name) → \(host)",
                           command: "wget -q -T 5 -O /dev/null \(quote("http://" + host))", reason: "wget failed")

@@ -26,9 +26,14 @@ public struct TopologySpec: Equatable, Sendable {
         public var cidr: String
         /// The `ref` of the VM that routes for this network, if any.
         public var router: String?
-        public init(ref: String, mode: String, cidr: String, router: String? = nil) {
-            self.ref = ref; self.mode = mode; self.cidr = cidr; self.router = router
+        /// The name of a guest-only network that exists already, to attach new VMs to (DHCP only);
+        /// mode, cidr and router are then not given.
+        public var existing: String?
+        public init(ref: String, mode: String = "", cidr: String = "", router: String? = nil, existing: String? = nil) {
+            self.ref = ref; self.mode = mode; self.cidr = cidr; self.router = router; self.existing = existing
         }
+        /// The network's real name.
+        public var name: String { existing ?? ref }
     }
     public struct NIC: Equatable, Sendable {
         public var network: String
@@ -107,8 +112,10 @@ public struct PlannerFacts: Sendable {
         public var made: Made?
         /// Host TCP ports its configuration forwards to (any address), as ranges.
         public var hostPorts: [ClosedRange<Int>]
-        public init(name: String, id: UUID?, ownedByMCP: Bool, made: Made? = nil, hostPorts: [ClosedRange<Int>] = []) {
-            self.name = name; self.id = id; self.ownedByMCP = ownedByMCP; self.made = made; self.hostPorts = hostPorts
+        /// Its NICs on HanaLima's networks, as "<socket path> <normalized MAC>".
+        public var nics: [String]
+        public init(name: String, id: UUID?, ownedByMCP: Bool, made: Made? = nil, hostPorts: [ClosedRange<Int>] = [], nics: [String] = []) {
+            self.name = name; self.id = id; self.ownedByMCP = ownedByMCP; self.made = made; self.hostPorts = hostPorts; self.nics = nics
         }
 
         /// The host TCP ports of a configuration's `portForwards` (UDP-only, ignore and socket rules aren't ports).
@@ -170,12 +177,15 @@ public struct PlannerFacts: Sendable {
 
 /// The planner's answer. `problems` empty = ready to apply.
 public struct TopologyPlan: Equatable, Sendable {
-    public enum Action: String, Sendable { case create, unchanged }
+    /// `existing`: a network the declaration attaches to and leaves as it is.
+    public enum Action: String, Sendable { case create, unchanged, existing }
 
     public struct PlannedNetwork: Equatable, Sendable {
         public var action: Action
         /// To save as is (reservations and router filled in).
         public var network: VirtualNetwork
+        /// An existing network the user made (attaching to it needs their approval).
+        public var theUsers = false
     }
     public struct PlannedVM: Equatable, Sendable {
         public var action: Action

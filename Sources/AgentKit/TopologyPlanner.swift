@@ -20,7 +20,12 @@ public enum TopologyPlanner {
                 problem("INVALID", "/networks/\(i)/ref", "Network name must start with a lowercase letter and contain 1–24 lowercase letters, digits or hyphens, with no trailing hyphen")
             }
             if !networkNames.insert(network.ref).inserted { problem("INVALID", "/networks/\(i)/ref", "Duplicate network ref") }
+            if spec.networks.prefix(i).contains(where: { $0.name == network.name }) {
+                problem("INVALID", "/networks/\(i)", "\(network.name) is declared twice")
+            }
         }
+        // A NIC names a network by its ref; the planned NIC, its MAC and socket use the real name.
+        let realName = Dictionary(spec.networks.map { ($0.ref, $0.name) }, uniquingKeysWith: { first, _ in first })
         for (i, vm) in spec.vms.enumerated() {
             let path = "/vms/\(i)"
             if !validName(vm.ref, limit: 76) || !CreateOptions.isValidName(vm.ref) {
@@ -66,7 +71,8 @@ public enum TopologyPlanner {
                 if !networkNames.contains(nic.network) { problem("INVALID", p + "/network", "Unknown network ref: \(nic.network)") }
                 if !attached.insert(nic.network).inserted { problem("INVALID", p + "/network", "Duplicate NIC on the same network") }
                 if let ip = nic.ip, IPv4(ip) == nil { problem("INVALID", p + "/ip", "Invalid IPv4 address") }
-                return .init(network: nic.network, mac: mac(vm: vm.ref, network: nic.network),
+                let network = realName[nic.network] ?? nic.network
+                return .init(network: network, mac: mac(vm: vm.ref, network: network),
                              ip: nic.ip.map { IPv4($0)?.description ?? $0 })
             }
             var expressions: [String] = []
@@ -138,6 +144,10 @@ public enum TopologyPlanner {
         let declaredSubnets = spec.networks.compactMap { IPv4Subnet(cidr: $0.cidr) }
         for (i, declaration) in spec.networks.enumerated() {
             let path = "/networks/\(i)"
+            if let target = declaration.existing {
+                attach(declaration, at: i, target: target, facts: facts, spec: spec, result: &result)
+                continue
+            }
             let existing = facts.networks.first { $0.name == declaration.ref }
             let owned = existing != nil && facts.ownedNetworks.contains(declaration.ref)
             if existing != nil && !owned {
@@ -239,6 +249,54 @@ public enum TopologyPlanner {
             result.approvals.append("memory: \(memory / 1_073_741_824) GiB exceeds the Mac's \(Double(facts.physicalMemory) / 1_073_741_824) GiB")
         }
         return result
+    }
+
+    /// An existing guest-only network new VMs join by DHCP, left as it is: adding a reservation
+    /// would save it, which restarts its helper and cuts its VMs off. The user's asks for approval.
+    private static func attach(_ declaration: TopologySpec.Network, at i: Int, target: String, facts: PlannerFacts,
+                               spec: TopologySpec, result: inout TopologyPlan) {
+        let path = "/networks/\(i)"
+        func problem(_ code: String, _ path: String, _ message: String, _ alternative: String?) {
+            result.problems.append(.init(code: code, path: path, message: message, alternative: alternative))
+        }
+        guard let network = facts.networks.first(where: { $0.name == target }) else {
+            let names = facts.networks.filter(\.isGuestOnly).map(\.name)
+            problem("INVALID", path + "/existing", "No network named \(target)", names.isEmpty ? nil : names.joined(separator: ", "))
+            return
+        }
+        guard network.isGuestOnly else {
+            problem("UNSUPPORTED", path + "/existing", "\(target) is a \(network.mode.rawValue) network; only guest-only networks can be attached to for now", nil)
+            return
+        }
+        for (vi, vm) in spec.vms.enumerated() {
+            for (ni, nic) in vm.nics.enumerated() where nic.network == declaration.ref && nic.ip != nil {
+                problem("UNSUPPORTED", "/vms/\(vi)/nics/\(ni)/ip",
+                        "A fixed IP on an existing network needs a reservation, and saving one restarts its helper", "leave ip out (DHCP)")
+            }
+        }
+        let joining = result.vms.filter { vm in vm.nics.contains { $0.network == target } }
+        guard !joining.isEmpty else {
+            problem("INVALID", path, "No VM has a NIC on \(declaration.ref)", "attach a VM to it, or leave it out")
+            return
+        }
+        for vm in joining {
+            for nic in vm.nics where nic.network == target {
+                // The MAC comes from the VM's name: another VM's NIC or a reservation may hold it.
+                let holder = network.reservations.first { DHCPReservation.normalizedMAC($0.mac) == nic.mac }?.ip
+                    ?? facts.vms.first { $0.name != vm.name && $0.nics.contains("\(network.socketPath) \(nic.mac)") }?.name
+                if let holder {
+                    problem("CONFLICT", path + "/existing", "\(vm.name)'s MAC on \(target) is taken (\(holder))", "use another VM ref")
+                }
+            }
+        }
+        let theUsers = !facts.ownedNetworks.contains(target)
+        if theUsers {
+            result.approvals.append("connect \(joining.map(\.name).joined(separator: ", ")) to \(target), the user's guest-only network")
+        }
+        result.filled.append("dhcpServer[\(target)]=\(network.gateway)")
+        var planned = TopologyPlan.PlannedNetwork(action: .existing, network: network)
+        planned.theUsers = theUsers
+        result.networks.append(planned)
     }
 
     /// Why `made` isn't what the declaration asks for, or nil when it is.

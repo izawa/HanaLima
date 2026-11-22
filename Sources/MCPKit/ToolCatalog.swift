@@ -145,6 +145,7 @@ public enum ToolCatalog {
             + "Add \"verifyOutside\":\"example.com\" to check the way out after the build. "
             + "A VM's \"provision\":[\"basicTools\",...] adds bundled examples (inspect topic examples); "
             + "\"portForwards\":[{\"guestPort\":80,\"hostPort\":18080}] makes a guest TCP port reachable at the Mac's 127.0.0.1:18080. "
+            + "A network {\"ref\":\"lab\",\"existing\":\"<name>\"} attaches new VMs to a guest-only network that exists (DHCP only; the user's asks for approval). "
             + "usernet false = no NIC 0 (isolated; vsock keeps SSH). Problems come with an alternative: ask the user before changing what they asked for.",
         inputSchema: [
             "type": "object",

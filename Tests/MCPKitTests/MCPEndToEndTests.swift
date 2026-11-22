@@ -28,8 +28,8 @@ struct MCPEndToEndTests {
             defer { try? logHandle.close() }
             let client = Client(helper: app.appending(path: "Contents/Helpers/hanalima-mcp"), home: home, log: logHandle)
             let names = ["hanalima-e2e-mgw", "hanalima-e2e-mc1", "hanalima-e2e-mc2"]
-            let copyName = "hanalima-e2e-mcopy"
-            let made = names + [copyName]  // what cleanup removes
+            let copyName = "hanalima-e2e-mcopy", joiner = "hanalima-e2e-mc3"
+            let made = names + [joiner, copyName]  // what cleanup removes
             let process = Process()
             process.executableURL = app.appending(path: "Contents/MacOS/HanaLima")
             process.environment = ProcessInfo.processInfo.environment.merging([
@@ -160,6 +160,22 @@ struct MCPEndToEndTests {
             try require(observed.contains { $0.hasPrefix("e2e-mcp\tfresh\t") && $0.hasSuffix("\t0") }
                         && names.allSatisfy { name in observed.contains { $0.hasPrefix("port\te2e-mcp\t\(name)\t") && $0.contains("\ttrue\t") } },
                         observed.joined(separator: "\n"))
+            // A second build attaches a new client to the network the first made (MCP's: no approval),
+            // by DHCP, and checks it routes through the existing router.
+            let joinSpec = #"""
+            {"group":"hanalima-e2e-mcp","defaults":{"template":"alpine","cpus":1,"memoryGiB":1,"diskGiB":10},
+             "verifyOutside":"example.com","networks":[{"ref":"lab","existing":"e2e-mcp"}],
+             "vms":[{"ref":"hanalima-e2e-mc3","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"lab"}]}]}
+            """#
+            let joinPlan = try plan(joinSpec)
+            try require(joinPlan.split(separator: "\n").first?.contains("\tready") == true
+                        && joinPlan.contains("existing\te2e-mcp") && joinPlan.contains("approval\tnone"), joinPlan)
+            let joinID = String((joinPlan.split(separator: "\n").first?.split(separator: "\t").first ?? "").dropFirst("plan ".count))
+            let joinApplied = try client.call("apply", arguments: ["plan": joinID, "key": UUID().uuidString])
+            let joined = try client.wait(joinApplied.text, seconds: 15 * 60)
+            try require(try jobHeader(joined).state == .succeeded
+                        && joined.contains("attached to 1 existing") && joined.contains("verified 3 of 3"), joined)
+
             let stopped = try client.call("vm", arguments: [
                 "key": UUID().uuidString, "action": "stop", "group": "hanalima-e2e-mcp", "wait": 120,
             ])

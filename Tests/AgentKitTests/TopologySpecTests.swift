@@ -465,3 +465,65 @@ private func made(_ vm: TopologyPlan.PlannedVM, usernet: Bool? = nil, group: Str
     f.vms = [.init(name: "other", id: nil, ownedByMCP: false, hostPorts: ports)]
     #expect(TopologyPlanner.plan(spec, facts: f).problems.map(\.path) == ["/vms/0/portForwards/1/hostPort"])
 }
+
+/// A worker that joins `inner` (made by `trial()`) as an existing network.
+private func attaching(_ target: String = "inner") -> TopologySpec {
+    .init(defaults: .init(template: "ubuntu-26.04", cpus: 1, memoryGiB: 1, diskGiB: 10),
+          networks: [.init(ref: "lab", existing: target)],
+          vms: [.init(ref: "worker", nics: [.init(network: "lab")])])
+}
+
+@Test func existingNetworksAreDecodedAlone() throws {
+    let json = try MCPKit.JSONValue.parse(#"{"networks":[{"ref":"lab","existing":"inner","cidr":"10.0.0.0/24"}],"vms":[]}"#)
+    #expect(TopologySpec.decode(json).problems.map(\.path) == ["/networks/0/cidr"])
+    let alone = try MCPKit.JSONValue.parse(#"{"networks":[{"ref":"lab","existing":"inner"}],"vms":[]}"#)
+    #expect(TopologySpec.decode(alone).problems.isEmpty)
+}
+
+@Test func attachingToAnExistingNetworkByDHCP() throws {
+    let made = TopologyPlanner.plan(trial(), facts: facts())
+    var f = facts()
+    f.networks = made.networks.map(\.network)
+    f.ownedNetworks = ["inner"]
+    let plan = TopologyPlanner.plan(attaching(), facts: f)
+    #expect(plan.problems.isEmpty, "\(plan.problems)")
+    #expect(plan.approvals.isEmpty)  // MCP made it
+    #expect(plan.networks.first?.action == .existing && plan.networks.first?.network == f.networks[0])  // left as it is
+    let worker = try #require(plan.vms.first)
+    #expect(worker.nics.first?.network == "inner")  // the real name, not the ref
+    #expect(worker.options.setExpressions.contains { $0.contains(VirtualNetwork(name: "inner").socketPath) })
+    #expect(plan.text(planID: "p", expires: .now).contains("existing\tinner"))
+    // Its clients are checked through the existing router.
+    let checks = TopologyVerification.scripts(for: plan)["worker"]?.checks.map(\.id) ?? []
+    #expect(checks.contains("route") && checks.contains("router"))
+
+    // The user's network: approval. A fixed IP, a missing or non-guest-only network: refused.
+    f.ownedNetworks = []
+    #expect(TopologyPlanner.plan(attaching(), facts: f).approvals == ["connect worker to inner, the user's guest-only network"])
+    var fixed = attaching()
+    fixed.vms[0].nics[0].ip = "10.20.0.50"
+    #expect(TopologyPlanner.plan(fixed, facts: f).problems.contains { $0.path == "/vms/0/nics/0/ip" && $0.code == "UNSUPPORTED" })
+    #expect(TopologyPlanner.plan(attaching("nope"), facts: f).problems.contains { $0.path == "/networks/0/existing" && $0.alternative == "inner" })
+    f.networks.append(VirtualNetwork(name: "demo", mode: .shared, gateway: "192.168.200.1", prefixLength: 24))
+    #expect(TopologyPlanner.plan(attaching("demo"), facts: f).problems.contains { $0.code == "UNSUPPORTED" })
+}
+
+@Test func attachingChecksMACsUseAndTheDeclarationItself() throws {
+    let made = TopologyPlanner.plan(trial(), facts: facts())
+    var f = facts()
+    f.networks = made.networks.map(\.network)
+    f.ownedNetworks = ["inner"]
+    let worker = try #require(TopologyPlanner.plan(attaching(), facts: f).vms.first?.nics.first)
+    // Another VM (renamed, say) still holds the MAC the name gives.
+    f.vms = [.init(name: "old-worker", id: nil, ownedByMCP: false, nics: ["\(VirtualNetwork(name: "inner").socketPath) \(worker.mac)"])]
+    #expect(TopologyPlanner.plan(attaching(), facts: f).problems.contains { $0.message.contains("is taken (old-worker)") })
+    f.vms = []
+    // An existing network no VM uses, and one given with settings in code.
+    var unused = attaching()
+    unused.vms[0].nics = []
+    unused.vms[0].usernet = true
+    #expect(TopologyPlanner.plan(unused, facts: f).problems.contains { $0.path == "/networks/0" && $0.message.contains("No VM has a NIC") })
+    var mixed = attaching()
+    mixed.networks[0].cidr = "10.0.0.0/24"
+    #expect(TopologyPlanner.plan(mixed, facts: f).problems.contains { $0.path == "/networks/0/cidr" })
+}
