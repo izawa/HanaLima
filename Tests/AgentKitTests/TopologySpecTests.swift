@@ -143,25 +143,101 @@ private func trial(bootstrap: Bool = true) -> TopologySpec {
     #expect(TopologyPlanner.plan(trial(), facts: f).problems.contains { $0.code == "CONFLICT" && $0.message == "name taken" && $0.alternative == "router-3" })
 }
 
-@Test func ownedResourcesRemainUnchanged() throws {
+/// What `facts()` would say about a VM MCP made from `vm` (and still as made).
+private func made(_ vm: TopologyPlan.PlannedVM, usernet: Bool? = nil, group: String? = "small-lab",
+                  bootstrapPending: Bool = false) -> PlannerFacts.ExistingVM {
+    // A bootstrap VM's build removed NIC 0 after its first boot.
+    let usesUsernet = usernet ?? !(vm.bootstrapUsernet || vm.options.setExpressions.contains(".vmOpts.hanalima.usernet = false"))
+    return .init(name: vm.name, id: UUID(), ownedByMCP: true,
+                 made: .init(fingerprint: vm.fingerprint, madeSettings: "s1", settings: "s1", usernet: usesUsernet,
+                             group: group, bootstrapPending: bootstrapPending))
+}
+
+@Test func anExistingVMIsReusedOnlyForTheSameDeclaration() throws {
+    let first = TopologyPlanner.plan(trial(), facts: facts())
     var f = facts()
-    f.vms = [.init(name: "router", id: UUID(), ownedByMCP: true)]
-    var spec = trial()
-    spec.vms[1].template = "missing-template"
-    let plan = TopologyPlanner.plan(spec, facts: f)
-    #expect(plan.problems.isEmpty)
-    #expect(plan.vms.first?.action == .unchanged)
-    let network = try #require(plan.networks.first?.network)
+    f.vms = first.vms.map { made($0) }
+    let network = try #require(first.networks.first?.network)
     f.networks = [network]
     f.ownedNetworks = ["inner"]
-    let replay = TopologyPlanner.plan(spec, facts: f)
+    let replay = TopologyPlanner.plan(trial(), facts: f)
     #expect(replay.problems.isEmpty)
-    #expect(replay.networks.first?.action == .unchanged)
-    #expect(replay.networks.first?.network == network)
+    #expect(replay.vms.allSatisfy { $0.action == .unchanged })
+    #expect(replay.networks.first?.action == .unchanged && replay.networks.first?.network == network)
+
+    // A bootstrap VM interrupted before NIC 0 came off is still the same VM: apply finishes it.
+    f.vms[1] = made(first.vms[1], usernet: true, bootstrapPending: true)
+    #expect(TopologyPlanner.plan(trial(), facts: f).problems.isEmpty)
+    // Once it was done, a NIC 0 attached again is a person's change, not left to finish.
+    f.vms[1] = made(first.vms[1], usernet: true)
+    #expect(TopologyPlanner.plan(trial(), facts: f).problems.contains { $0.message.contains("NIC 0 is attached now") })
+    f.vms[1] = made(first.vms[1])
+
+    // A different declaration for the same name: the template, a size, the gateway's allow list.
+    for change in [{ (s: inout TopologySpec) in s.vms[1].template = "ubuntu-26.04" },
+                   { s in s.defaults.cpus = 2 },
+                   { s in s.vms[1].gatewayAllow = ["*"] }] {
+        var spec = trial()
+        change(&spec)
+        let plan = TopologyPlanner.plan(spec, facts: f)
+        #expect(plan.problems.contains { $0.code == "CONFLICT" && $0.message.contains("different declaration")
+            && $0.alternative?.contains("delete router") == true }, "\(plan.problems)")
+    }
+
+    // The same declaration, but the VM was changed since (by a person) or made before the record.
+    var changed = f
+    changed.vms[0].made?.settings = "s2"
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("was changed since it was made") })
+    changed = f
+    changed.vms[0].made?.madeSettings = nil
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("can't be compared") })
+    changed = f
+    changed.vms[0].made?.usernet = false  // the router keeps NIC 0
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("NIC 0 was removed") })
+    changed = f
+    changed.vms[0].made?.fingerprint = nil
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.contains { $0.message.contains("before HanaLima recorded") })
+    changed = f
+    changed.vms[0].made?.group = "Small-Lab"  // a group's spelling changed: the same group
+    #expect(TopologyPlanner.plan(trial(), facts: changed).problems.isEmpty)
+    var regrouped = trial()
+    regrouped.group = "other-lab"
+    #expect(TopologyPlanner.plan(regrouped, facts: f).problems.contains { $0.message.contains("is in group small-lab") })
+    var ungrouped = trial()
+    ungrouped.group = nil
+    #expect(TopologyPlanner.plan(ungrouped, facts: f).problems.contains { $0.message.contains("declared none") })
+    var unloaded = f
+    unloaded.templates = []  // the list failed to load: not a different declaration
+    #expect(TopologyPlanner.plan(trial(), facts: unloaded).problems.contains { $0.message.contains("can't be resolved now") })
+    var flipped = trial()
+    flipped.vms[0].usernet = true  // with bootstrapUsernet: refused for an existing VM too
+    #expect(TopologyPlanner.plan(flipped, facts: f).problems.contains { $0.path == "/vms/0/bootstrapUsernet" })
+}
+
+@Test func anExistingNetworkIsReusedOnlyAsDeclared() throws {
+    let first = TopologyPlanner.plan(trial(), facts: facts())
+    let network = try #require(first.networks.first?.network)
+    var f = facts()
+    f.networks = [network]
+    f.ownedNetworks = ["inner"]
+    #expect(TopologyPlanner.plan(trial(), facts: f).problems.isEmpty)  // the network made, no VM yet
+
+    var spec = trial()
+    spec.networks[0].cidr = "10.21.0.0/24"
+    spec.vms[1].nics[0].ip = "10.21.0.1"
+    spec.vms[2].nics[0].ip = "10.21.0.3"
+    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains { $0.path == "/networks/0/cidr" && $0.alternative == "10.20.0.0/24" })
+    spec = trial()
+    spec.networks[0].router = nil
+    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains { $0.path == "/networks/0/router" })
+    spec = trial()
+    spec.vms[2].nics[0].ip = nil  // client2's reserved address, now declared without one
+    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains {
+        $0.path == "/vms/2/nics/0/ip" && $0.message.contains("declared without an ip") && $0.alternative == "10.20.0.3" })
     f.networks[0].reservations.removeAll()
-    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains { $0.code == "CONFLICT" && $0.message.contains("reservation") })
+    #expect(TopologyPlanner.plan(trial(), facts: f).problems.contains { $0.code == "CONFLICT" && $0.message.contains("missing reservation") })
     f.ownedNetworks = []
-    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains { $0.code == "CONFLICT" && $0.path == "/networks/0/ref" })
+    #expect(TopologyPlanner.plan(trial(), facts: f).problems.contains { $0.code == "CONFLICT" && $0.path == "/networks/0/ref" })
 }
 
 @Test func memoryApprovalCountsOnlyCreates() {
@@ -172,7 +248,7 @@ private func trial(bootstrap: Bool = true) -> TopologySpec {
     #expect(plan.problems.isEmpty)
     #expect(plan.approvals.count == 1)
     #expect(plan.approvals[0].hasPrefix("memory: "))
-    f.vms = [.init(name: "router", id: nil, ownedByMCP: true)]
+    f.vms = TopologyPlanner.plan(trial(), facts: facts()).vms.filter { $0.name == "router" }.map { made($0) }
     #expect(TopologyPlanner.plan(trial(), facts: f).approvals.isEmpty)
     let defaults = TopologyPlanner.plan(.init(vms: [.init(ref: "a")]), facts: f)
     #expect(defaults.vms.first?.memoryBytes == Int64(4_294_967_296))

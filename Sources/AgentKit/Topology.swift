@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import LimaKit
 import MCPKit
@@ -91,7 +92,40 @@ public struct PlannerFacts: Sendable {
         public var id: UUID?
         /// In the MCP ledger (made by an earlier apply).
         public var ownedByMCP: Bool
-        public init(name: String, id: UUID?, ownedByMCP: Bool) { self.name = name; self.id = id; self.ownedByMCP = ownedByMCP }
+        /// For a VM MCP made: what it was made from and what it is now.
+        public var made: Made?
+        public init(name: String, id: UUID?, ownedByMCP: Bool, made: Made? = nil) {
+            self.name = name; self.id = id; self.ownedByMCP = ownedByMCP; self.made = made
+        }
+    }
+    /// A VM MCP made, to tell whether a declaration still describes it.
+    public struct Made: Sendable, Equatable {
+        /// `PlannedVM.fingerprint` of the plan that made it (nil: made before it was recorded).
+        public var fingerprint: String?
+        /// `settings(of:)` right after it was made, and now (nil: not recorded, or unreadable).
+        public var madeSettings: String?
+        public var settings: String?
+        public var usernet: Bool
+        public var group: String?
+        /// Made with bootstrapUsernet and NIC 0 not yet removed by MCP (an interrupted build).
+        public var bootstrapPending = false
+        public init(fingerprint: String?, madeSettings: String?, settings: String?, usernet: Bool, group: String?, bootstrapPending: Bool) {
+            self.fingerprint = fingerprint; self.madeSettings = madeSettings; self.settings = settings
+            self.usernet = usernet; self.group = group; self.bootstrapPending = bootstrapPending
+        }
+
+        /// What a person could change on a VM that matters to a build, as Lima reports it: CPUs,
+        /// memory, disk, the driver, every NIC, the shares, the provisioning, port forwards and
+        /// extra disks (NIC 0, which a
+        /// build itself removes, and the group are compared apart). Nil without its config.
+        public static func settings(of inst: LimaInstance) -> String? {
+            guard let config = inst.config else { return nil }
+            let parts = ["\(inst.cpus ?? 0)", "\(inst.memory ?? 0)", "\(inst.disk ?? 0)", inst.vmType ?? "",
+                         config["networks"]?.jsonText ?? "[]", config["mounts"]?.jsonText ?? "[]",
+                         config["provision"]?.jsonText ?? "[]", config["portForwards"]?.jsonText ?? "[]",
+                         config["additionalDisks"]?.jsonText ?? "[]"]
+            return SHA256.hash(data: Data(parts.joined(separator: "\u{1}").utf8)).prefix(16).map { String(format: "%02x", $0) }.joined()
+        }
     }
     public var vms: [ExistingVM]
     public var networks: [VirtualNetwork]
@@ -129,6 +163,9 @@ public struct TopologyPlan: Equatable, Sendable {
         /// network name -> (mac, ip?) for this VM's NICs on planned networks.
         public var nics: [PlannedNIC]
         public var memoryBytes: Int64
+        /// What the VM is made from (template, sizes, every set expression, the bootstrap): the
+        /// ledger keeps it, and an existing VM is reused only for the same fingerprint.
+        public var fingerprint: String
     }
     public struct PlannedNIC: Equatable, Sendable {
         public var network: String

@@ -117,6 +117,13 @@ struct MCPEndToEndTests {
             try require(try jobHeader(executed.text).state == .succeeded, executed.text)
             try require(executed.text.contains("via 10.29.0.1"), executed.text)
 
+            // Planning the same declaration again reuses what was made; a changed one is refused.
+            let again = try plan(specText)
+            try require(again.split(separator: "\n").first?.contains("\tready") == true
+                        && names.allSatisfy { name in again.split(separator: "\n").contains { $0.hasPrefix("unchanged\t\(name)\t") } }, again)
+            let changed = try plan(specText.replacingOccurrences(of: #""cpus":1"#, with: #""cpus":2"#))
+            try require(changed.split(separator: "\n").contains { $0.hasPrefix("problem\tCONFLICT") && $0.contains("different declaration") }, changed)
+
             // The last start's logs of a VM MCP made: no approval, the text in the answer.
             let logs = try client.call("vm", arguments: ["key": UUID().uuidString, "action": "boot_logs", "targets": [names[1]], "wait": 30]).text
             try require(try jobHeader(logs).state == .succeeded && logs.contains("# boot_logs")

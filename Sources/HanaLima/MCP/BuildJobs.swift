@@ -86,7 +86,11 @@ final class BuildJobs {
         PlannerFacts(
             vms: model.instances.map { inst in
                 let id = model.metadata[inst.name]?.id
-                return .init(name: inst.name, id: id, ownedByMCP: id.map(state.ownsVM) ?? false)
+                guard let id, let entry = state.ownedVMs[id] else { return .init(name: inst.name, id: id, ownedByMCP: false) }
+                return .init(name: inst.name, id: id, ownedByMCP: true,
+                             made: .init(fingerprint: entry.fingerprint, madeSettings: entry.settings,
+                                         settings: PlannerFacts.Made.settings(of: inst), usernet: inst.usesUsernet,
+                                         group: model.metadata[inst.name]?.group, bootstrapPending: entry.bootstrapped != true))
             },
             networks: model.virtualNetworks,
             ownedNetworks: Set(model.virtualNetworks.map(\.name).filter(state.ownsNetwork)),
@@ -157,7 +161,8 @@ final class BuildJobs {
                 record(vm.name, "create: \(error)")
                 failed.insert(vm.name)
             } else if let recordID = model.metadata[vm.name]?.id {
-                state.recordVM(recordID, name: vm.name, job: id)
+                state.recordVM(recordID, name: vm.name, job: id, fingerprint: vm.fingerprint,
+                               settings: model.instance(named: vm.name).flatMap(PlannerFacts.Made.settings))
                 // Only once a VM made it exist.
                 if groupIsNew, let group = plan.group, !state.ownsGroup(group), model.groupLayout.index(ofGroup: group) != nil {
                     state.recordGroup(group, job: id)
@@ -230,12 +235,15 @@ final class BuildJobs {
     private func start(_ vm: TopologyPlan.PlannedVM) async -> String? {
         guard let client = model.client, let inst = model.instance(named: vm.name) else { return "not found" }
         let isolate = vm.bootstrapUsernet && inst.usesUsernet
+        // NIC 0 already off: an earlier build removed it, even if it ended before recording that.
+        if vm.bootstrapUsernet && !inst.usesUsernet, let id = model.metadata[vm.name]?.id { state.markBootstrapped(id) }
         if !inst.isRunning, let error = await model.perform(.start, on: vm.name, client.start(vm.name)) { return "start: \(error)" }
         guard isolate else { return nil }
         if let error = await model.perform(.stop, on: vm.name, client.stop(vm.name)) { return "stop after the first boot: \(error)" }
         if let error = await model.perform(.edit, on: vm.name, client.edit(vm.name, set: [".vmOpts.hanalima.usernet = false"])) {
             return "remove NIC 0: \(error)"
         }
+        if let id = model.metadata[vm.name]?.id { state.markBootstrapped(id) }
         if let error = await model.perform(.start, on: vm.name, client.start(vm.name)) { return "start without NIC 0: \(error)" }
         return nil
     }

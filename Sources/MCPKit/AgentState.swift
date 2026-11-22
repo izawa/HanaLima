@@ -8,6 +8,12 @@ public final class AgentState {
     public struct LedgerVM: Codable, Equatable, Sendable {
         public var name: String
         public var job: String
+        /// What it was made from (the planner's fingerprint); nil in files written before.
+        public var fingerprint: String?
+        /// Its first boot with NIC 0 is done and NIC 0 removed (bootstrapUsernet builds).
+        public var bootstrapped: Bool?
+        /// The planner's `Made.settings` right after it was made.
+        public var settings: String?
     }
     public struct LedgerNetwork: Codable, Equatable, Sendable {
         public var job: String
@@ -50,8 +56,14 @@ public final class AgentState {
     public func ownsNetwork(_ name: String) -> Bool { networks[name] != nil }
     public var ownedVMs: [UUID: LedgerVM] { vms }
 
-    public func recordVM(_ id: UUID, name: String, job: String) { vms[id] = LedgerVM(name: name, job: job); changed() }
+    public func recordVM(_ id: UUID, name: String, job: String, fingerprint: String? = nil, settings: String? = nil) {
+        vms[id] = LedgerVM(name: name, job: job, fingerprint: fingerprint, settings: settings); changed()
+    }
     public func forgetVM(_ id: UUID) { vms[id] = nil; changed() }
+    public func markBootstrapped(_ id: UUID) {
+        guard vms[id] != nil, vms[id]?.bootstrapped != true else { return }
+        vms[id]?.bootstrapped = true; changed()
+    }
     public func recordNetwork(_ name: String, job: String) { networks[name] = LedgerNetwork(job: job); changed() }
     public func forgetNetwork(_ name: String) { networks[name] = nil; changed() }
     public func ownsGroup(_ name: String) -> Bool { groups[name] != nil }

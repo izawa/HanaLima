@@ -55,11 +55,11 @@ public enum TopologyPlanner {
                             "Alpine installs socat for vsock SSH over the network on its first boot",
                             "set bootstrapUsernet: true (first boot with NIC 0, then removed) or use ubuntu-26.04 (systemd 256+, no first boot needed)")
                 }
-                if usernet && vm.bootstrapUsernet { problem("INVALID", path + "/bootstrapUsernet", "bootstrapUsernet requires usernet: false") }
                 if vm.gatewayAllow != nil && !usernet {
                     problem("UNSUPPORTED", path + "/gateway", "A gateway requires usernet for its way out in stage 2", "set usernet: true")
                 }
             }
+            if usernet && vm.bootstrapUsernet { problem("INVALID", path + "/bootstrapUsernet", "bootstrapUsernet requires usernet: false") }
             var attached = Set<String>()
             let nics: [TopologyPlan.PlannedNIC] = vm.nics.enumerated().map { j, nic in
                 let p = path + "/nics/\(j)"
@@ -91,8 +91,21 @@ public enum TopologyPlanner {
             let options = CreateOptions(name: vm.ref, template: pinned, cpus: vm.cpus ?? spec.defaults.cpus,
                                         memoryGiB: memory, diskGiB: vm.diskGiB ?? spec.defaults.diskGiB,
                                         vmType: .hanalima, mountNone: true, setExpressions: expressions)
+            let fingerprint = Self.fingerprint(options, bootstrapUsernet: vm.bootstrapUsernet)
+            // An existing VM MCP made is reused only if this declaration still describes it.
+            if let existing, existing.ownedByMCP,
+               let difference = difference(existing.made, fingerprint: fingerprint, usernet: usernet,
+                                           bootstrapUsernet: vm.bootstrapUsernet, group: spec.group) {
+                // An unresolved alias would hash differently from the version it was made with.
+                let unresolved = !facts.templates.contains { $0.name == given }
+                problem("CONFLICT", path, unresolved && difference.contains("different declaration")
+                        ? "\(vm.ref) exists (made through MCP); its template \(given) can't be resolved now (is the template list loaded?)"
+                        : "\(vm.ref) exists (made through MCP) but \(difference); MCP doesn't change existing VMs",
+                        "delete \(vm.ref) with the delete tool and plan again, or declare it as it was made")
+            }
             result.vms.append(.init(action: action, name: vm.ref, options: options, template: pinned,
-                                    bootstrapUsernet: vm.bootstrapUsernet, nics: nics, memoryBytes: memoryBytes))
+                                    bootstrapUsernet: vm.bootstrapUsernet, nics: nics, memoryBytes: memoryBytes,
+                                    fingerprint: fingerprint))
         }
         let declaredSubnets = spec.networks.compactMap { IPv4Subnet(cidr: $0.cidr) }
         for (i, declaration) in spec.networks.enumerated() {
@@ -114,7 +127,14 @@ public enum TopologyPlanner {
                         IPv4Subnet(containing: address, prefixLength: prefix).description)
                 continue
             }
-            let subnet = owned ? (existing?.subnet ?? requestedSubnet) : requestedSubnet
+            let subnet = requestedSubnet
+            if owned, let existing {
+                if existing.mode != .guestOnly { problem("CONFLICT", path + "/mode", "\(declaration.ref) exists as a \(existing.mode.rawValue) network; MCP doesn't change existing networks") }
+                if existing.subnet != requestedSubnet {
+                    problem("CONFLICT", path + "/cidr", "\(declaration.ref) exists with subnet \(existing.subnet?.description ?? "-"); MCP doesn't change existing networks",
+                            existing.subnet?.description)
+                }
+            }
             if !requestedSubnet.isPrivate { problem("INVALID", path + "/cidr", "Subnet must be private (RFC 1918)") }
             let others = facts.networks.filter { !(owned && $0.name == declaration.ref) }
             let overlaps = others.compactMap(\.subnet).contains { subnet.overlaps($0) }
@@ -157,6 +177,9 @@ public enum TopologyPlanner {
             let reservations = nics.compactMap { name, nic in
                 nic.ip.map { DHCPReservation(mac: nic.mac, ip: $0, comment: name) }
             }
+            if owned, let existing, IPv4(existing.router) != IPv4(router) {
+                problem("CONFLICT", path + "/router", "\(declaration.ref) exists with router \(existing.router.isEmpty ? "none" : existing.router); MCP doesn't change existing networks")
+            }
             let network = owned ? existing! : VirtualNetwork(name: declaration.ref, mode: .guestOnly, gateway: server,
                                                               prefixLength: subnet.prefixLength, reservations: reservations, router: router)
             if owned {
@@ -164,6 +187,14 @@ public enum TopologyPlanner {
                     DHCPReservation.normalizedMAC($0.mac) == reservation.mac && IPv4($0.ip) == IPv4(reservation.ip)
                 }) {
                     problem("CONFLICT", path + "/reservations", "Owned network is missing reservation \(reservation.mac)=\(reservation.ip)")
+                }
+                // A NIC declared without an address must not have one reserved (made for another declaration).
+                for (name, nic) in nics where nic.ip == nil {
+                    if let r = network.reservations.first(where: { DHCPReservation.normalizedMAC($0.mac) == nic.mac }),
+                       let vi = spec.vms.firstIndex(where: { $0.ref == name }),
+                       let ni = spec.vms[vi].nics.firstIndex(where: { $0.network == declaration.ref }) {
+                        problem("CONFLICT", "/vms/\(vi)/nics/\(ni)/ip", "\(declaration.ref) reserves \(r.ip) for \(name), declared without an ip", r.ip)
+                    }
                 }
             }
             // An overlap was already reported above, with a free subnet as the alternative.
@@ -180,6 +211,31 @@ public enum TopologyPlanner {
             result.approvals.append("memory: \(memory / 1_073_741_824) GiB exceeds the Mac's \(Double(facts.physicalMemory) / 1_073_741_824) GiB")
         }
         return result
+    }
+
+    /// Why `made` isn't what the declaration asks for, or nil when it is.
+    private static func difference(_ made: PlannerFacts.Made?, fingerprint: String, usernet: Bool,
+                                   bootstrapUsernet: Bool, group: String?) -> String? {
+        guard let made else { return "its settings can't be read" }
+        guard let recorded = made.fingerprint else { return "was made before HanaLima recorded what VMs are made from" }
+        guard recorded == fingerprint else { return "was made from a different declaration (template, sizes, NICs, NIC 0 or provisioning)" }
+        // The same declaration: has anyone changed the VM since?
+        guard let before = made.madeSettings, let now = made.settings else { return "its settings can't be compared with how it was made" }
+        if before != now { return "was changed since it was made (CPUs, memory, disk, driver, NICs, shares or provisioning)" }
+        if made.group?.lowercased() != group?.lowercased() { return "is in group \(made.group ?? "none"), declared \(group ?? "none")" }
+        // A bootstrap VM keeps NIC 0 until its first boot is done (apply finishes that).
+        if made.usernet != usernet && !(bootstrapUsernet && made.bootstrapPending && made.usernet) {
+            return made.usernet ? "NIC 0 is attached now" : "NIC 0 was removed since it was made"
+        }
+        return nil
+    }
+
+    /// What a planned VM is made from, as a hash: the same declaration plans the same VM.
+    static func fingerprint(_ options: CreateOptions, bootstrapUsernet: Bool) -> String {
+        let parts = [options.template ?? "", options.cpus.map(String.init) ?? "", options.memoryGiB.map { String($0) } ?? "",
+                     options.diskGiB.map { String($0) } ?? "", options.vmType?.rawValue ?? "", "\(options.mountNone)",
+                     "\(bootstrapUsernet)"] + options.setExpressions
+        return SHA256.hash(data: Data(parts.joined(separator: "\u{1}").utf8)).prefix(16).map { String(format: "%02x", $0) }.joined()
     }
 
     private static func validationMessage(_ error: VirtualNetwork.ValidationError) -> String {
