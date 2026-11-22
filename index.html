@@ -709,8 +709,9 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
       <div class="card reveal">
         <h3><span class="en">Seven tools</span><span class="ja">7 つの道具</span></h3>
         <ul class="points">
-          <li><span class="en"><code>inspect</code> reads state; <code>plan</code> checks a declaration and changes nothing.</span><span class="ja"><code>inspect</code> で状態を読み、<code>plan</code> で宣言を確かめます。<code>plan</code> は何も変えません。</span></li>
-          <li><span class="en"><code>apply</code> builds a plan; <code>vm</code> starts, stops, pauses, hibernates and snapshots; <code>exec</code> runs a script in guests.</span><span class="ja"><code>apply</code> で計画どおりに作り、<code>vm</code> で起動・停止・一時停止・休止・スナップショット、<code>exec</code> でゲストのスクリプトを実行します。</span></li>
+          <li><span class="en"><code>inspect</code> reads state, the network map, your last reachability checks and a guest-only network's frame counters and faults included; <code>plan</code> checks a declaration and changes nothing.</span><span class="ja"><code>inspect</code> で状態を読みます。構成図、あなたが最後に走らせた疎通の検査、ゲスト専用ネットワークのフレームの数と障害も読めます。<code>plan</code> で宣言を確かめます。<code>plan</code> は何も変えません。</span></li>
+          <li><span class="en"><code>apply</code> builds a plan. A declaration can also give VMs bundled provisioning examples and port forwards from the Mac's 127.0.0.1, and put new VMs on a guest-only network that exists.</span><span class="ja"><code>apply</code> で計画どおりに作ります。宣言には、VM に入れるプロビジョニングの例、Mac の 127.0.0.1 からのポート転送、既にあるゲスト専用ネットワークへの接続も書けます。</span></li>
+          <li><span class="en"><code>vm</code> starts, stops, pauses, hibernates, snapshots and copies VMs, and reads a VM's logs from its last start to find out why it didn't start; <code>exec</code> runs a script in guests.</span><span class="ja"><code>vm</code> で起動・停止・一時停止・休止・スナップショット・複製を行い、VM が起動しない理由を最後の起動のログから調べます。<code>exec</code> でゲストのスクリプトを実行します。</span></li>
           <li><span class="en"><code>job</code> follows long operations; <code>delete</code> removes what MCP made.</span><span class="ja"><code>job</code> で長い処理を待ち、<code>delete</code> で MCP が作ったものを消します。</span></li>
         </ul>
       </div>
@@ -718,14 +719,14 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <h3><span class="en">You stay in charge</span><span class="ja">決めるのは人</span></h3>
         <ul class="points">
           <li><span class="en">Off until you turn on <em>Accept Operations from AI</em> in Settings.</span><span class="ja">設定の「AI からの操作を受け付ける」をオンにするまでは何も受け付けません。</span></li>
-          <li><span class="en">VMs the AI made, it may run on its own. Yours — and every delete or snapshot restore — wait for you to allow them in HanaLima.</span><span class="ja">AI が作った VM は AI がそのまま操作できます。あなたの VM の操作と、削除やスナップショットの復元は、HanaLima の画面で許可してから実行します。</span></li>
+          <li><span class="en">VMs the AI made, it may run on its own. Operating, copying or reading the start logs of your VMs, attaching a VM to your network, and every delete or snapshot restore wait for you to allow them in HanaLima. A copy of your VM stays yours, and the AI can't delete what it didn't make.</span><span class="ja">AI が作った VM は AI がそのまま操作できます。あなたの VM の操作・複製・起動のログの読み取り、あなたのネットワークへの接続、削除やスナップショットの復元は、HanaLima の画面で許可してから実行します。あなたの VM の複製はあなたのもので、AI が作っていないものは AI からは削除できません。</span></li>
           <li><span class="en">No sudo, no bridges from AI, nothing leaves the Mac but your client's own API calls.</span><span class="ja">sudo は使わず、ブリッジは AI からは作れません。Mac の外に出るのは、MCP クライアント自身の通信だけです。</span></li>
         </ul>
       </div>
       <div class="card reveal">
         <h3><span class="en">Try it</span><span class="ja">試すには</span></h3>
         <ol class="points">
-          <li><span class="en">Install HanaLima 0.15 or later and turn the setting on.</span><span class="ja">HanaLima 0.15 以降を入れ、設定をオンにします。</span></li>
+          <li><span class="en">Install HanaLima 0.18 or later and turn the setting on.</span><span class="ja">HanaLima 0.18 以降を入れ、設定をオンにします。</span></li>
           <li><span class="en">Load <code>~/.hanalima/mcp.json</code> in your MCP client. HanaLima writes it at every launch.</span><span class="ja">MCP クライアントに <code>~/.hanalima/mcp.json</code> を読ませます。このファイルは HanaLima が起動のたびに書きます。</span></li>
           <li><span class="en">Ask for a lab. A build like the one above sends HanaLima's part of the talk in about 1,200 tokens.</span><span class="ja">構成を頼みます。上の例のような構築で、HanaLima とのやり取りは 1,200 トークンほどです。</span></li>
         </ol>
