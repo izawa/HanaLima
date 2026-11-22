@@ -90,7 +90,7 @@ struct MCPEndToEndTests {
               "vms":[
                 {"ref":"hanalima-e2e-mgw","nics":[{"network":"e2e-mcp","ip":"10.29.0.1"}],"gateway":{"allow":["*"]}},
                 {"ref":"hanalima-e2e-mc1","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}]},
-                {"ref":"hanalima-e2e-mc2","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}]}
+                {"ref":"hanalima-e2e-mc2","usernet":false,"bootstrapUsernet":true,"nics":[{"network":"e2e-mcp"}],"provision":["swap"]}
               ]
             }
             """#
@@ -116,6 +116,12 @@ struct MCPEndToEndTests {
             ])
             try require(try jobHeader(executed.text).state == .succeeded, executed.text)
             try require(executed.text.contains("via 10.29.0.1"), executed.text)
+
+            // The declared example ran: mc2 has its swap file on.
+            let swapped = try client.call("exec", arguments: [
+                "key": UUID().uuidString, "targets": [names[2]], "script": "grep -c /swapfile /proc/swaps", "wait": 60,
+            ]).text
+            try require(try jobHeader(swapped).state == .succeeded && swapped.contains("\n1\n"), swapped)
 
             // Planning the same declaration again reuses what was made; a changed one is refused.
             let again = try plan(specText)

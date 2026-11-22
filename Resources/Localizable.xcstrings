@@ -1,6 +1,22 @@
 {
   "sourceLanguage": "ja",
   "strings": {
+    "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: adds the provisioning example “Log In Automatically on the Consoles (Screen and Serial)”. Anyone who can open the screen or the serial console gets this user's shell (with sudo) without a password."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。"
+          }
+        }
+      }
+    },
     "": {
       "localizations": {
         "ja": {

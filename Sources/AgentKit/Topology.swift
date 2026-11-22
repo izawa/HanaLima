@@ -49,10 +49,14 @@ public struct TopologySpec: Equatable, Sendable {
         public var nics: [NIC]
         /// The egress-filtering gateway example with this allow list (lines of gateway.conf).
         public var gatewayAllow: [String]?
+        /// Bundled provisioning examples, in order (DeclaredProvisioning says which may be named).
+        public var provision: [ProvisionExample.ID]
         public init(ref: String, template: String? = nil, cpus: Int? = nil, memoryGiB: Double? = nil, diskGiB: Double? = nil,
-                    usernet: Bool? = nil, bootstrapUsernet: Bool = false, nics: [NIC] = [], gatewayAllow: [String]? = nil) {
+                    usernet: Bool? = nil, bootstrapUsernet: Bool = false, nics: [NIC] = [], gatewayAllow: [String]? = nil,
+                    provision: [ProvisionExample.ID] = []) {
             self.ref = ref; self.template = template; self.cpus = cpus; self.memoryGiB = memoryGiB; self.diskGiB = diskGiB
             self.usernet = usernet; self.bootstrapUsernet = bootstrapUsernet; self.nics = nics; self.gatewayAllow = gatewayAllow
+            self.provision = provision
         }
     }
     public struct Assumption: Equatable, Sendable {
@@ -163,6 +167,8 @@ public struct TopologyPlan: Equatable, Sendable {
         /// network name -> (mac, ip?) for this VM's NICs on planned networks.
         public var nics: [PlannedNIC]
         public var memoryBytes: Int64
+        /// The examples it gets (the gateway is shown apart).
+        public var provision: [ProvisionExample.ID] = []
         /// What the VM is made from (template, sizes, every set expression, the bootstrap): the
         /// ledger keeps it, and an existing VM is reused only for the same fingerprint.
         public var fingerprint: String

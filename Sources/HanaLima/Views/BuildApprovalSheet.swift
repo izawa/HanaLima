@@ -28,7 +28,10 @@ struct BuildApprovalSheet: View {
                         Text("AI が構築を求めています")
                     }
                     Section("確認が要る理由") {
-                        ForEach(plan.approvals, id: \.self) { Text(verbatim: $0) }
+                        ForEach(plan.vms.filter { $0.action == .create && $0.provision.contains(.consoleLogin) }.map(\.name), id: \.self) { name in
+                            Text("\(name): プロビジョニングの例「コンソールに自動ログイン（画面・シリアル）」を入れます。画面やシリアルコンソールを開ける人は、パスワードなしでこのユーザーのシェル（sudo 可）を使えます。")
+                        }
+                        ForEach(plan.approvals.filter { !$0.hasPrefix("consoleLogin on ") }, id: \.self) { Text(verbatim: $0) }
                     }
                 }
             }

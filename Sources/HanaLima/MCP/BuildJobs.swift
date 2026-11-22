@@ -316,7 +316,10 @@ final class BuildJobs {
         case .build(let spec, let plan):
             // The Mac may have changed while the person decided.
             let now = TopologyPlanner.plan(spec, facts: facts())
-            guard now.fingerprint == plan.fingerprint, now.problems.isEmpty else {
+            // A reason to approve that appeared meanwhile (memory, say) wasn't on the sheet.
+            let kind = { (reason: String) in reason.prefix { $0 != ":" } }  // "memory", "consoleLogin on gw"
+            guard now.fingerprint == plan.fingerprint, now.problems.isEmpty,
+                  Set(now.approvals.map(kind)).isSubset(of: plan.approvals.map(kind)) else {
                 state.jobs.record(request.jobID, JobTargetResult(target: "plan", outcome: "failed", message: "PLAN_STALE: the Mac changed; plan again"))
                 return finish(request.jobID)
             }

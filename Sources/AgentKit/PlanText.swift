@@ -24,6 +24,7 @@ extension TopologyPlan {
             if vm.options.setExpressions.contains(where: { $0.hasPrefix(".provision += ") && $0.contains("/etc/hanalima/gateway.conf") }) {
                 detail += " gateway"
             }
+            if !vm.provision.isEmpty { detail += " provision=" + vm.provision.map(\.rawValue).joined(separator: ",") }
             lines.append(row(vm.action.rawValue, vm.name, detail))
         }
         lines.append(row("order", vms.map(\.name).joined(separator: " → ")))

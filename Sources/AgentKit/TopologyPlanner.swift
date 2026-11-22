@@ -75,16 +75,32 @@ public enum TopologyPlanner {
                 expressions.append(".networks += " + LimaKit.JSONValue.array(entries).jsonText)
             }
             if !usernet && !vm.bootstrapUsernet { expressions.append(".vmOpts.hanalima.usernet = false") }
-            if let allow = vm.gatewayAllow {
-                let entries = ProvisionExamples.example(.gateway).entries.map { original in
-                    var entry = original
-                    if entry.mode == .data && entry.path == "/etc/hanalima/gateway.conf" {
-                        entry.content = allow.joined(separator: "\n") + "\n"
-                    }
-                    return entry.json
+            let distribution = TemplateCatalog.distribution(of: pinned)
+            // A router whose gateway lets everything out is a way out without NIC 0 (it starts first).
+            let routedOut = vm.nics.contains { nic in
+                spec.networks.contains { net in
+                    net.ref == nic.network && net.router.map { r in spec.vms.contains { $0.ref == r && $0.ref != vm.ref && $0.gatewayAllow?.contains("*") == true } } == true
                 }
-                expressions.append(".provision += " + LimaKit.JSONValue.array(entries).jsonText)
             }
+            for (j, id) in vm.provision.enumerated() {
+                let p = path + "/provision/\(j)"
+                let example = ProvisionExamples.example(id)
+                if let reason = DeclaredProvisioning.refusal(id) {
+                    problem("UNSUPPORTED", p, "\(id.rawValue) can't be declared", reason)
+                } else if !(distribution.map(example.distributions.contains) ?? false) {
+                    problem("UNSUPPORTED", p, "\(id.rawValue) is written for \(example.distributions.joined(separator: ", ")), not \(pinned)",
+                            "choose a template of those, or leave \(id.rawValue) out")
+                } else if action == .create, !usernet, !vm.bootstrapUsernet, !routedOut,
+                          DeclaredProvisioning.needsNetwork(id, distribution: distribution) {
+                    problem("UNSUPPORTED", p, "\(id.rawValue) downloads on the first boot, and this VM has no NIC 0 or gateway router",
+                            "set bootstrapUsernet: true (first boot with NIC 0, then removed)")
+                }
+                if action == .create, let approval = DeclaredProvisioning.approval(id) {
+                    result.approvals.append("\(id.rawValue) on \(vm.ref): \(approval)")
+                }
+            }
+            let entries = DeclaredProvisioning.entries(vm.provision, gatewayAllow: vm.gatewayAllow)
+            if !entries.isEmpty { expressions.append(".provision += " + LimaKit.JSONValue.array(entries.map(\.json)).jsonText) }
             let memory = vm.memoryGiB ?? spec.defaults.memoryGiB
             let bytes = (memory ?? 4) * 1_073_741_824
             let memoryBytes = bytes.isFinite && bytes >= 0 && bytes < Double(Int64.max) ? Int64(bytes) : 0
@@ -105,7 +121,7 @@ public enum TopologyPlanner {
             }
             result.vms.append(.init(action: action, name: vm.ref, options: options, template: pinned,
                                     bootstrapUsernet: vm.bootstrapUsernet, nics: nics, memoryBytes: memoryBytes,
-                                    fingerprint: fingerprint))
+                                    provision: vm.provision, fingerprint: fingerprint))
         }
         let declaredSubnets = spec.networks.compactMap { IPv4Subnet(cidr: $0.cidr) }
         for (i, declaration) in spec.networks.enumerated() {

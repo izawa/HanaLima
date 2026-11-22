@@ -349,3 +349,80 @@ private func made(_ vm: TopologyPlan.PlannedVM, usernet: Bool? = nil, group: Str
     #expect(changed.fingerprint == plan.fingerprint)
     #expect(changed.text(planID: "p", expires: date).contains("assumption\t/x\ta\\tb\\nc"))
 }
+
+@Test func provisionIsDecodedAndChecked() throws {
+    let json = try MCPKit.JSONValue.parse(#"""
+    {"vms":[{"ref":"a","provision":["basicTools","nope","basicTools",3]}]}
+    """#)
+    let decoded = TopologySpec.decode(json)
+    #expect(decoded.problems.map(\.path).sorted() == ["/vms/0/provision/1", "/vms/0/provision/2", "/vms/0/provision/3"])
+    let valid = TopologySpec.decode(try MCPKit.JSONValue.parse(#"{"vms":[{"ref":"a","provision":["swap","basicTools"]}]}"#))
+    #expect(valid.problems.isEmpty && valid.spec?.vms.first?.provision == [.swap, .basicTools])
+}
+
+@Test func provisionExamplesArePlannedAfterTheGateway() throws {
+    var spec = trial()
+    spec.vms[1].provision = [.basicTools, .fullUpgrade]  // the router (alpine, NIC 0 on)
+    spec.vms[0].provision = [.swap]                       // client1: isolated after a bootstrap
+    let plan = TopologyPlanner.plan(spec, facts: facts())
+    #expect(plan.problems.isEmpty, "\(plan.problems)")
+    let router = try #require(plan.vms.first { $0.name == "router" })
+    let expression = try #require(router.options.setExpressions.first { $0.hasPrefix(".provision += ") })
+    let entries = try #require(try MCPKit.JSONValue.parse(String(expression.dropFirst(".provision += ".count))).arrayValue)
+    let expected = DeclaredProvisioning.entries([.basicTools, .fullUpgrade], gatewayAllow: ["*", "example.com"])
+    #expect(entries.count == expected.count)
+    #expect(entries.first?["path"]?.stringValue == ProvisionExamples.example(.gateway).entries.first?.path)  // the gateway first
+    #expect(plan.text(planID: "p", expires: .now).contains("provision=basicTools,fullUpgrade"))
+    // The same declaration plans the same VM (the one-shot example's stamp is fixed).
+    #expect(TopologyPlanner.plan(spec, facts: facts()).vms.map(\.fingerprint) == plan.vms.map(\.fingerprint))
+}
+
+@Test func provisionExamplesThatCantBeDeclared() {
+    var spec = trial()
+    spec.vms[1].provision = [.gateway, .dotfiles, .containerEngine]  // alpine has no Docker example
+    spec.vms[2].bootstrapUsernet = false                              // isolated from the start...
+    spec.vms[2].template = "ubuntu-26.04"
+    spec.vms[2].provision = [.basicTools, .swap, .consoleLogin]      // ...so nothing to download with
+    spec.vms[1].gatewayAllow = nil                                    // (the router lets nothing out)
+    let problems = TopologyPlanner.plan(spec, facts: facts()).problems
+    #expect(problems.contains { $0.path == "/vms/1/provision/0" && $0.alternative?.contains("gateway field") == true })
+    #expect(problems.contains { $0.path == "/vms/1/provision/1" && $0.alternative?.contains("exec") == true })
+    #expect(problems.contains { $0.path == "/vms/1/provision/2" && $0.message.contains("not alpine-3.24") })
+    #expect(problems.contains { $0.path == "/vms/2/provision/0" && $0.alternative?.contains("bootstrapUsernet") == true })
+    #expect(!problems.contains { $0.path == "/vms/2/provision/1" })  // swap downloads nothing
+    #expect(!problems.contains { $0.path == "/vms/2/provision/2" })  // nor consoleLogin on systemd
+}
+
+@Test func consoleLoginAsksForApproval() {
+    var spec = trial()
+    spec.vms[1].provision = [.consoleLogin]
+    let plan = TopologyPlanner.plan(spec, facts: facts())
+    #expect(plan.problems.isEmpty)
+    #expect(plan.approvals.contains { $0.hasPrefix("consoleLogin on router: ") })
+}
+
+@Test func provisionChecksTheDistributionAndTheGatewayRouter() {
+    #expect(TemplateCatalog.distribution(of: "experimental/debian-sid") == "Debian")
+    #expect(TemplateCatalog.distribution(of: "docker") == nil)  // a tool template: refused, a distribution is suggested
+    var f = facts()
+    f.templates.append(.init(name: "docker"))
+    var spec = trial()
+    spec.vms[1].template = "docker"
+    spec.vms[1].provision = [.basicTools]
+    #expect(TopologyPlanner.plan(spec, facts: f).problems.contains { $0.path == "/vms/1/provision/0" && $0.message.contains("not docker") })
+
+    // An isolated client behind a gateway that lets everything out downloads through it from the first boot.
+    spec = trial()  // the router's allow list has "*"
+    spec.vms[2].bootstrapUsernet = false
+    spec.vms[2].template = "ubuntu-26.04"
+    spec.vms[2].provision = [.basicTools]
+    #expect(!TopologyPlanner.plan(spec, facts: facts()).problems.contains { $0.path == "/vms/2/provision/0" })
+    spec.vms[1].gatewayAllow = ["example.com"]  // not every mirror: no way out it can count on
+    #expect(TopologyPlanner.plan(spec, facts: facts()).problems.contains { $0.path == "/vms/2/provision/0" })
+}
+
+@Test func duplicateExamplesInASpecBuiltInCode() {
+    var spec = trial()
+    spec.vms[1].provision = [.swap, .swap]
+    #expect(TopologyPlanner.plan(spec, facts: facts()).problems.contains { $0.path == "/vms/1/provision" && $0.message == "Duplicate example" })
+}

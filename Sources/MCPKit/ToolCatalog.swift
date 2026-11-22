@@ -142,6 +142,7 @@ public enum ToolCatalog {
             + "{\"ref\":\"c1\",\"usernet\":false,\"bootstrapUsernet\":true,\"nics\":[{\"network\":\"inner\"}]}],"
             + "\"assumptions\":[{\"path\":\"/defaults\",\"reason\":\"smallest\"}]}. "
             + "Add \"verifyOutside\":\"example.com\" to check the way out after the build. "
+            + "A VM's \"provision\":[\"basicTools\",...] adds bundled examples (inspect topic examples). "
             + "usernet false = no NIC 0 (isolated; vsock keeps SSH). Problems come with an alternative: ask the user before changing what they asked for.",
         inputSchema: [
             "type": "object",

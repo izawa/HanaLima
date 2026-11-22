@@ -322,9 +322,17 @@ struct InspectTool {
     }
 
     private func examples() -> String {
-        var lines = ["# examples", "id\tdistributions\twhat"]
+        var lines = ["# examples (name them in a VM's provision list)", "id\tdistributions\tin_provision\twhat"]
         for example in ProvisionExamples.all {
-            lines.append("\(example.id.rawValue)\t\(example.distributions.joined(separator: ","))\t\(Self.exampleSummary[example.id] ?? "-")")
+            let id = example.id
+            var use = DeclaredProvisioning.refusal(id).map { "no: \($0)" } ?? "yes"
+            if use == "yes" {
+                let downloading = example.distributions.filter { DeclaredProvisioning.needsNetwork(id, distribution: $0) }
+                if downloading == example.distributions { use += "; downloads on first boot" }
+                else if !downloading.isEmpty { use += "; downloads on first boot on \(downloading.joined(separator: ","))" }
+                if let approval = DeclaredProvisioning.approval(id) { use += "; the user approves it: \(approval)" }
+            }
+            lines.append("\(id.rawValue)\t\(example.distributions.joined(separator: ","))\t\(use)\t\(Self.exampleSummary[id] ?? "-")")
         }
         return lines.joined(separator: "\n")
     }

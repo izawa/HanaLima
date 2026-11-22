@@ -124,6 +124,12 @@ public enum TemplateCatalog {
         return nil
     }
 
+    /// The distribution's name as the provisioning examples list it ("Ubuntu", "Alpine"…), or nil.
+    public static func distribution(of name: String) -> String? {
+        let base = name.split(separator: "/").last.map(String.init) ?? name  // experimental/debian-sid
+        return families.sorted { $0.id.count > $1.id.count }.first { base == $0.id || base.hasPrefix($0.id + "-") }?.name
+    }
+
     /// The family section a template belongs to, by name prefix (`alpine-iso` → "alpine").
     static func familyGroup(of name: String) -> String? {
         families.sorted { $0.id.count > $1.id.count }

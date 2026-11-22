@@ -1,4 +1,5 @@
 import Foundation
+import LimaKit
 import MCPKit
 
 extension TopologySpec {
@@ -24,7 +25,7 @@ extension TopologySpec {
         let vms: [VM] = reader.array(root, "vms", at: "").enumerated().map { i, value in
             let path = "/vms/\(i)"
             let o = reader.object(value, at: path, keys: ["ref", "template", "cpus", "memoryGiB", "diskGiB",
-                                                         "usernet", "bootstrapUsernet", "nics", "gateway"])
+                                                         "usernet", "bootstrapUsernet", "nics", "gateway", "provision"])
             let nics: [NIC] = reader.array(o, "nics", at: path).enumerated().map { j, value in
                 let p = path + "/nics/\(j)"
                 let nic = reader.object(value, at: p, keys: ["network", "ip"])
@@ -42,12 +43,21 @@ extension TopologySpec {
                     return s
                 }
             }
+            var provision: [ProvisionExample.ID] = []
+            for (j, value) in reader.array(o, "provision", at: path).enumerated() {
+                let p = path + "/provision/\(j)"
+                guard let id = value.stringValue.flatMap(ProvisionExample.ID.init(rawValue:)) else {
+                    reader.invalid(p, "Unknown example (inspect topic examples lists them)")
+                    continue
+                }
+                if provision.contains(id) { reader.invalid(p, "Duplicate example") } else { provision.append(id) }
+            }
             return VM(ref: reader.string(o, "ref", at: path, required: true) ?? "",
                       template: reader.string(o, "template", at: path), cpus: reader.integer(o, "cpus", at: path),
                       memoryGiB: reader.number(o, "memoryGiB", at: path), diskGiB: reader.number(o, "diskGiB", at: path),
                       usernet: reader.boolean(o, "usernet", at: path),
                       bootstrapUsernet: reader.boolean(o, "bootstrapUsernet", at: path) ?? false,
-                      nics: nics, gatewayAllow: allow)
+                      nics: nics, gatewayAllow: allow, provision: provision)
         }
         let assumptions: [Assumption] = reader.array(root, "assumptions", at: "").enumerated().map { i, value in
             let path = "/assumptions/\(i)"
@@ -94,6 +104,7 @@ func declarationProblems(_ spec: TopologySpec) -> [PlanProblem] {
         if vm.nics.isEmpty && !(vm.usernet ?? spec.defaults.usernet ?? true) {
             invalid(path + "/nics", "At least one NIC is required when usernet is false")
         }
+        if Set(vm.provision).count != vm.provision.count { invalid(path + "/provision", "Duplicate example") }
     }
     return problems
 }
