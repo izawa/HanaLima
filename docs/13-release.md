@@ -28,7 +28,7 @@
    HANALIMA_E2E=1 swift test --no-parallel --filter 'DriverEndToEndTests|NetworkEndToEndTests|MCPEndToEndTests'
    ```
    2026-11-10 の v0.14.0 では Driver と Network の 2 つ(と名前の合う DHCPReservationEndToEndTests)が通った。
-   v0.15 からは `MCPEndToEndTests` も流す(約 6 分。Debug ビルドで動くので、`build-app.sh` は既定の debug のまま。ほかの HanaLima を終了してから)。v0.15.0 と v0.15.1 で通った。
+   v0.15 からは `MCPEndToEndTests` も流す(v0.18 で確かめることが増えて約 9 分。Debug ビルドで動くので、`build-app.sh` は既定の debug のまま。ほかの HanaLima を終了してから)。v0.15.0 と v0.15.1、v0.18.0 で通った。
    変更に関係するスイートがあれば、それも流す。`BridgeEndToEndTests` はホストのインターフェースを触るので、流すかどうかはそのつど決める。
 3. **DMG を作る。** 作業ツリーにコミットしていない変更があると止まる。
    ```sh
