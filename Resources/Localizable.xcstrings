@@ -1549,6 +1549,22 @@
         }
       }
     },
+    "HanaLima のドライバーで動く仮想マシンをログイン時に起動するには、HanaLima を「アプリケーション」フォルダに入れて開いてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To start a virtual machine on HanaLima’s driver at login, move HanaLima to the Applications folder and open it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバーで動く仮想マシンをログイン時に起動するには、HanaLima を「アプリケーション」フォルダに入れて開いてください。"
+          }
+        }
+      }
+    },
     "HanaLima のドライバー（VZ、試験的）": {
       "extractionState": "stale",
       "localizations": {
@@ -2511,6 +2527,22 @@
         }
       }
     },
+    "Mac の USB 機器をこの仮想マシンで受け取る": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receive the Mac’s USB devices in this virtual machine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac の USB 機器をこの仮想マシンで受け取る"
+          }
+        }
+      }
+    },
     "Mac のアドレス": {
       "localizations": {
         "en": {
@@ -3116,6 +3148,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "UDP"
+          }
+        }
+      }
+    },
+    "USB 機器": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB Devices"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB 機器"
+          }
+        }
+      }
+    },
+    "USB 機器の受け取り先が動いている間は変えられません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t change while the virtual machine that receives USB devices is running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB 機器の受け取り先が動いている間は変えられません。"
+          }
+        }
+      }
+    },
+    "USB 機器の受け取り先を保存できませんでした": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t save which virtual machine receives USB devices"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB 機器の受け取り先を保存できませんでした"
           }
         }
       }
@@ -10138,6 +10218,22 @@
         }
       }
     },
+    "一度起動すると選べます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can choose it once the virtual machine has started once."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度起動すると選べます。"
+          }
+        }
+      }
+    },
     "一時停止": {
       "localizations": {
         "en": {
@@ -12942,6 +13038,54 @@
         }
       }
     },
+    "受け取り中の機器: %lld 台": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices received: %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取り中の機器: %lld 台"
+          }
+        }
+      }
+    },
+    "受け取り先の「%@」が動いている間は変えられません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t change while “%@”, which receives them now, is running."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取り先の「%@」が動いている間は変えられません。"
+          }
+        }
+      }
+    },
+    "受け取るのは、この仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。渡している間、その機器は Mac から使えません。Mac に戻す（「“このMac” で使用」にする）前に、仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It receives the devices you set to “Use with HanaLima” in Virtual Machine Accessories in the menu bar while this virtual machine is running (for a virtual machine started from Terminal or at login, the menu shows an unknown application instead). While a device is passed through, the Mac can’t use it. Unmount it in the virtual machine before giving it back (“Use with This Mac”). The first time, macOS asks for access to removable volumes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取るのは、この仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。渡している間、その機器は Mac から使えません。Mac に戻す（「“このMac” で使用」にする）前に、仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。"
+          }
+        }
+      }
+    },
     "古い数（ヘルパーから更新が届いていません）": {
       "localizations": {
         "en": {
@@ -14873,6 +15017,22 @@
         }
       }
     },
+    "最後の失敗: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last failure: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の失敗: %@"
+          }
+        }
+      }
+    },
     "最後の起動のログの末尾（ホストエージェントの警告とエラー、Lima のイベント、シリアルコンソールの最近の出力。合わせて約 4 KB まで）を AI に渡します。ログはゲストのホスト名や起動中の出力を含みます。シリアルコンソールで端末を使っていれば、その入出力も含まれることがあります。どれも MCP クライアントを通って Mac の外へ送られます。": {
       "localizations": {
         "en": {
@@ -15109,6 +15269,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "次の仮想マシンがこのネットワークを使っています: %@。削除すると、実行中のものはこのネットワークで通信できなくなり、次の起動前にこの NIC を外すことになります（起動するときに外すかどうかを尋ねます）。"
+          }
+        }
+      }
+    },
+    "次の起動から受け取ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receives them from the next start."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の起動から受け取ります。"
           }
         }
       }

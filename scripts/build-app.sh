@@ -50,12 +50,30 @@ sign --entitlements "$ROOT/Resources/hanalima-netd.entitlements" "$APP/Contents/
 cp "$BIN_DIR/hanalima-mcp" "$APP/Contents/Helpers/hanalima-mcp"
 sign "$APP/Contents/Helpers/hanalima-mcp"
 
-# Lima's external VM driver (Driver/, its own package): signed with the virtualization
-# entitlement, found by limactl through LIMA_DRIVERS_PATH=Contents/Helpers (docs/09).
+# Lima's external VM driver (Driver/, its own package), found by limactl through
+# LIMA_DRIVERS_PATH=Contents/Helpers/HanaLimaDriver.app/Contents/MacOS (docs/09). It is the main
+# executable of its own app bundle: only that way can it carry the USB accessory entitlement,
+# which needs the driver's provisioning profile embedded (docs/19). With a Developer ID and that
+# profile (HANALIMA_DRIVER_PROFILE, kept outside the repository) the driver claims USB
+# accessories; otherwise (ad hoc) it is signed with the virtualization entitlement only.
 (cd "$ROOT/Driver" && swift build -c "$CONFIG" --product lima-driver-hanalima)
 DRIVER_BIN="$(cd "$ROOT/Driver" && swift build -c "$CONFIG" --show-bin-path)/lima-driver-hanalima"
-cp "$DRIVER_BIN" "$APP/Contents/Helpers/lima-driver-hanalima"
-sign --entitlements "$ROOT/Resources/HanaLima.entitlements" "$APP/Contents/Helpers/lima-driver-hanalima"
+DRIVER_APP="$APP/Contents/Helpers/HanaLimaDriver.app"
+DRIVER_PROFILE="${HANALIMA_DRIVER_PROFILE:-$HOME/Library/Developer/HanaLima/HanaLima_Driver_Developer_ID.provisionprofile}"
+mkdir -p "$DRIVER_APP/Contents/MacOS" "$DRIVER_APP/Contents/Resources"
+cp "$DRIVER_BIN" "$DRIVER_APP/Contents/MacOS/lima-driver-hanalima"
+cp "$ROOT/Resources/HanaLimaDriver-Info.plist" "$DRIVER_APP/Contents/Info.plist"
+cp "$ROOT/Resources/AppIcon/AppIcon.icns" "$DRIVER_APP/Contents/Resources/AppIcon.icns"
+for key in CFBundleShortVersionString CFBundleVersion; do
+    /usr/libexec/PlistBuddy -c "Set :$key $(/usr/libexec/PlistBuddy -c "Print :$key" "$ROOT/Resources/Info.plist")" "$DRIVER_APP/Contents/Info.plist"
+done
+if [[ -n "${SIGN_IDENTITY:-}" && -f "$DRIVER_PROFILE" ]]; then
+    cp "$DRIVER_PROFILE" "$DRIVER_APP/Contents/embedded.provisionprofile"
+    sign --entitlements "$ROOT/Resources/HanaLimaDriver.entitlements" "$DRIVER_APP"
+else
+    [[ -n "${SIGN_IDENTITY:-}" ]] && echo "warning: no driver provisioning profile at $DRIVER_PROFILE; the driver can't claim USB accessories" >&2
+    sign --entitlements "$ROOT/Resources/HanaLima.entitlements" "$DRIVER_APP"
+fi
 
 # Sign the app last, after everything inside it. (Not --deep: that would re-sign the helper without its entitlements.) The app keeps
 # com.apple.security.virtualization for now, although the ISO installer and the rescue boot

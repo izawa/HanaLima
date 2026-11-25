@@ -68,6 +68,10 @@ struct OverviewTab: View {
                 }
             }
 
+            if AppModel.offersUSBPassthrough, instance.usesHanaLimaDriver {
+                USBSection(instance: instance)
+            }
+
             Section("ハードウェア") {
                 LabeledContent("仮想 CPU") { Text(instance.cpus.map { "\($0) コア" } ?? "—") }
                 LabeledContent("メモリ") { Text(Formatting.bytes(instance.memory)) }
@@ -225,6 +229,49 @@ struct ScreenThumbnail: View {
 }
 
 /// Where the VM came from (a template or another VM), its copies, and a note.
+/// USB passthrough (docs/19): whether this VM is the one that receives the USB accessories
+/// assigned in macOS's "Virtual Machine Accessories" menu, and what its driver reports.
+private struct USBSection: View {
+    @Environment(AppModel.self) private var model
+    let instance: LimaInstance
+    @State private var status: DriverControl.Response?
+
+    private var isTarget: Bool { model.usbTargetName == instance.name }
+
+    var body: some View {
+        let blocker = model.usbTargetBlocker(instance)
+        Section("USB 機器") {
+            Toggle("Mac の USB 機器をこの仮想マシンで受け取る",
+                   isOn: Binding(get: { isTarget }, set: { on in Task { await model.setUSBTarget(instance, on) } }))
+                .disabled(blocker != nil)
+            if let blocker {
+                Text(blocker).font(.caption).foregroundStyle(.secondary)
+            }
+            if let note = statusNote {
+                Text(note).font(.caption)
+            }
+            Text("受け取るのは、この仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。渡している間、その機器は Mac から使えません。Mac に戻す（「“このMac” で使用」にする）前に、仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .task(id: "\(instance.name) \(instance.isRunning) \(isTarget)") {
+            status = nil
+            guard isTarget, instance.isRunning else { return }
+            while !Task.isCancelled {
+                status = await model.usbStatus(of: instance)
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
+    }
+
+    private var statusNote: String? {
+        guard isTarget, instance.isRunning, let status else { return nil }
+        guard status.usbTarget == true else { return String(localized: "次の起動から受け取ります。") }
+        let attached = String(localized: "受け取り中の機器: \(status.usbAttached ?? 0) 台")
+        guard let error = status.usbError else { return attached }
+        return attached + "\n" + String(localized: "最後の失敗: \(error)")
+    }
+}
+
 private struct OriginSection: View {
     @Environment(AppModel.self) private var model
     let instance: LimaInstance

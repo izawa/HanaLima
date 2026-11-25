@@ -87,7 +87,8 @@ struct AutostartToggle: View {
                         isUpdating = false
                     }
                 }))
-                .disabled(isUpdating)
+                .disabled(isUpdating || model.autostartBlocker(name) != nil)
+                .help(model.autostartBlocker(name) ?? "")
             if isUpdating { ProgressView().controlSize(.small) }
         }
     }

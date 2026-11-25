@@ -30,11 +30,29 @@ if [[ -n "$(git status --porcelain)" ]]; then
     exit 1
 fi
 
-SIGN_IDENTITY="$SIGN_IDENTITY" scripts/make-app.sh
+# The driver's provisioning profile (docs/19): without it the release couldn't pass USB
+# accessories to VMs. It lives outside the repository.
+DRIVER_PROFILE="${HANALIMA_DRIVER_PROFILE:-$HOME/Library/Developer/HanaLima/HanaLima_Driver_Developer_ID.provisionprofile}"
+PROFILE_PLIST="$(mktemp)"
+trap 'rm -f "$PROFILE_PLIST"' EXIT
+security cms -D -i "$DRIVER_PROFILE" > "$PROFILE_PLIST" 2>/dev/null \
+    || { echo "✗ ドライバーのプロビジョニングプロファイルが読めません: $DRIVER_PROFILE（docs/13）" >&2; exit 1; }
+[[ "$(plutil -extract Entitlements.com\\.apple\\.application-identifier raw -o - "$PROFILE_PLIST")" == "FJYY683YHH.org.izawa.HanaLima.driver" ]] \
+    || { echo "✗ プロファイルの App ID が org.izawa.HanaLima.driver ではありません: $DRIVER_PROFILE" >&2; exit 1; }
+[[ "$(plutil -extract Entitlements.com\\.apple\\.developer\\.accessory-access\\.usb raw -o - "$PROFILE_PLIST" 2>/dev/null)" == "true" ]] \
+    || { echo "✗ プロファイルが USB の entitlement（Claim USB Accessory）を許していません: $DRIVER_PROFILE" >&2; exit 1; }
+EXPIRES="$(plutil -extract ExpirationDate raw -o - "$PROFILE_PLIST")"
+[[ "$EXPIRES" > "$(date -u +%Y-%m-%dT%H:%M:%SZ)" ]] \
+    || { echo "✗ プロファイルの期限が切れています（$EXPIRES）: $DRIVER_PROFILE" >&2; exit 1; }
+
+SIGN_IDENTITY="$SIGN_IDENTITY" HANALIMA_DRIVER_PROFILE="$DRIVER_PROFILE" scripts/make-app.sh
 
 APP="$ROOT/build/$APP_NAME.app"
 echo "▶ 署名を確認"
 codesign --verify --strict --deep --verbose=2 "$APP"
+codesign -d --entitlements - "$APP/Contents/Helpers/HanaLimaDriver.app" 2>/dev/null \
+    | grep -q "com.apple.developer.accessory-access.usb" \
+    || { echo "✗ ドライバーに USB の entitlement がありません" >&2; exit 1; }
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
 DMG="$ROOT/build/$APP_NAME-$VERSION.dmg"
 

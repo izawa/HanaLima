@@ -17,19 +17,21 @@ struct DriverEndToEndTests {
     static let template = ProcessInfo.processInfo.environment["HANALIMA_E2E_TEMPLATE"] ?? "alpine"
     static let helpers = URL(filePath: FileManager.default.currentDirectoryPath)
         .appending(path: "build/HanaLima.app/Contents/Helpers")
+    /// The driver: the main executable of HanaLimaDriver.app (docs/19).
+    static let drivers = helpers.appending(path: "HanaLimaDriver.app/Contents/MacOS")
     /// limactl with the bundle's driver on its path.
     let client = LimaClient(limactlURL: LimaClient.locate()!,
-                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": helpers.path]) { $1 })
+                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": drivers.path]) { $1 })
 
     let disk = "hanalima-e2e-driver-disk"
     let network = VirtualNetwork(name: "e2e-driver", mode: .shared, gateway: "192.168.237.1", prefixLength: 24)
 
     @Test(.timeLimit(.minutes(15)))
     func bootsUnderLimaWithTheDriver() async throws {
-        try #require(FileManager.default.isExecutableFile(atPath: Self.helpers.appending(path: "lima-driver-hanalima").path),
+        try #require(FileManager.default.isExecutableFile(atPath: Self.drivers.appending(path: "lima-driver-hanalima").path),
                      "run scripts/build-app.sh first")
         _ = try? await drain(client.delete(vm, force: true))
-        defer { E2ECleanup.deleteInstances([vm], environment: ["LIMA_DRIVERS_PATH": Self.helpers.path]) }
+        defer { E2ECleanup.deleteInstances([vm], environment: ["LIMA_DRIVERS_PATH": Self.drivers.path]) }
 
         // A HanaLima network (netd) for a `socket:` NIC, and a raw additional disk (the driver
         // attaches raw only; Lima's vz converts qcow2 in place, this driver doesn't).

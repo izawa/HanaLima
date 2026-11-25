@@ -15,7 +15,7 @@ import Testing
 struct DriverLeftBehindEndToEndTests {
     let vm = "hanalima-e2e-leftbehind"
     static let helpers = URL(filePath: ProcessInfo.processInfo.environment["HANALIMA_E2E_DRIVERS"]
-                             ?? FileManager.default.currentDirectoryPath + "/build/HanaLima.app/Contents/Helpers")
+                             ?? FileManager.default.currentDirectoryPath + "/build/HanaLima.app/Contents/Helpers/HanaLimaDriver.app/Contents/MacOS")
     let client = LimaClient(limactlURL: LimaClient.locate()!,
                             environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": helpers.path]) { $1 })
 

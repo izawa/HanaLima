@@ -14,15 +14,17 @@ struct DriverSnapshotEndToEndTests {
     let vm = "hanalima-e2e-drvsnap"
     static let helpers = URL(filePath: FileManager.default.currentDirectoryPath)
         .appending(path: "build/HanaLima.app/Contents/Helpers")
+    /// The driver: the main executable of HanaLimaDriver.app (docs/19).
+    static let drivers = helpers.appending(path: "HanaLimaDriver.app/Contents/MacOS")
     let client = LimaClient(limactlURL: LimaClient.locate()!,
-                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": helpers.path]) { $1 })
+                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": drivers.path]) { $1 })
 
     @Test(.timeLimit(.minutes(15)))
     func limactlSnapshotUsesDiskSnapshots() async throws {
-        try #require(FileManager.default.isExecutableFile(atPath: Self.helpers.appending(path: "lima-driver-hanalima").path),
+        try #require(FileManager.default.isExecutableFile(atPath: Self.drivers.appending(path: "lima-driver-hanalima").path),
                      "run scripts/build-app.sh first")
         _ = try? await drain(client.delete(vm, force: true))
-        defer { E2ECleanup.deleteInstances([vm], environment: ["LIMA_DRIVERS_PATH": Self.helpers.path]) }
+        defer { E2ECleanup.deleteInstances([vm], environment: ["LIMA_DRIVERS_PATH": Self.drivers.path]) }
         _ = try await drain(client.create(CreateOptions(name: vm, template: "alpine", cpus: 2, memoryGiB: 2, diskGiB: 10, vmType: .hanalima)))
         let created = try #require(try await client.list().first { $0.name == vm })
         let dir = URL(filePath: created.dir, directoryHint: .isDirectory)

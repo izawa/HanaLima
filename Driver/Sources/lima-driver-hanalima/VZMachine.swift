@@ -17,25 +17,26 @@ final class VZMachine: @unchecked Sendable {
 
     struct Box: @unchecked Sendable { let machine: VZVirtualMachine }
 
-    private let passthroughRequested: Bool
-    /// Spike: kept alive for the machine's lifetime (USBPassthrough).
-    private var usbPassthrough: AnyObject?
+    /// The USB accessories this VM receives (docs/19), while it is the USB target and running.
+    /// `AnyObject` because USBPassthrough needs macOS 27.
+    private var usb: AnyObject?
 
     static let displayWidth = 1920
     static let displayHeight = 1200
 
     /// `onStop` is called once, when the guest stops on its own or crashes (not after `stop()`).
     /// `networkHandles`: the usernet NIC first, then one per `spec.nics` (vzNAT entries get nil).
-    /// `serial`: the guest's end of the console socket pair.
-    init(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, onStop: @escaping @Sendable (Error?) -> Void) throws {
-        let config = try Self.configuration(spec: spec, networkHandles: networkHandles, serial: serial)
+    /// `serial`: the guest's end of the console socket pair. `usbController`: an xHCI controller
+    /// for USB passthrough (docs/19; a hosted boot gets one for its media regardless).
+    init(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, usbController: Bool,
+         onStop: @escaping @Sendable (Error?) -> Void) throws {
+        let config = try Self.configuration(spec: spec, networkHandles: networkHandles, serial: serial, usbController: usbController)
         do { try config.validateSaveRestoreSupport(); saveRestoreUnsupported = nil } catch { saveRestoreUnsupported = "\(error.localizedDescription)" }
         let vm = VZVirtualMachine(configuration: config, queue: queue)
         let delegate = Delegate(onStop: onStop)
         // VZVirtualMachine's properties are confined to its queue.
         queue.sync { vm.delegate = delegate }
         displayMachine = spec.display ? Box(machine: vm) : nil
-        passthroughRequested = spec.usbPassthrough
         machine = vm
         self.delegate = delegate
     }
@@ -69,9 +70,42 @@ final class VZMachine: @unchecked Sendable {
                 }
             }
         }
-        if passthroughRequested, #available(macOS 27, *) {
-            usbPassthrough = USBPassthrough(machine: machine, queue: queue)
-        }
+    }
+
+    // MARK: - USB passthrough (docs/19)
+
+    /// These keep `usb` to DriverCore's actor: call them from there only.
+
+    /// Starts receiving the USB accessories assigned to this driver. Call once the VM runs.
+    func openUSB() {
+        guard #available(macOS 27, *), usb == nil, !queue.sync(execute: { machine.usbControllers.isEmpty }) else { return }
+        usb = USBPassthrough(machine: machine, queue: queue)
+    }
+
+    /// No new accessories while a stop or a hibernate runs; `releaseUSB()` if it fails.
+    func holdUSB() {
+        guard #available(macOS 27, *) else { return }
+        (usb as? USBPassthrough)?.hold()
+    }
+
+    /// Takes accessories again: after a resume (what arrived while paused), or a failed stop
+    /// or hibernate.
+    func releaseUSB() {
+        guard #available(macOS 27, *) else { return }
+        (usb as? USBPassthrough)?.release()
+    }
+
+    /// The VM has stopped: no more accessories.
+    func closeUSB() {
+        guard #available(macOS 27, *), let passthrough = usb as? USBPassthrough else { return }
+        usb = nil
+        passthrough.close()
+    }
+
+    /// Attached accessories and the last failure; nil while not receiving.
+    var usbStatus: (attached: Int, lastError: String?)? {
+        guard #available(macOS 27, *), let passthrough = usb as? USBPassthrough else { return nil }
+        return passthrough.status
     }
 
     /// VZ's pause: the guest's RAM stays in this process.
@@ -213,7 +247,7 @@ final class VZMachine: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    static func configuration(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle) throws -> VZVirtualMachineConfiguration {
+    static func configuration(spec: InstanceSpec, networkHandles: [FileHandle?], serial: FileHandle, usbController: Bool) throws -> VZVirtualMachineConfiguration {
         let fm = FileManager.default
         let config = VZVirtualMachineConfiguration()
         config.cpuCount = max(VZVirtualMachineConfiguration.minimumAllowedCPUCount,
@@ -256,7 +290,7 @@ final class VZMachine: @unchecked Sendable {
         let media = try [spec.hosted?.bootImage, spec.hosted?.iso, spec.hosted?.helper].compactMap { $0 }.map {
             VZUSBMassStorageDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: $0, readOnly: true))
         }
-        if !media.isEmpty || spec.usbPassthrough {
+        if !media.isEmpty || usbController {
             let usb = VZXHCIControllerConfiguration()
             usb.usbDevices = media
             config.usbControllers = [usb]

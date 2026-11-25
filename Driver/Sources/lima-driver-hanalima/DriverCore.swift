@@ -47,6 +47,10 @@ actor DriverCore {
         /// A hibernate in progress: a stop waits for it (a resume between the save and the power
         /// off would let the guest write the disk the saved state no longer matches).
         var hibernating = false
+        /// The VM has an xHCI controller (USB passthrough, docs/19); recorded with a saved state.
+        var xhci = false
+        /// This VM is the USB target and receives the assigned USB accessories (docs/19).
+        var usbTarget = false
     }
 
     private var run: Run?
@@ -178,6 +182,10 @@ actor DriverCore {
         let savedState = try savedStateToRestore(spec: spec)
         generation += 1
         var current = Run(generation: generation)
+        // Every VM of this driver gets the controller on macOS 27, so choosing another USB target
+        // doesn't change what VZ sees; a restore needs what the state was saved with.
+        current.xhci = spec.hosted == nil
+            && (savedState == nil ? Self.usbAvailable : SavedState.record(instanceDir: spec.dir).map(Self.hasXHCI) ?? false)
         do {
             try Data("\(ProcessInfo.processInfo.processIdentifier)".utf8).write(to: spec.pidURL)
             var handles: [FileHandle?] = [nil]
@@ -223,7 +231,7 @@ actor DriverCore {
             let gen = current.generation
             let serial = try SerialConsole(logURL: spec.serialLogURL, socketPath: spec.serialSocket)
             current.serial = serial
-            let vm = try VZMachine(spec: spec, networkHandles: handles, serial: serial.guestHandle) { error in
+            let vm = try VZMachine(spec: spec, networkHandles: handles, serial: serial.guestHandle, usbController: current.xhci) { error in
                 Task { await self.guestStopped(generation: gen, error: error) }
             }
             current.machine = vm
@@ -235,6 +243,13 @@ actor DriverCore {
                 try await vm.start()
             }
             log("VM running")
+            // The choice is read only now, so one changed while this VM was getting ready counts;
+            // not if a stop began meanwhile (it found nothing to hold).
+            if current.xhci, run?.generation == gen, run?.stopping == false, Self.isUSBTarget(spec) {
+                run?.usbTarget = true
+                vm.openUSB()
+                log("usb: this VM is the USB target")
+            }
             if let box = vm.displayMachine {
                 // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
                 let title = "HanaLima: \(spec.name)"
@@ -427,6 +442,7 @@ actor DriverCore {
         guard let current = run, let vm = current.machine else { return }
         let gen = current.generation
         run?.stopping = true
+        vm.holdUSB()
         current.sshWait?.cancel()
         if let local = current.exposedLocal, let spec {
             try? await UsernetClient(socketPath: spec.usernetEndpointSocket).unexpose(local: local)
@@ -478,6 +494,7 @@ actor DriverCore {
     private func guestStopped(generation: Int, error: Error?) async {
         guard let current = run, current.generation == generation else { return }
         run = nil
+        current.machine?.closeUSB()
         busy = true
         log(error.map { "guest stopped with error: \($0)" } ?? "guest stopped")
         await tearDown(current)
@@ -515,8 +532,10 @@ actor DriverCore {
         case .status:
             let window = run?.window
             let shown = await MainActor.run { window?.isShown ?? false }
+            let usb = run?.machine?.usbStatus
             return DriverControl.Response(ok: true, state: run?.machine?.stateName ?? "none",
-                                          display: spec?.display ?? false, screenShown: shown)
+                                          display: spec?.display ?? false, screenShown: shown,
+                                          usbTarget: run?.usbTarget, usbAttached: usb?.attached, usbError: usb?.lastError)
         case .openScreen:
             guard let window = run?.window else {
                 return .failure(spec?.display == true ? "the VM is not running" : "the VM has no display (video.display is none)")
@@ -532,12 +551,14 @@ actor DriverCore {
             guard let vm = run?.machine else { return .failure("the VM is not running") }
             guard run?.hibernating != true else { return .failure("the VM is hibernating") }
             let gen = run?.generation
+            vm.holdUSB()
             Task {
                 do {
                     try await vm.stop()
                     if let gen { await self.guestStopped(generation: gen, error: nil) }
                 } catch {
                     log("forced stop failed: \(error)")  // the run stays; the VM may still be stopping
+                    vm.releaseUSB()
                 }
             }
             return DriverControl.Response(ok: true, state: vm.stateName)
@@ -608,6 +629,8 @@ actor DriverCore {
         }
         let paused = run?.pausedAt.map { Date().timeIntervalSince($0) } ?? 0
         run?.pausedAt = nil
+        // What arrived while paused; not if a stop began during the resume (it holds USB).
+        if run?.generation == current.generation, run?.stopping == false { vm.releaseUSB() }
         log("resumed after \(Int(paused)) s")
         // The guest's clocks stood still, so its DHCP client still trusts a lease the server
         // may have let go and handed to another VM. A link down and up makes it confirm the
@@ -647,6 +670,10 @@ actor DriverCore {
         }
         let started = Date()
         let wasRunning = vm.state == .running
+        // No new USB accessories from here; a failed hibernate goes back to taking them.
+        vm.holdUSB()
+        var hibernated = false
+        defer { if !hibernated, run?.generation == gen { vm.releaseUSB() } }
         if wasRunning {
             do { try await vm.pause() } catch { return .failure("pause failed: \(error)") }
             await cutGuestAgentConnections()
@@ -675,12 +702,13 @@ actor DriverCore {
             log("hibernate: power off failed: \(error)")
             return .failure("the state was saved but the VM didn't power off: \(error)")
         }
+        hibernated = true
         // Stamped once the VM is off and the disks closed. The record goes first: only a state
         // with a record counts (SavedState.exists).
         var outcome = DriverControl.Response(ok: true, state: "stopped")
         do {
             let size = (try fm.attributesOfItem(atPath: partial.path)[.size] as? NSNumber)?.int64Value ?? 0
-            try SavedState.write(try Self.stateRecord(spec: spec, size: size), instanceDir: spec.dir)
+            try SavedState.write(try Self.stateRecord(spec: spec, size: size, xhci: current.xhci), instanceDir: spec.dir)
             try fm.moveItem(at: partial, to: SavedState.stateURL(instanceDir: spec.dir))
             log(String(format: "hibernated: %d MiB saved in %.2f s", size >> 20, saved))
         } catch {
@@ -706,16 +734,16 @@ actor DriverCore {
 
     /// What the restore must find unchanged: the machine identifier (a clone gets a new one),
     /// the configuration VZ sees, and the disks and EFI variables.
-    private static func stateRecord(spec: InstanceSpec, size: Int64) throws -> SavedState.Record {
+    private static func stateRecord(spec: InstanceSpec, size: Int64, xhci: Bool) throws -> SavedState.Record {
         let identifier = try Data(contentsOf: spec.identifierURL).base64EncodedString()
-        let configuration = [
+        let configuration = ([
             "cpus=\(spec.cpus)", "memory=\(spec.memoryBytes)", "display=\(spec.display)",
             "mountType=\(spec.mountType)", "rosetta=\(spec.rosetta)", "usernet=\(spec.usernet)",
             "shared=\(spec.sharedUsernet?.name ?? "")",
             "mounts=\(spec.mounts.map { "\($0.location):\($0.mountPoint):\($0.writable)" })",
             "nics=\(spec.nics.map { String(describing: $0) })",
             "disks=\(spec.disks.map(\.name))",
-        ].joined(separator: "\n")
+        ] + (xhci ? [Self.xhciLine] : [])).joined(separator: "\n")
         let urls = [spec.diskURL, spec.efiURL] + spec.disks.map(\.image)
         let files = try urls.map { url in
             guard let stamp = SavedState.FileStamp(url: url, instanceDir: spec.dir) else { throw DriverError("\(url.lastPathComponent) is missing") }
@@ -723,6 +751,32 @@ actor DriverCore {
         }
         return SavedState.Record(machineIdentifier: identifier, configuration: configuration, macAddress: spec.macAddress,
                                  files: files, savedAt: Date(), size: size)
+    }
+
+    /// In the configuration of a state saved with an xHCI controller. States saved before USB
+    /// passthrough (docs/19) don't have it and are restored without the controller.
+    private static let xhciLine = "xhci=true"
+
+    static func hasXHCI(_ record: SavedState.Record) -> Bool {
+        record.configuration.split(separator: "\n").contains { $0 == xhciLine }
+    }
+
+    /// USB passthrough needs macOS 27 (VZUSBPassthroughDevice, AccessoryAccess).
+    static var usbAvailable: Bool {
+        if #available(macOS 27, *) { true } else { false }
+    }
+
+    /// The VM is the one the user chose for USB accessories, and this driver may claim them
+    /// (signed with the entitlement and the driver's provisioning profile; not an ad hoc build).
+    private static func isUSBTarget(_ spec: InstanceSpec) -> Bool {
+        guard let target = USBTarget.load(from: NetworkPaths.supportDirectory.appending(path: USBTarget.fileName)),
+              target.matches(instanceDir: spec.dir) else { return false }
+        guard let executable = Bundle.main.executableURL?.resolvingSymlinksInPath(),
+              USBTarget.isEntitled(executable: executable) else {
+            log("usb: this VM is the USB target, but this driver isn't signed to claim USB accessories")
+            return false
+        }
+        return true
     }
 
     /// The hibernated state Start should restore, nil to boot. Throws if there is one that
@@ -746,7 +800,7 @@ actor DriverCore {
         guard let saved = SavedState.record(instanceDir: dir) else {
             throw DriverError("the hibernated state has no readable record; delete \(state.path) to boot afresh")
         }
-        let current = try Self.stateRecord(spec: spec, size: saved.size)
+        let current = try Self.stateRecord(spec: spec, size: saved.size, xhci: Self.hasXHCI(saved))
         if saved.machineIdentifier != current.machineIdentifier {
             log("discarding a hibernated state of another identity (limactl clone and rename make a new vz-identifier, and a rename also a new MAC)")
             try SavedState.discard(instanceDir: dir)

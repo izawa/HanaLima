@@ -11,10 +11,12 @@
 |---|---|---|
 | 署名の ID | `Developer ID Application: Yukimitsu Izawa (FJYY683YHH)` の証明書と秘密鍵 | `security find-identity -v -p codesigning` に出る |
 | 公証の認証情報 | プロファイル名 `developer-id-notary`(Apple ID と App 用パスワードとチーム ID) | `xcrun notarytool history --keychain-profile developer-id-notary` が終了コード 0 |
+| ドライバーのプロビジョニングプロファイル | App ID `org.izawa.HanaLima.driver`（「Claim USB Accessory」を有効にしたもの）の Developer ID のプロファイル。キーチェーンではなく `~/Library/Developer/HanaLima/HanaLima_Driver_Developer_ID.provisionprofile` に置く（リポジトリには入れない） | `security cms -D -i <ファイル>` で、`com.apple.developer.accessory-access.usb` が true、期限が先 |
 
 - 証明書と秘密鍵の控えは、パスワード付きの `.p12` として、この Mac の外に保管してある。
 - App 用パスワードは、Apple ID のアカウント管理(account.apple.com)の「サインインとセキュリティ」で作る。アプリごとではなく、使う場所(Mac・CI)ごとに 1 つ。
-- 別の ID やプロファイルを使うときは、環境変数 `SIGN_IDENTITY`・`NOTARY_PROFILE` で `scripts/release.sh` に渡す。
+- 別の ID やプロファイルを使うときは、環境変数 `SIGN_IDENTITY`・`NOTARY_PROFILE` で `scripts/release.sh` に渡す。ドライバーのプロビジョニングプロファイルの場所は `HANALIMA_DRIVER_PROFILE` で変えられる。
+- ドライバーのプロファイルは、ドライバー（`Contents/Helpers/HanaLimaDriver.app`）が USB 機器を VM に渡すためのもの（docs/19）。`release.sh` は、プロファイルが読めない・App ID が違う・USB の entitlement を許していない・期限切れのときに止まる。作り直すときは開発者のサイトの「Profiles」で、種類は Developer ID、App ID は `HanaLima Driver` を選ぶ。期限は 2044-11-20。
 
 ## 手順
 

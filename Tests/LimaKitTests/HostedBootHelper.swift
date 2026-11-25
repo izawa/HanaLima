@@ -5,7 +5,7 @@ import Foundation
 /// a test: launches it headless, waits for its control socket, asks it to stop, waits for exit.
 final class HostedBoot {
     static let driver = URL(filePath: FileManager.default.currentDirectoryPath)
-        .appending(path: "build/HanaLima.app/Contents/Helpers/lima-driver-hanalima")
+        .appending(path: "build/HanaLima.app/Contents/Helpers/HanaLimaDriver.app/Contents/MacOS/lima-driver-hanalima")
 
     let dir: URL
     let process = Process()

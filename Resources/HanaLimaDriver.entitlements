@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The driver of a Developer ID build with its provisioning profile (docs/19): it runs the
+	     VM and claims the USB accessories the user assigns to it. The first two must match the
+	     profile embedded in HanaLimaDriver.app. Ad hoc builds use HanaLima.entitlements instead. -->
+	<key>com.apple.application-identifier</key>
+	<string>FJYY683YHH.org.izawa.HanaLima.driver</string>
+	<key>com.apple.developer.team-identifier</key>
+	<string>FJYY683YHH</string>
+	<key>com.apple.developer.accessory-access.usb</key>
+	<true/>
+	<key>com.apple.security.virtualization</key>
+	<true/>
+</dict>
+</plist>

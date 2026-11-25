@@ -147,6 +147,13 @@ final class AppModel {
     var pauseEpochs: [String: Int] = [:]
     /// Stopped VMs with a hibernated state (docs/11, stage 2), from the instance folders.
     var hibernatedInstances: Set<String> = []
+    /// The VM that receives USB accessories (docs/19), from `usb-target.json`.
+    var usbTargetName: String?
+    /// The USB target's driver says it receives (also while it starts, or outside this list).
+    var usbTargetActive = false
+    /// No driver where launchd's `limactl` finds it (the app isn't in an Applications folder):
+    /// a `hanalima` VM can't start at login.
+    var loginDriverMissing = false
     @ObservationIgnored private var hasListedOnce = false
     /// The MCP server's app side (docs/14), started by `HanaLimaApp`.
     @ObservationIgnored lazy var agentHost = AgentHost(model: self)
@@ -280,10 +287,11 @@ final class AppModel {
     // MARK: - Lifecycle
 
     /// Called by both the main window and the menu bar item; only the first call does the work.
-    /// `Contents/Helpers`, when it holds `lima-driver-hanalima` (built by build-app.sh).
+    /// The directory of `lima-driver-hanalima`, when build-app.sh put it in: the main executable
+    /// of `Contents/Helpers/HanaLimaDriver.app` (its own bundle, for the USB entitlement, docs/19).
     static var driverDirectory: URL? {
-        let helpers = Bundle.main.bundleURL.appending(path: "Contents/Helpers")
-        return FileManager.default.isExecutableFile(atPath: helpers.appending(path: "lima-driver-hanalima").path) ? helpers : nil
+        let dir = Bundle.main.bundleURL.appending(path: "Contents/Helpers/HanaLimaDriver.app/Contents/MacOS")
+        return FileManager.default.isExecutableFile(atPath: dir.appending(path: DriverInstaller.driverName).path) ? dir : nil
     }
 
     /// Whether VMs can be created with HanaLima's own driver (`vmType: hanalima`).
@@ -305,7 +313,7 @@ final class AppModel {
             environment["LIMA_DRIVERS_PATH"] = [helpers.path, environment["LIMA_DRIVERS_PATH"]].compactMap { $0 }.joined(separator: ":")
         }
         let client = LimaClient(limactlURL: url, environment: environment)
-        // And for the terminal's limactl: a copy in Lima's own driver directory.
+        // And for the terminal's limactl: a link in Lima's own driver directory.
         if let helpers = Self.driverDirectory {
             let bundled = helpers.appending(path: DriverInstaller.driverName)
             Task.detached(priority: .utility) {
@@ -313,7 +321,9 @@ final class AppModel {
                     if case .installed(let dest) = try DriverInstaller.installIfNeeded(bundled: bundled, limactl: url) {
                         NSLog("HanaLima: placed %@ for limactl", dest.path)
                     }
-                } catch { NSLog("HanaLima: driver copy for limactl failed: %@", "\(error)") }
+                } catch { NSLog("HanaLima: driver link for limactl failed: %@", "\(error)") }
+                let missing = !DriverInstaller.isPlaced(limactl: url)
+                await MainActor.run { self.loginDriverMissing = missing }
             }
         }
         do {
@@ -429,6 +439,7 @@ final class AppModel {
             updateDiskPlacements()
             updateMetadata(list)
             updateGroupLayout()
+            updateUSBTarget()
             finishInterruptedRenames()
             invalidateMapChecks()
             reattachHostedBoots()
@@ -625,8 +636,18 @@ final class AppModel {
         }
     }
 
+    /// Why login start can't be turned on for `name`, or nil.
+    func autostartBlocker(_ name: String) -> String? {
+        guard loginDriverMissing, instance(named: name)?.usesHanaLimaDriver == true, !autostartInstances.contains(name) else { return nil }
+        return String(localized: "HanaLima のドライバーで動く仮想マシンをログイン時に起動するには、HanaLima を「アプリケーション」フォルダに入れて開いてください。")
+    }
+
     func setAutostart(_ name: String, enabled: Bool) async {
         guard let client, !isRenaming(name) else { return }  // the rename moves the registration
+        if enabled, let blocker = autostartBlocker(name) {
+            alert = AlertMessage(title: String(localized: "「\(name)」の自動起動を有効にできませんでした"), message: blocker)
+            return
+        }
         autostartUpdating.insert(name)
         defer { autostartUpdating.remove(name) }
         do {

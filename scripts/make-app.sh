@@ -49,6 +49,9 @@ codesign --verify --strict "$APP"
 codesign -d --entitlements - "$APP/Contents/Helpers/hanalima-netd" 2>/dev/null \
     | grep -q "com.apple.security.virtualization" \
     || { echo "✗ ヘルパーに com.apple.security.virtualization がありません" >&2; exit 1; }
+codesign -d --entitlements - "$APP/Contents/Helpers/HanaLimaDriver.app" 2>/dev/null \
+    | grep -q "com.apple.security.virtualization" \
+    || { echo "✗ ドライバーに com.apple.security.virtualization がありません" >&2; exit 1; }
 codesign -d --entitlements - "$APP" 2>/dev/null \
     | grep -q "com.apple.security.virtualization" \
     || { echo "✗ アプリに com.apple.security.virtualization がありません" >&2; exit 1; }

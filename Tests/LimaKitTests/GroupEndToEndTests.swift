@@ -15,8 +15,10 @@ struct GroupEndToEndTests {
     let names = ["hanalima-e2e-group-a", "hanalima-e2e-group-b", "hanalima-e2e-group-c"]
     static let helpers = URL(filePath: FileManager.default.currentDirectoryPath)
         .appending(path: "build/HanaLima.app/Contents/Helpers")
+    /// The driver: the main executable of HanaLimaDriver.app (docs/19).
+    static let drivers = helpers.appending(path: "HanaLimaDriver.app/Contents/MacOS")
     let client = LimaClient(limactlURL: LimaClient.locate()!,
-                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": helpers.path]) { $1 })
+                            environment: ProcessInfo.processInfo.environment.merging(["LIMA_DRIVERS_PATH": drivers.path]) { $1 })
 
     /// The order steps ran in, across concurrency domains.
     actor Log {
@@ -26,10 +28,10 @@ struct GroupEndToEndTests {
 
     @Test(.timeLimit(.minutes(20)))
     func startHibernateResumeStop() async throws {
-        try #require(FileManager.default.isExecutableFile(atPath: Self.helpers.appending(path: "lima-driver-hanalima").path),
+        try #require(FileManager.default.isExecutableFile(atPath: Self.drivers.appending(path: "lima-driver-hanalima").path),
                      "run scripts/build-app.sh first")
         for name in names { _ = try? await drain(client.delete(name, force: true)) }
-        defer { E2ECleanup.deleteInstances(names, environment: ["LIMA_DRIVERS_PATH": Self.helpers.path]) }
+        defer { E2ECleanup.deleteInstances(names, environment: ["LIMA_DRIVERS_PATH": Self.drivers.path]) }
         for (name, vmType) in zip(names, [CreateOptions.VMType.hanalima, .hanalima, .vz]) {
             _ = try await drain(client.create(CreateOptions(name: name, template: "alpine", cpus: 1, memoryGiB: 1, diskGiB: 5,
                                                             vmType: vmType, mountNone: true)))

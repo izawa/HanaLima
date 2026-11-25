@@ -79,15 +79,24 @@ public enum DriverControl {
         /// Whether the window is on screen now.
         public var screenShown: Bool?
         public var png: Data?
+        /// The VM is the USB target and receives USB accessories (docs/19).
+        public var usbTarget: Bool?
+        /// USB accessories attached now, and the last attach failure, while receiving.
+        public var usbAttached: Int?
+        public var usbError: String?
 
         public init(ok: Bool, error: String? = nil, state: String? = nil, display: Bool? = nil,
-                    screenShown: Bool? = nil, png: Data? = nil) {
+                    screenShown: Bool? = nil, png: Data? = nil,
+                    usbTarget: Bool? = nil, usbAttached: Int? = nil, usbError: String? = nil) {
             self.ok = ok
             self.error = error
             self.state = state
             self.display = display
             self.screenShown = screenShown
             self.png = png
+            self.usbTarget = usbTarget
+            self.usbAttached = usbAttached
+            self.usbError = usbError
         }
 
         public static func failure(_ message: String) -> Response { Response(ok: false, error: message) }
