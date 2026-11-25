@@ -46,6 +46,7 @@ Mac でマウントされている機器を割り当てると、責任元に「�
 | 段階 0: 試作のアプリ自身が VM を動かす（hosted モード、画面あり） | 受け取りの登録に成功し、メニューでの割り当てのあと機器が届いて VM に付いた。ゲストの `lsusb` に SuperSpeed の機器として出て、usb-storage が `/dev/sda` を作った。読み取り専用でマウントでき、生のデバイスの読み込みは 104 MB/s |
 | 段階 0: 「このMac」に戻す | VZ の delegate と AccessoryAccess の切断の知らせが同時に届き、ゲストの `/dev/sda` が消え、Mac で自動的にマウントし直された |
 | 「このMac」に戻すときの Mac 側の流れ（`log stream` で `diskarbitrationd` を見た） | 0.35 秒ほどのうちに、ディスク全体とパーティションが新しく作られ（`created disk` が 2 回）、FSKit で調べ直されて自動でマウントされた。挿したときと同じ流れ。機器が届くたびに IORegistry の ID が変わるので、USB の機器としても認識し直している（電気的な抜き差しは無い） |
+| 「HanaLima で使用」にするときの Mac 側の流れ（同じく `diskarbitrationd`） | 2 つのボリュームのアンマウント、ディスクの取り出し（eject）、ディスク全体とパーティションの削除（`removed disk` が 2 回）の順。Finder で取り出すときと同じ流れで、そのあと機器が VM に渡る |
 | E0: バンドルの `Contents/Helpers` に置いた素の実行ファイルに同じ entitlement を付ける | 起動の時点で終了させられた（SIGKILL、終了コード 137）。主実行ファイルのほうは起動した |
 | E1: `LIMA_DRIVERS_PATH` を試作のバンドルの `Contents/MacOS` に向けて `limactl start`。画面なし（`video.display: none`） | 受け取りの登録に成功し、割り当てた機器が届いて VM に付き、ゲストで読めた |
 | E1: ドライバーへのシンボリックリンクだけを置いたフォルダを `LIMA_DRIVERS_PATH` にする | 同じく成功した。`Bundle.main` は空だったが、entitlement はリンク先の実体で効いた |
