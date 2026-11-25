@@ -4,7 +4,7 @@
 
 # HanaLima
 
-A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, and a serial console, and you can sort VMs into groups and start or stop a whole group at once. A network map shows which VMs are on which networks and checks the traffic from inside the guests, and on a guest-only network you can watch and record every frame and add a delay, a loss rate or a block. As an experiment (since v0.15), an AI client can drive HanaLima through MCP: describe a lab in a sentence or a sketch, and it builds the networks and VMs and checks the traffic.
+A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual machines entirely from a GUI: pick CPUs, memory, disk and network interfaces, then start, stop and use your VMs, and build virtual NAT, host-only and bridged networks without root. HanaLima's own Virtualization.framework driver adds isolated VMs, pause and hibernate, a serial console, and USB devices from the Mac passed to a VM, and you can sort VMs into groups and start or stop a whole group at once. A network map shows which VMs are on which networks and checks the traffic from inside the guests, and on a guest-only network you can watch and record every frame and add a delay, a loss rate or a block. As an experiment (since v0.15), an AI client can drive HanaLima through MCP: describe a lab in a sentence or a sketch, and it builds the networks and VMs and checks the traffic.
 
 **Website: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [日本語版 README](README.ja.md)
 
@@ -44,8 +44,9 @@ A native macOS app for creating and running [Lima](https://lima-vm.io/) virtual 
   - **SSH over vsock**, with no network in between: built into guests with systemd 256 or later (Ubuntu 24.10+, Fedora 41+); on Alpine and older systemd, one boot with NIC 0 on lets HanaLima's boot script install a socat relay.
   - **Isolation profile**: turn off “NIC 0: Lima's user-mode NAT” and the VM loses its route through Lima to the internet, your LAN and the Mac's `127.0.0.1`; it reaches only what the NICs you add lead to (a HanaLima host-only or guest-only network). SSH, the guest agent and port forwarding work over vsock. “Create as an isolated VM” in the create sheet sets all of this with one switch, and “Boot with NIC 0 only the first time” removes NIC 0 at the first stop. Under isolation the driver turns off hostResolver and containerd (in memory only), marks eth0 optional and uses the guest-only network's DNS; the Settings and Overview tabs say so. apt/dnf can't get out, so provisioning is skipped.
   - **Pause and hibernate** ([docs/11](docs/11-pause-resume-investigation.md), in Japanese): stop a running VM and carry on later from where it was. Pause stops only the CPUs and keeps the memory, so it resumes at once. Hibernate saves the memory into the VM's folder and powers off, so the Mac gets the memory back and the driver's process ends; the next start resumes where the VM was, also after a Mac restart and from start at login. Either way the guest doesn't reboot, and Lima's time sync corrects its clock. Resuming from hibernation runs Lima's per-boot work (provisioning included) again. If the VM's settings or disks changed after it hibernated, it refuses to resume rather than pair the old memory with a changed disk, and asks whether to discard the saved state. A copy made with `limactl clone` while hibernated, and a VM renamed with `limactl rename` while hibernated, discard the saved state and boot afresh. The first hibernation on a Mac needs its screen unlocked (the key for the saved state is made then). Lima's `vz` has no way to pause, so `vz` VMs can't do either. Verified end to end on Alpine and Ubuntu LTS.
+  - **USB devices from the Mac** (macOS 27, since v0.19; [docs/19](docs/19-usb-passthrough-investigation.md), in Japanese): pass a USB device plugged into the Mac, such as a USB memory stick, to a VM as a device, not as shared files. The guest finds it on its USB bus and gets `/dev/sdX`, so it can partition, format or read it raw. Choose the one VM that receives USB devices with the switch in its Overview tab, start it, and give the device to it in the menu bar's **Virtual Machine Accessories** (“Use with HanaLima”; a VM started from Terminal or at login shows as an unknown application there). While it is passed through the Mac can't use it; give it back with “Use with This Mac” (unmount it in the guest first) and the Mac mounts it again as if plugged in. The first time, macOS asks for access to removable volumes. The VM keeps the device across a pause and lets it go when it stops or hibernates. Needs the released build: a build of your own (ad hoc) can't claim USB devices, which takes Apple's entitlement and provisioning profile. Verified with a USB stick on Ubuntu 26.04.
   - **Works as with Lima**: Rosetta (if the Mac has none, the VM boots without it and the driver's log says what to run; never installed for you), `lima:` networks (socket_vmnet shared/host/bridged, and user-v2 as NIC 0), and `limactl snapshot` (create, apply, delete, list; the same APFS-clone snapshots as the app; stopped VMs only, one-word tags).
-  - **From the terminal's `limactl` too**: at every launch HanaLima places the driver where Lima looks for drivers (`/opt/homebrew/lib/lima/` with Homebrew). No `LIMA_DRIVERS_PATH`, no sudo. The driver exits on its own once no VM runs and the Lima process that started it is gone.
+  - **From the terminal's `limactl` too**: at every launch HanaLima places a link to its driver where Lima looks for drivers (`/opt/homebrew/lib/lima/` with Homebrew), when HanaLima is in an Applications folder. No `LIMA_DRIVERS_PATH`, no sudo. The driver exits on its own once no VM runs and the Lima process that started it is gone.
   - A Mac without HanaLima can't start these VMs (switch them to VZ first before moving them). Verified end to end on Alpine, Ubuntu LTS, Fedora and Debian.
   - To log in from the serial console:
     1. Add the “Log In Automatically on the Consoles (Screen and Serial)” example in the Settings tab, as for the rescue boot, and start the VM once — the images put no login on the serial port (`hvc0`), so without it the serial stays silent.
@@ -88,7 +89,7 @@ To use a fixed IP or a bridged network, open **Networks** in the sidebar, create
    xcodebuild -downloadComponent MetalToolchain
    ```
 
-2. Clone and build. The script builds `build/HanaLima.app` and signs it ad hoc for your Mac:
+2. Clone and build. The script builds `build/HanaLima.app` and signs it ad hoc for your Mac (everything works except passing USB devices to a VM, which needs the released build):
 
    ```bash
    git clone https://github.com/izawa/HanaLima.git
@@ -141,7 +142,7 @@ Files HanaLima creates:
 - `~/Library/LaunchAgents/org.izawa.HanaLima.net.<name>.plist` — one per virtual network
 - `~/Library/Logs/HanaLima/` — helper logs
 - `~/.hanalima/` — MCP: the socket to the app, `mcp.json`, the record of what the AI made and its jobs, and a log of the calls (sizes and times only)
-- `<prefix>/lib/lima/lima-driver-hanalima` (`/opt/homebrew/lib/lima/` with Homebrew) — the VM driver, copied there at every launch
+- `<prefix>/lib/lima/lima-driver-hanalima` (`/opt/homebrew/lib/lima/` with Homebrew) — a link to the VM driver in the app, placed at every launch
 
 Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/Library/LaunchAgents/io.lima-vm.autostart.<name>.plist` for start at login) are managed by `limactl`. **Storage → Usage** in the sidebar shows them.
 
@@ -153,7 +154,7 @@ Lima's own files (`~/.lima`, the image cache in `~/Library/Caches/lima`, and `~/
 
 ## Uninstalling
 
-In the app, first switch any VMs on HanaLima's driver to VZ in the Settings tab (they can't start without the driver) and delete the HanaLima networks (this unregisters their LaunchAgents), then remove the app, its data and the driver copy (`/opt/homebrew/lib/lima/` with Homebrew):
+In the app, first switch any VMs on HanaLima's driver to VZ in the Settings tab (they can't start without the driver) and delete the HanaLima networks (this unregisters their LaunchAgents), then remove the app, its data and the link to the driver (`/opt/homebrew/lib/lima/` with Homebrew):
 
 ```bash
 rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima ~/.hanalima /opt/homebrew/lib/lima/lima-driver-hanalima

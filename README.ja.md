@@ -4,7 +4,7 @@
 
 # HanaLima
 
-[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソールも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。構成図で、どの VM がどのネットワークにつながっているかを見て、ゲストの中から疎通を確かめられます。ゲスト専用ネットワークでは、すべてのフレームを観測・記録し、遅延・損失・遮断を入れられます。試験的な機能として（v0.15 から）、AI のクライアントから MCP で HanaLima を操作できます。構成を文章か図で伝えると、ネットワークと VM を作り、疎通まで確かめます。
+[Lima](https://lima-vm.io/) の VM を GUI で手軽に作成・運用する macOS アプリです。CPU、メモリ、ディスク、ネットワークインターフェースを割り当てて VM を作り、起動・停止・操作まで行えます。仮想 NAT、ホストオンリー、ブリッジのネットワークも管理者権限なしで作れます。Virtualization.framework を使う HanaLima 自身のドライバーでは、隔離した VM、一時停止と休止、シリアルコンソール、Mac の USB 機器を VM に渡すことも使えます。VM をグループに分けて、グループごとに起動・停止することもできます。構成図で、どの VM がどのネットワークにつながっているかを見て、ゲストの中から疎通を確かめられます。ゲスト専用ネットワークでは、すべてのフレームを観測・記録し、遅延・損失・遮断を入れられます。試験的な機能として（v0.15 から）、AI のクライアントから MCP で HanaLima を操作できます。構成を文章か図で伝えると、ネットワークと VM を作り、疎通まで確かめます。
 
 **Web サイト: [izawa.github.io/HanaLima](https://izawa.github.io/HanaLima/)** · [English README](README.md)
 
@@ -44,8 +44,9 @@
   - **SSH は vsock**: ネットワークを介しません。systemd 256 以降のゲスト（Ubuntu 24.10 以降、Fedora 41 以降）はそのまま。Alpine や古い systemd は、NIC 0 付きで一度起動すると HanaLima の起動スクリプトが socat の中継を入れます。
   - **隔離プロファイル**: 「NIC 0: Lima のユーザーモード NAT」を外すと、その NIC を通るインターネット・LAN・Mac の `127.0.0.1` への経路がなくなります。届くのは追加した NIC の先だけで、HanaLima のホストオンリーやゲスト専用などを使えます。SSH・ゲストエージェント・ポート転送は vsock で動きます。作成画面の「隔離した仮想マシンとして作る」という 1 つのスイッチでまとめて設定できます。「最初の 1 回だけ NIC 0 を付けて起動する」を選ぶと、最初の停止時に NIC 0 が自動で外れます。隔離中はドライバーが hostResolver と containerd を切り、eth0 を optional にして、DNS をゲスト専用ネットワークのものにします。この変更は `lima.yaml` には書かず、設定タブと概要タブに注記を出します。apt・dnf は外に出られないので、プロビジョニングは入れません。
   - **一時停止と休止**（[docs/11](docs/11-pause-resume-investigation.md)）: 実行中の VM を止めて、あとで続きから動かせます。一時停止はメモリを持ったまま CPU だけを止めるので、すぐに再開できます。休止はメモリの内容を VM のフォルダに保存して電源を切るので、Mac のメモリが空き、ドライバーのプロセスも終わります。次の起動で、休止した時点から続きます。Mac を再起動したあとでも、ログイン時の自動起動でも同じです。どちらもゲストは再起動せず、時計は Lima の時刻同期が合わせます。休止からの再開では、Lima が起動のたびに走らせる処理（プロビジョニングを含む）がもう一度走ります。休止したあとに設定やディスクを変えた VM は、古いメモリと変わったディスクを組み合わせないように再開を断り、保存した状態を捨てるかを尋ねます。休止中に `limactl clone` で作った複製と、休止中に `limactl rename` した VM は、保存した状態を捨てて普通に起動します。この Mac で初めて休止するときは、画面のロックを解除しておく必要があります（保存に使う鍵をそのときに作るため）。Lima の `vz` には一時停止の仕組みがないので、`vz` の VM では使えません。Alpine・Ubuntu LTS で E2E 確認済み。
+  - **Mac の USB 機器を渡す**（macOS 27、v0.19 から。[docs/19](docs/19-usb-passthrough-investigation.md)）: Mac に挿した USB メモリなどを、ファイルの共有ではなく機器として VM に渡します。ゲストの USB のバスに機器が現れて `/dev/sdX` になるので、パーティションを切る、フォーマットする、生のまま読むといったことができます。受け取る VM を 1 台、概要タブの切り替えで選んで起動し、メニューバーの「**仮想マシンアクセサリ**」でその機器を「HanaLima で使用」にします（ターミナルやログイン時の自動起動で起動した VM では「不明なアプリケーション」と出ます）。渡している間は Mac から使えません。ゲストでアンマウントしてから「“このMac” で使用」にすると、挿したときと同じように Mac にマウントし直されます。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。一時停止の間は渡したままで、停止や休止で手放します。配布しているビルドが要ります。自分でビルドしたもの（ad-hoc 署名）は、Apple の entitlement とプロビジョニングプロファイルが無いので USB 機器を受け取れません。Ubuntu 26.04 と USB メモリで確認済み。
   - **Lima と同じに使えるもの**: Rosetta は Mac に入っていなければ共有なしで起動し、ログに案内を出します。自動では入れません。`lima:` ネットワークは socket_vmnet の shared・host・bridged と、NIC 0 としての user-v2 に対応。`limactl snapshot`（create・apply・delete・list）はアプリと同じ APFS クローンを使います。停止中のみで、タグは 1 語です。
-  - **ターミナルの `limactl` からも**: HanaLima の起動時に毎回、Lima がドライバーを探す場所へコピーします。Homebrew なら `/opt/homebrew/lib/lima/` です。`LIMA_DRIVERS_PATH` も sudo も不要。VM がなくなり、ドライバーを起動した Lima のプロセスも終了すると、ドライバーは自分で終了します。
+  - **ターミナルの `limactl` からも**: HanaLima の起動時に毎回、Lima がドライバーを探す場所にドライバーへのリンクを置きます。Homebrew なら `/opt/homebrew/lib/lima/` です。HanaLima を「アプリケーション」フォルダに入れているときだけ置きます。`LIMA_DRIVERS_PATH` も sudo も不要。VM がなくなり、ドライバーを起動した Lima のプロセスも終了すると、ドライバーは自分で終了します。
   - HanaLima のない Mac では起動できません。別の Mac に移すなら、先に VZ に戻しておきます。Alpine・Ubuntu LTS・Fedora・Debian で E2E 確認済み。
   - シリアルコンソールからログインするには:
     1. 救出起動と同じく、設定タブで例「コンソールに自動ログイン（画面・シリアル）」を追加して一度起動する。イメージにはシリアルポート `hvc0` のログインが用意されていないので、この設定がないとシリアルには何も出ません。
@@ -88,7 +89,7 @@
    xcodebuild -downloadComponent MetalToolchain
    ```
 
-2. クローンしてビルド。スクリプトが `build/HanaLima.app` を作り、この Mac 用に ad-hoc 署名します。
+2. クローンしてビルド。スクリプトが `build/HanaLima.app` を作り、この Mac 用に ad-hoc 署名します。USB 機器を VM に渡すことだけは、配布しているビルドでないとできません。
 
    ```bash
    git clone https://github.com/izawa/HanaLima.git
@@ -141,7 +142,7 @@ HanaLima が作るファイル:
 - `~/Library/LaunchAgents/org.izawa.HanaLima.net.<名前>.plist` — 仮想ネットワークごとに 1 つ
 - `~/Library/Logs/HanaLima/` — ヘルパーのログ
 - `~/.hanalima/` — MCP: アプリとのソケット、`mcp.json`、AI が作ったものとジョブの記録、呼び出しの記録（字数と時間だけ）
-- `<prefix>/lib/lima/lima-driver-hanalima`（Homebrew なら `/opt/homebrew/lib/lima/`）— VM のドライバー。アプリの起動時に毎回コピーします
+- `<prefix>/lib/lima/lima-driver-hanalima`（Homebrew なら `/opt/homebrew/lib/lima/`）— アプリの中の VM のドライバーへのリンク。アプリの起動時に毎回置きます
 
 Lima 自身のファイルは `limactl` が管理します。VM の `~/.lima`、イメージのキャッシュ `~/Library/Caches/lima`、ログイン時の自動起動用の `~/Library/LaunchAgents/io.lima-vm.autostart.<名前>.plist` が該当します。サイドバーの **ストレージ → 使用量** で確認できます。
 
@@ -153,7 +154,7 @@ Lima 自身のファイルは `limactl` が管理します。VM の `~/.lima`、
 
 ## アンインストール
 
-HanaLima のドライバーを使う VM があれば、まずアプリの設定タブで VZ に切り替えておきます。ドライバーを削除すると起動できなくなるためです。次にアプリで HanaLima のネットワークを削除し、LaunchAgent の登録を外します。その後、アプリとデータ、コピーしたドライバーを削除します。Homebrew の場合、ドライバーの配置先は `/opt/homebrew/lib/lima/` です。
+HanaLima のドライバーを使う VM があれば、まずアプリの設定タブで VZ に切り替えておきます。ドライバーを削除すると起動できなくなるためです。次にアプリで HanaLima のネットワークを削除し、LaunchAgent の登録を外します。その後、アプリとデータ、ドライバーへのリンクを削除します。Homebrew の場合、ドライバーの配置先は `/opt/homebrew/lib/lima/` です。
 
 ```bash
 rm -rf ~/Library/Application\ Support/HanaLima ~/Library/Logs/HanaLima ~/.hanalima /opt/homebrew/lib/lima/lima-driver-hanalima
