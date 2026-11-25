@@ -17,6 +17,10 @@ final class VZMachine: @unchecked Sendable {
 
     struct Box: @unchecked Sendable { let machine: VZVirtualMachine }
 
+    private let passthroughRequested: Bool
+    /// Spike: kept alive for the machine's lifetime (USBPassthrough).
+    private var usbPassthrough: AnyObject?
+
     static let displayWidth = 1920
     static let displayHeight = 1200
 
@@ -31,6 +35,7 @@ final class VZMachine: @unchecked Sendable {
         // VZVirtualMachine's properties are confined to its queue.
         queue.sync { vm.delegate = delegate }
         displayMachine = spec.display ? Box(machine: vm) : nil
+        passthroughRequested = spec.usbPassthrough
         machine = vm
         self.delegate = delegate
     }
@@ -63,6 +68,9 @@ final class VZMachine: @unchecked Sendable {
                     }
                 }
             }
+        }
+        if passthroughRequested, #available(macOS 27, *) {
+            usbPassthrough = USBPassthrough(machine: machine, queue: queue)
         }
     }
 
@@ -245,15 +253,13 @@ final class VZMachine: @unchecked Sendable {
 
         // A hosted boot's ISOs as USB mass storage: EFI boots the installer from there, and the
         // guest sees them as removable media (the fix-up ISO is mounted by its label).
-        if let hosted = spec.hosted {
-            let media = try [hosted.bootImage, hosted.iso, hosted.helper].compactMap { $0 }.map {
-                VZUSBMassStorageDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: $0, readOnly: true))
-            }
-            if !media.isEmpty {
-                let usb = VZXHCIControllerConfiguration()
-                usb.usbDevices = media
-                config.usbControllers = [usb]
-            }
+        let media = try [spec.hosted?.bootImage, spec.hosted?.iso, spec.hosted?.helper].compactMap { $0 }.map {
+            VZUSBMassStorageDeviceConfiguration(attachment: try VZDiskImageStorageDeviceAttachment(url: $0, readOnly: true))
+        }
+        if !media.isEmpty || spec.usbPassthrough {
+            let usb = VZXHCIControllerConfiguration()
+            usb.usbDevices = media
+            config.usbControllers = [usb]
         }
 
         // NIC 0 is usernet (absent in the isolation profile); the rest follow lima.yaml's `networks:`.

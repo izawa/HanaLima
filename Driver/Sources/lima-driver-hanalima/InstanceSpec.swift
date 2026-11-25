@@ -88,6 +88,8 @@ struct InstanceSpec: Sendable {
         var cidata = true
         /// The serial log's name in the instance directory.
         var serialLog = "serialv.log"
+        /// Spike: an XHCI controller and every USB accessory the user assigns to this app (macOS 27).
+        var usbPassthrough = false
     }
     /// Lima's MAC for the first NIC (usernet), which cidata's network config matches eth0 by.
     var macAddress: String { LimaMACAddress.address(instanceDir: dir) ?? "52:55:55:00:00:00" }
@@ -194,6 +196,11 @@ struct InstanceSpec: Sendable {
     var diskURL: URL { dir.appendingPathComponent("disk") }
     var imageURL: URL { dir.appendingPathComponent("image") }
     var cidataURL: URL { dir.appendingPathComponent("cidata.iso") }
+    /// Spike (docs/19): passthrough for a hosted `--usb-passthrough` boot, or under Lima when the
+    /// instance directory holds a `hanalima-usb-passthrough` marker file.
+    var usbPassthrough: Bool {
+        hosted?.usbPassthrough ?? FileManager.default.fileExists(atPath: dir.appendingPathComponent("hanalima-usb-passthrough").path)
+    }
     var efiURL: URL { dir.appendingPathComponent("vz-efi") }
     var identifierURL: URL { dir.appendingPathComponent("vz-identifier") }
     var serialLogURL: URL { dir.appendingPathComponent(hosted?.serialLog ?? "serialv.log") }

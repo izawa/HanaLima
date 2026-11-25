@@ -186,6 +186,7 @@ struct LimaDriverHanaLima {
             case "--no-cidata": options.cidata = false
             case "--headless": display = false
             case "--serial-log": options.serialLog = try value(arg)
+            case "--usb-passthrough": options.usbPassthrough = true
             default: throw DriverError("unknown option \(arg)")
             }
         }
