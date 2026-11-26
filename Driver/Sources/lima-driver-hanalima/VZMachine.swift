@@ -95,11 +95,12 @@ final class VZMachine: @unchecked Sendable {
         (usb as? USBPassthrough)?.release()
     }
 
-    /// The VM has stopped: no more accessories.
-    func closeUSB() {
+    /// The VM has stopped: no more accessories. Waits off the caller's actor for
+    /// AccessoryAccess to finish (up to two seconds), so the driver keeps answering meanwhile.
+    func closeUSB() async {
         guard #available(macOS 27, *), let passthrough = usb as? USBPassthrough else { return }
         usb = nil
-        passthrough.close()
+        await Task.detached { passthrough.close() }.value
     }
 
     /// Attached accessories and the last failure; nil while not receiving.

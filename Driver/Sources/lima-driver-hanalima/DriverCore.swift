@@ -494,8 +494,8 @@ actor DriverCore {
     private func guestStopped(generation: Int, error: Error?) async {
         guard let current = run, current.generation == generation else { return }
         run = nil
-        current.machine?.closeUSB()
         busy = true
+        await current.machine?.closeUSB()
         log(error.map { "guest stopped with error: \($0)" } ?? "guest stopped")
         await tearDown(current)
         busy = false
