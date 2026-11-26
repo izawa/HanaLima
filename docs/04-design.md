@@ -104,3 +104,8 @@ HanaLima は、ドキュメントに約束されていない macOS の振る舞�
 - インターフェースを開始したままプロセスが終了すると、そのサブネットはしばらく（数時間か再起動まで）`vmnet_network_create` が 1001 になる。ほかにも、socket_vmnet の起動と重なったときなどに、1001 が 1 分以上続くことがある。netd は、VM が接続している間は 2 秒おきに作成を再試行し続ける（その間に VM が送るフレームは捨てる）。失敗しても netd 自体は終了しない。
 - `vmnet_network_configuration_set_ipv4_subnet` に渡すのはゲートウェイ（.1）。ネットワークアドレス（.0）を渡すとインターフェースの開始に失敗する。
 - entitlement なしの ad-hoc 署名では `vmnet_network_create` が 1002 で失敗する。従来の bridged モードも、この署名なら root なしで起動した（未調査）。
+
+## macOS AccessoryAccess の既知の不具合（2026-11, macOS 27.2.1）
+
+- USB 機器を VM に渡したプロセスが、受け取りの登録を外す要求（`unregisterListener`）の完了を待たずに終わると、`accessoryaccessd` が SIGSEGV で落ちる（Apple に **FB25734514** として報告済み）。落ちると、ほかのプロセスの受け取りが止まり、メニューバーの「仮想マシンアクセサリ」が古い状態のままになる（`killall "Virtual Machine Accessories"` のあと `launchctl kickstart gui/<uid>/com.apple.accessoryaccess.uiagent` で戻る）。HanaLima のドライバーは完了を最長 2 秒待ってから終わる（v0.19.1、docs/19）。
+- VZ は Apple の機器と isochronous 転送を使う機器（カメラ、オーディオインターフェース）を VM に渡せない（VZErrorDomain -6）。
