@@ -109,3 +109,5 @@ HanaLima は、ドキュメントに約束されていない macOS の振る舞�
 
 - USB 機器を VM に渡したプロセスが、受け取りの登録を外す要求（`unregisterListener`）の完了を待たずに終わると、`accessoryaccessd` が SIGSEGV で落ちる（Apple に **FB25734514** として報告済み）。落ちると、ほかのプロセスの受け取りが止まり、メニューバーの「仮想マシンアクセサリ」が古い状態のままになる（`killall "Virtual Machine Accessories"` のあと `launchctl kickstart gui/<uid>/com.apple.accessoryaccess.uiagent` で戻る）。HanaLima のドライバーは完了を最長 2 秒待ってから終わる（v0.19.1、docs/19）。
 - VZ は Apple の機器と isochronous 転送を使う機器（カメラ、オーディオインターフェース）を VM に渡せない（VZErrorDomain -6）。
+- VM に渡した USB 機器をメニューで「このMac」に戻した瞬間に、VZ の VM のプロセス（`com.apple.Virtualization.VirtualMachine`）が xHCI の処理の中で SIGTRAP で落ち、VM ごと止まったことが 1 回ある（2026-11-26、v0.20.0、4 vCPU の Ubuntu）。ドライバーは VZ に何も呼んでいない。テスト用の VM で 8 回試して再現しなかった（docs/19）。
+- メニューバーの「仮想マシンアクセサリ」は、受け取りを登録した VM が 1 台も動いていないと出ない。
