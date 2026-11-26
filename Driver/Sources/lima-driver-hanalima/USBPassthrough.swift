@@ -54,6 +54,9 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         /// AccessoryAccess says it has gone while VZ still has it attached (accessoryaccessd
         /// restarted): kept until VZ lets it go.
         var gone = false
+        /// Another VM still has it (VZErrorDomain 30003, as while that VM is paused): not tried
+        /// again until it comes back as a new connection or the routes change.
+        var heldElsewhere = false
     }
 
     init(machine: VZVirtualMachine, queue: DispatchQueue, me: USBTarget, support: URL) {
@@ -224,6 +227,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             let until = Date().addingTimeInterval(Self.letGoGrace)
             for (id, entry) in entries {
                 if !entry.unsupported { entries[id]?.error = nil }
+                entries[id]?.heldElsewhere = false
                 if entry.state == .observed, !wasOurs.contains(id), isOurs(entry.identity) { entries[id]?.notBefore = until }
             }
         case .failure(let error):
@@ -286,7 +290,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             switch entry.state {
             case .attached where !ours: detach(id)
             // One that failed waits for its next connection, or new routes.
-            case .observed where ours && entry.error == nil && !entry.unsupported, .waiting where ours: attach(id)
+            case .observed where ours && entry.error == nil && !entry.unsupported, .waiting where ours && !entry.heldElsewhere: attach(id)
             case .waiting where !ours: entries[id]?.state = .observed
             default: break
             }
@@ -366,6 +370,14 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         // A stop or hibernate began meanwhile: tried again on release.
         entries[id]?.state = accepting ? .observed : .waiting
         guard accepting else { return }
+        // VZErrorDomain 30003: another VM still has the device (docs/19); it comes back here as
+        // a new connection when that VM lets it go. Waiting, not an error.
+        if (error as NSError).domain == VZErrorDomain, (error as NSError).code == 30003 {
+            entries[id]?.state = .waiting
+            entries[id]?.heldElsewhere = true
+            log("usb: \(entry.identity.ids) is still with another VM; waiting for it")
+            return
+        }
         entries[id]?.error = "\(what): \(error.localizedDescription)"
         // VZErrorDomain -6: VZ doesn't pass this kind of device through at all.
         if (error as NSError).domain == VZErrorDomain, (error as NSError).code == -6 { entries[id]?.unsupported = true }
