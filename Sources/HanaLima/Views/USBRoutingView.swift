@@ -18,7 +18,7 @@ struct USBRoutingView: View {
             Section {
                 Picker("規則の無い機器の受け取り先", selection: Binding(
                     get: { routes?.defaultRoute },
-                    set: { target in model.changeUSBRoutes { $0.defaultRoute = target } })) {
+                    set: { target in Task { await model.changeUSBRoutes { $0.defaultRoute = target } } })) {
                     Text("なし（保留）").tag(USBTarget?.none)
                     destinationOptions(current: routes?.defaultRoute)
                 }
@@ -26,6 +26,13 @@ struct USBRoutingView: View {
                     Text(blocker).font(.caption).foregroundStyle(.red)
                 } else if model.usbApplying {
                     Text("設定を反映中です。").font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(model.usbUnreachable, id: \.self) { name in
+                    Text("「\(name)」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+                ForEach(model.usbReports.compactMap { name, r in r.usbRouting?.error.map { (name, $0) } }.sorted { $0.0 < $1.0 }, id: \.0) { name, error in
+                    Text("「\(name)」: \(error)").font(.caption).foregroundStyle(.red)
                 }
             }
             .disabled(blocker != nil)
@@ -49,13 +56,14 @@ struct USBRoutingView: View {
                 Section("いまつながっていない機器の規則") {
                     ForEach(model.usbAbsentRules, id: \.match) { rule in
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(Self.label(rule.match))
-                                Text(String(localized: "受け取り先: \(model.usbName(of: rule.destination) ?? String(localized: "見つからない仮想マシン"))"))
-                                    .font(.caption).foregroundStyle(.secondary)
+                            Picker(Self.label(rule.match), selection: Binding(
+                                get: { rule.destination },
+                                set: { target in Task { await model.changeUSBRoutes { routes in
+                                    if let i = routes.rules.firstIndex(where: { $0.match == rule.match }) { routes.rules[i].destination = target }
+                                } } })) {
+                                destinationOptions(current: rule.destination)
                             }
-                            Spacer()
-                            Button("削除") { model.changeUSBRoutes { $0.rules.removeAll { $0.match == rule.match } } }
+                            Button("削除") { Task { await model.changeUSBRoutes { $0.rules.removeAll { $0.match == rule.match } } } }
                         }
                     }
                 }
@@ -69,6 +77,14 @@ struct USBRoutingView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("USB 機器")
+        .alert("使用中の機器を外しますか？", isPresented: Binding(
+            get: { model.pendingUSBRoutes != nil }, set: { if !$0 { model.pendingUSBRoutes = nil } }),
+               presenting: model.pendingUSBRoutes) { pending in
+            Button("外して変更") { Task { await model.saveUSBRoutes(pending.routes) } }
+            Button("キャンセル", role: .cancel) {}
+        } message: { pending in
+            Text("この変更で、\(pending.moving.joined(separator: "、")) が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。")
+        }
         .task {
             while !Task.isCancelled {
                 model.updateUSBRoutes()
@@ -112,21 +128,25 @@ struct USBRoutingView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(identity.name ?? identity.ids).fontWeight(.medium)
-                    Text([identity.manufacturer, identity.ids].compactMap { $0 }.joined(separator: " ")).foregroundStyle(.secondary)
+                    Text(details).foregroundStyle(.secondary)
                 }
                 Picker("受け取り先", selection: Binding(
                     get: { rule?.destination },
-                    set: { model.setUSBRoute(for: identity, to: $0, bySerial: bySerial) })) {
+                    set: { target in Task { await model.setUSBRoute(for: identity, to: target, bySerial: bySerial) } })) {
                     Text("規則の無い機器の受け取り先に従う").tag(USBTarget?.none)
                     ForEach(vms, id: \.name) { vm in Text(vm.name).tag(USBTarget?.some(vm.target)) }
                     if let destination = rule?.destination, model.usbName(of: destination) == nil {
                         Text("見つからない仮想マシン（選び直してください）").tag(USBTarget?.some(destination))
                     }
                 }
+                .disabled(identity.serialMatch == nil && identity.portMatch == nil)
+                if identity.serialMatch == nil && identity.portMatch == nil {
+                    Text("この機器は見分けられないので、規則を作れません。挿し直すと読み直します。").font(.caption).foregroundStyle(.secondary)
+                }
                 if identity.serial != nil, identity.locationID != nil {
                     Picker("見分け方", selection: Binding(
                         get: { bySerial },
-                        set: { model.setUSBRoute(for: identity, to: rule?.destination, bySerial: $0) })) {
+                        set: { bySerial in Task { await model.setUSBRoute(for: identity, to: rule?.destination, bySerial: bySerial) } })) {
                         Text("シリアル番号（…\(String(identity.serial!.suffix(4)))）").tag(true)
                         Text("挿したポート").tag(false)
                     }
@@ -137,6 +157,13 @@ struct USBRoutingView: View {
                 ForEach(row.errors, id: \.self) { Text($0).font(.caption).foregroundStyle(.red) }
             }
             .padding(.vertical, 2)
+        }
+
+        /// Maker, IDs, and the port, so two devices of one kind can be told apart.
+        private var details: String {
+            [identity.manufacturer, identity.ids,
+             identity.locationID.map { String(localized: "ポート \(String(format: "0x%08x", $0))") }]
+                .compactMap { $0 }.joined(separator: " ")
         }
 
         /// The rule's key, or for a device without one, the serial number unless it can't tell

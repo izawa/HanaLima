@@ -67,7 +67,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
                 return
             }
             log("usb: receiving accessories, \(present.count) assigned now")
-            for accessory in present { arrived(accessory) }
+            arrived(present)
         }
     }
 
@@ -122,7 +122,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     // MARK: AAUSBAccessoryListener (on AccessoryAccess's queue)
 
     func usbAccessoryDidConnect(_ usbAccessory: AAUSBAccessory) {
-        arrived(usbAccessory)
+        arrived([usbAccessory])
     }
 
     func usbAccessoryDidDisconnect(_ usbAccessory: AAUSBAccessory) {
@@ -131,6 +131,15 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             guard let entry = entries.removeValue(forKey: id) else { return }
             if entry.state == .attached { log("usb: \(entry.identity.ids) left the VM") }
             reconcile()
+            // A device enumerated again comes back within the grace: only after it, a rule that
+            // no longer matches two connected devices stops holding.
+            queue.asyncAfter(deadline: .now() + Self.letGoGrace) { [self] in
+                let all = entries.values.map(\.identity)
+                duplicates = duplicates.filter { match in
+                    all.filter { $0.serialMatch == match || $0.portMatch == match }.count > 1
+                }
+                reconcile()
+            }
         }
     }
 
@@ -150,6 +159,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     /// The routes' folder: a save replaces the file (atomically), so the file itself can't be
     /// watched.
     private func watch() {
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         let fd = open(support.path, O_EVTONLY)
         guard fd >= 0 else {
             log("usb: can't watch \(support.path) for changes to the routes")
@@ -205,15 +215,19 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
 
     // MARK: - Attaching and detaching
 
-    private func arrived(_ accessory: AAUSBAccessory) {
+    /// Records them all before deciding, so two devices one rule can't tell apart (both in the
+    /// list at registration) are both held, never one attached first.
+    private func arrived(_ accessories: [AAUSBAccessory]) {
         // Off AccessoryAccess's queue: unarchiving or calling back into it there traps (docs/19).
         queue.async { [self] in
-            let id = accessory.registryID
-            guard entries[id] == nil else { return }  // in the present list and a connect both
-            let ids = USBDeviceIdentity.ids(descriptor: [UInt8](accessory.deviceDescriptorData)) ?? (0, 0)
-            let identity = USBDeviceIdentity.read(registryID: id, vendor: ids.vendor, product: ids.product)
-            entries[id] = Entry(accessory: accessory, identity: identity)
-            log("usb: \(identity.ids) connected\(identity.readable ? "" : " (IORegistry not readable)")")
+            for accessory in accessories {
+                let id = accessory.registryID
+                guard entries[id] == nil else { continue }  // in the present list and a connect both
+                let ids = USBDeviceIdentity.ids(descriptor: [UInt8](accessory.deviceDescriptorData)) ?? (0, 0)
+                let identity = USBDeviceIdentity.read(registryID: id, vendor: ids.vendor, product: ids.product)
+                entries[id] = Entry(accessory: accessory, identity: identity)
+                log("usb: \(identity.ids) connected\(identity.readable ? "" : " (IORegistry not readable)")")
+            }
             reconcile()
         }
     }
@@ -252,6 +266,12 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         guard wait <= 0 else {
             entries[id]?.state = .waiting
             queue.asyncAfter(deadline: .now() + wait) { [self] in reconcile() }
+            return
+        }
+        // The folder's change notice may not have come yet: attach only by the routes of now.
+        reload()
+        guard let current = entries[id], isOurs(current.identity), current.notBefore.timeIntervalSinceNow <= 0 else {
+            reconcile()
             return
         }
         let device: VZUSBPassthroughDevice

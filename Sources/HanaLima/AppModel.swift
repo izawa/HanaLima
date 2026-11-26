@@ -157,6 +157,10 @@ final class AppModel {
     /// What each running `hanalima` VM's driver last said, by VM name (the USB page and the
     /// overview poll it).
     var usbReports: [String: DriverControl.Response] = [:]
+    /// Running `hanalima` VMs whose driver didn't answer the last ask.
+    var usbUnreachable: [String] = []
+    /// Routes that would take a device away from the VM using it, until the user confirms.
+    var pendingUSBRoutes: PendingUSBRoutes?
     /// No driver where launchd's `limactl` finds it (the app isn't in an Applications folder):
     /// a `hanalima` VM can't start at login.
     var loginDriverMissing = false

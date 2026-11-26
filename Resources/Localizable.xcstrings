@@ -111,32 +111,32 @@
     },
     "%@ から取り外し中": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ から取り外し中"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Detaching from %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ から取り外し中"
           }
         }
       }
     },
     "%@ で使用中": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ で使用中"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "In use by %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ で使用中"
           }
         }
       }
@@ -159,16 +159,16 @@
     },
     "%@ に接続中": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ に接続中"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Attaching to %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に接続中"
           }
         }
       }
@@ -335,16 +335,16 @@
     },
     "%@ への接続を待っています": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ への接続を待っています"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Waiting to attach to %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ への接続を待っています"
           }
         }
       }
@@ -399,32 +399,32 @@
     },
     "%@ シリアル番号 …%@": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ シリアル番号 …%2$@"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ serial number …%2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ シリアル番号 …%2$@"
           }
         }
       }
     },
     "%@ ポート %@": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ ポート %2$@"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ port %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ ポート %2$@"
           }
         }
       }
@@ -1615,16 +1615,16 @@
     },
     "HanaLima に割り当てられた機器": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima に割り当てられた機器"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Devices Assigned to HanaLima"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima に割り当てられた機器"
           }
         }
       }
@@ -1679,16 +1679,16 @@
     },
     "HanaLima のドライバーの仮想マシンを起動し、メニューバーの「仮想マシンアクセサリ」で機器を「HanaLima で使用」にすると、ここに出ます。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HanaLima のドライバーの仮想マシンを起動し、メニューバーの「仮想マシンアクセサリ」で機器を「HanaLima で使用」にすると、ここに出ます。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Start a VM on HanaLima’s driver and choose “Use with HanaLima” for a device in the menu bar’s Virtual Machine Accessories; the device then appears here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HanaLima のドライバーの仮想マシンを起動し、メニューバーの「仮想マシンアクセサリ」で機器を「HanaLima で使用」にすると、ここに出ます。"
           }
         }
       }
@@ -3333,16 +3333,16 @@
     },
     "USB 機器の振り分けを保存できませんでした": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "USB 機器の振り分けを保存できませんでした"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Couldn’t Save the USB Device Routing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB 機器の振り分けを保存できませんでした"
           }
         }
       }
@@ -4402,18 +4402,34 @@
         }
       }
     },
-    "「%@」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。": {
+    "「%@」: %@": {
       "localizations": {
         "ja": {
           "stringUnit": {
-            "state": "translated",
-            "value": "「%@」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。"
+            "state": "new",
+            "value": "「%1$@」: %2$@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
+            "value": "“%1$@”: %2$@"
+          }
+        }
+      }
+    },
+    "「%@」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
             "value": "“%@” is still running as started by an earlier version of HanaLima. The routing can’t be changed until that VM stops."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。"
           }
         }
       }
@@ -4590,6 +4606,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」のディスクを移動"
+          }
+        }
+      }
+    },
+    "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The driver of “%@” doesn’t answer. Devices of this VM may be missing from the list."
           }
         }
       }
@@ -5124,16 +5156,16 @@
     },
     "いまつながっていない機器の規則": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いまつながっていない機器の規則"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Rules for Devices Not Connected Now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いまつながっていない機器の規則"
           }
         }
       }
@@ -5700,6 +5732,22 @@
         }
       }
     },
+    "この変更で、%@ が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この変更で、%@ が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This change detaches %@ from the VM. If it is storage, unmount it in the VM first."
+          }
+        }
+      }
+    },
     "この操作の対象になる仮想マシンはありません。": {
       "localizations": {
         "en": {
@@ -5728,6 +5776,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "この機器は見分けられないので、規則を作れません。挿し直すと読み直します。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この機器は見分けられないので、規則を作れません。挿し直すと読み直します。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device can’t be told apart, so no rule can be made for it. Plugging it in again reads it again."
           }
         }
       }
@@ -6218,16 +6282,16 @@
     },
     "なし（保留）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "なし（保留）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "None (Hold)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "なし（保留）"
           }
         }
       }
@@ -7723,16 +7787,16 @@
     },
     "シリアル番号（…%@）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリアル番号（…%@）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Serial Number (…%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリアル番号（…%@）"
           }
         }
       }
@@ -9996,6 +10060,22 @@
         }
       }
     },
+    "ポート %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポート %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Port %@"
+          }
+        }
+      }
+    },
     "ポートフォワードを追加": {
       "localizations": {
         "en": {
@@ -10062,16 +10142,16 @@
     },
     "メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器が、ここに出ます。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器が、ここに出ます。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Devices you set to “Use with HanaLima” in the menu bar’s Virtual Machine Accessories appear here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器が、ここに出ます。"
           }
         }
       }
@@ -11873,6 +11953,22 @@
         }
       }
     },
+    "使用中の機器を外しますか？": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中の機器を外しますか？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detach Devices in Use?"
+          }
+        }
+      }
+    },
     "使用量": {
       "localizations": {
         "en": {
@@ -12211,80 +12307,80 @@
     },
     "保留中（%@ の起動待ち）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留中（%@ の起動待ち）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Held (waiting for %@ to start)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中（%@ の起動待ち）"
           }
         }
       }
     },
     "保留中（受け取り先の仮想マシンが見つかりません）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留中（受け取り先の仮想マシンが見つかりません）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Held (the receiving VM can’t be found)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中（受け取り先の仮想マシンが見つかりません）"
           }
         }
       }
     },
     "保留中（同じ規則に当たる機器がほかにもあります。見分け方を「挿したポート」にしてください）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留中（同じ規則に当たる機器がほかにもあります。見分け方を「挿したポート」にしてください）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Held (another device matches the same rule; tell them apart by “Port Plugged Into”)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中（同じ規則に当たる機器がほかにもあります。見分け方を「挿したポート」にしてください）"
           }
         }
       }
     },
     "保留中（機器の識別情報を読めません）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留中（機器の識別情報を読めません）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Held (the device’s identity can’t be read)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中（機器の識別情報を読めません）"
           }
         }
       }
     },
     "保留中（規則の無い機器の受け取り先が「なし」）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留中（規則の無い機器の受け取り先が「なし」）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Held (devices without a rule go to “None”)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中（規則の無い機器の受け取り先が「なし」）"
           }
         }
       }
@@ -13187,16 +13283,16 @@
     },
     "前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Started by an earlier version of HanaLima. From its next start it receives devices by the routing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。"
           }
         }
       }
@@ -13364,16 +13460,16 @@
     },
     "受け取っている機器はありません。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受け取っている機器はありません。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "No devices received."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取っている機器はありません。"
           }
         }
       }
@@ -13397,32 +13493,33 @@
     },
     "受け取り先": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受け取り先"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Receiving VM"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取り先"
+          }
         }
       }
     },
     "受け取り先: %@": {
+      "extractionState": "stale",
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受け取り先: %@"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Receiving VM: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取り先: %@"
           }
         }
       }
@@ -13463,16 +13560,16 @@
     },
     "受け取れるのは、HanaLima のドライバーの仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。受け取り先が止まっている機器は、ほかの仮想マシンには回さずに保留します。保留中の機器も Mac からは使えません。Mac で使うときは、メニューバーで「“このMac” で使用」にしてください。使用中のストレージの受け取り先を変えるときは、先に元の仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受け取れるのは、HanaLima のドライバーの仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。受け取り先が止まっている機器は、ほかの仮想マシンには回さずに保留します。保留中の機器も Mac からは使えません。Mac で使うときは、メニューバーで「“このMac” で使用」にしてください。使用中のストレージの受け取り先を変えるときは、先に元の仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "VMs on HanaLima’s driver can receive the devices you set to “Use with HanaLima” in the menu bar’s Virtual Machine Accessories while one of them runs (for VMs started from Terminal or at login, it shows as an unknown application). A device whose receiving VM is stopped is held, not given to another VM, and the Mac can’t use it meanwhile; to use it on the Mac, choose “Use with This Mac” in the menu bar. Before changing the receiving VM of storage in use, unmount it in the VM that has it. The first time, macOS asks for access to removable volumes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取れるのは、HanaLima のドライバーの仮想マシンが動いている間に、メニューバーの「仮想マシンアクセサリ」で「HanaLima で使用」にした機器です（ターミナルやログイン時の自動起動で起動した仮想マシンでは「不明なアプリケーション」と出ます）。受け取り先が止まっている機器は、ほかの仮想マシンには回さずに保留します。保留中の機器も Mac からは使えません。Mac で使うときは、メニューバーで「“このMac” で使用」にしてください。使用中のストレージの受け取り先を変えるときは、先に元の仮想マシンの中でアンマウントしてください。最初の 1 回は、リムーバブルボリュームへのアクセスの許可を求められます。"
           }
         }
       }
@@ -13735,16 +13832,16 @@
     },
     "周辺機器": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "周辺機器"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Devices"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周辺機器"
           }
         }
       }
@@ -13987,6 +14084,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "外しています（隔離）。仮想マシンから届くのは、下に追加した NIC の先だけです。SSH は vsock を通ります（systemd 256 以降のゲストはそのまま。Alpine や古い systemd のゲストは、usernet を付けて一度起動すると HanaLima が socat を入れて同じ経路を作ります）。"
+          }
+        }
+      }
+    },
+    "外して変更": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外して変更"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detach and Change"
           }
         }
       }
@@ -14779,48 +14892,48 @@
     },
     "振り分けの設定を読めません（%@）。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "振り分けの設定を読めません（%@）。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The routing settings can’t be read (%@)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "振り分けの設定を読めません（%@）。"
           }
         }
       }
     },
     "振り分けを編集…": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "振り分けを編集…"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Edit Routing…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "振り分けを編集…"
           }
         }
       }
     },
     "挿したポート": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "挿したポート"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Port Plugged Into"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "挿したポート"
           }
         }
       }
@@ -15844,16 +15957,16 @@
     },
     "状態を確認できません": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "状態を確認できません"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Status unknown"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状態を確認できません"
           }
         }
       }
@@ -16979,33 +17092,34 @@
       }
     },
     "見つからない仮想マシン": {
+      "extractionState": "stale",
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "見つからない仮想マシン"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "VM not found"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見つからない仮想マシン"
           }
         }
       }
     },
     "見つからない仮想マシン（選び直してください）": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "見つからない仮想マシン（選び直してください）"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "VM not found (choose again)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見つからない仮想マシン（選び直してください）"
           }
         }
       }
@@ -17076,64 +17190,64 @@
     },
     "見分け方": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "見分け方"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Tell Apart By"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見分け方"
           }
         }
       }
     },
     "規則の無い機器の受け取り先": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "規則の無い機器の受け取り先"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Devices without a rule go to"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "規則の無い機器の受け取り先"
           }
         }
       }
     },
     "規則の無い機器の受け取り先に従う": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "規則の無い機器の受け取り先に従う"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Same as devices without a rule"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "規則の無い機器の受け取り先に従う"
           }
         }
       }
     },
     "規則の無い機器は、この仮想マシンが受け取ります。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "規則の無い機器は、この仮想マシンが受け取ります。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This VM receives devices without a rule."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "規則の無い機器は、この仮想マシンが受け取ります。"
           }
         }
       }
@@ -17284,16 +17398,16 @@
     },
     "設定を反映中です。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定を反映中です。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Applying the settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を反映中です。"
           }
         }
       }

@@ -44,11 +44,14 @@ extension AppModel {
                     (instance.name, try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 2))
                 }
             }
-            var answers: [String: DriverControl.Response] = [:]
-            for await (name, response) in group { if let response { answers[name] = response } }
+            var answers: [String: DriverControl.Response?] = [:]
+            for await (name, response) in group { answers[name] = response }
             return answers
         }
-        if answers != usbReports { usbReports = answers }
+        let reports = answers.compactMapValues { $0 }
+        if reports != usbReports { usbReports = reports }
+        let unreachable = answers.filter { $0.value == nil }.keys.sorted()
+        if unreachable != usbUnreachable { usbUnreachable = unreachable }
     }
 
     /// A running VM whose driver is v0.19's: it read the single USB target at its start and
@@ -68,15 +71,27 @@ extension AppModel {
         return nil
     }
 
-    /// Saves the routes with `change` applied.
-    func changeUSBRoutes(_ change: (inout USBRoutes) -> Void) {
+    /// Saves the routes with `change` applied; first asks if that takes a device away from
+    /// the VM using it (storage there should be unmounted first).
+    func changeUSBRoutes(_ change: (inout USBRoutes) -> Void) async {
+        guard case .success(var routes) = usbRoutes else { return }
+        change(&routes)
+        guard routes != (try? usbRoutes.get()) else { return }
+        let moving = usbDevicesTakenAway(by: routes)
+        if moving.isEmpty {
+            await saveUSBRoutes(routes)
+        } else {
+            pendingUSBRoutes = PendingUSBRoutes(routes: routes, moving: moving)
+        }
+    }
+
+    /// Saves routes the user has confirmed (or that move nothing).
+    func saveUSBRoutes(_ routes: USBRoutes) async {
         let failed = String(localized: "USB 機器の振り分けを保存できませんでした")
-        if let blocker = usbRoutesBlocker {
+        if let blocker = await usbLegacyBlocker() ?? usbRoutesBlocker {
             alert = AlertMessage(title: failed, message: blocker)
             return
         }
-        guard case .success(var routes) = usbRoutes else { return }
-        change(&routes)
         do {
             usbRoutes = .success(try routes.save(support: Self.usbSupport))
         } catch {
@@ -84,12 +99,47 @@ extension AppModel {
         }
     }
 
+    /// v0.19's target, asked directly (not the last poll: it may not have answered yet, or
+    /// may run under another Lima home): while its driver runs it receives every accessory.
+    private func usbLegacyBlocker() async -> String? {
+        guard let target = USBTarget.load(from: Self.usbSupport.appending(path: USBTarget.fileName)) else { return nil }
+        let dir = URL(fileURLWithPath: target.instanceDir)
+        let response = await Task.detached {
+            try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 1)
+        }.value
+        guard response?.usbTarget == true, response?.usbRouting == nil else { return nil }
+        let name = usbName(of: target) ?? dir.lastPathComponent
+        return String(localized: "「\(name)」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。")
+    }
+
+    /// "device on VM" for each attached device `routes` would send elsewhere.
+    private func usbDevicesTakenAway(by routes: USBRoutes) -> [String] {
+        let devices = usbDevices
+        let all = devices.map(\.device.identity)
+        return devices.compactMap { row in
+            guard let vm = row.holder, row.device.state == .attached else { return nil }
+            if case .send(let target, _) = routes.decision(for: row.device.identity, among: all), usbName(of: target) == vm { return nil }
+            return String(localized: "\(row.device.identity.name ?? row.device.identity.ids)（\(vm)）")
+        }
+    }
+
     /// Sends `device` to `destination` (nil: by the default route) by the rule `bySerial`
-    /// picks, replacing the device's rules.
-    func setUSBRoute(for device: USBDeviceIdentity, to destination: USBTarget?, bySerial: Bool) {
-        changeUSBRoutes { routes in
+    /// picks, replacing the device's rules. Turning a serial rule that matches several
+    /// connected devices into port rules turns it for all of them at once, to the same VM, so
+    /// none falls to the default route before the user chooses.
+    func setUSBRoute(for device: USBDeviceIdentity, to destination: USBTarget?, bySerial: Bool) async {
+        let twins = bySerial ? [] : usbDevices.map(\.device.identity).filter { $0 != device && $0.serialMatch != nil && $0.serialMatch == device.serialMatch }
+        await changeUSBRoutes { routes in
+            let shared = device.serialMatch.flatMap { match in routes.rules.first { $0.match == match } }
             let mine = [device.serialMatch, device.portMatch].compactMap { $0 }
             routes.rules.removeAll { mine.contains($0.match) }
+            if let shared {
+                for twin in twins {
+                    guard let port = twin.portMatch else { continue }
+                    routes.rules.removeAll { $0.match == port }
+                    routes.rules.append(.init(match: port, destination: shared.destination))
+                }
+            }
             guard let destination, let match = bySerial ? device.serialMatch : device.portMatch else { return }
             routes.rules.append(.init(match: match, destination: destination))
         }
@@ -112,7 +162,7 @@ extension AppModel {
         return rows.values.sorted { ($0.device.identity.name ?? "", $0.id) < ($1.device.identity.name ?? "", $1.id) }
     }
 
-    /// Rules for devices no driver reports now.
+    /// Rules for devices no driver reports now (or no driver that answered).
     var usbAbsentRules: [USBRoutes.Rule] {
         guard case .success(let routes) = usbRoutes else { return [] }
         let present = usbDevices.flatMap { [$0.device.identity.serialMatch, $0.device.identity.portMatch] }
@@ -133,6 +183,12 @@ extension AppModel {
         usbReports[instance.name] = response
         return response
     }
+}
+
+/// Routes waiting for the user to confirm taking devices away from the VMs using them.
+struct PendingUSBRoutes {
+    var routes: USBRoutes
+    var moving: [String]
 }
 
 /// One accessory on the USB page.
