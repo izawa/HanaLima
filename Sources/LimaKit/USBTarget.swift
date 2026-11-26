@@ -7,7 +7,7 @@ import Security
 /// registers for accessories. Kept outside lima.yaml so a `limactl clone` copy doesn't inherit
 /// it; the VM is named by its folder and its `vz-identifier`, which a clone or a VM made again
 /// under the same name doesn't share. Read by the driver at each start, written by the app.
-public struct USBTarget: Codable, Equatable, Sendable {
+public struct USBTarget: Codable, Hashable, Sendable {
     public static let fileName = "usb-target.json"
 
     /// The instance directory, symlinks resolved.

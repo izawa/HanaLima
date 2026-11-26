@@ -49,6 +49,8 @@ struct ContentView: View {
                         StorageView()
                     case .networks:
                         NetworkListView()
+                    case .usb:
+                        USBRoutingView()
                     case nil:
                         ContentUnavailableView {
                             Label("仮想マシンがありません", systemImage: "server.rack")

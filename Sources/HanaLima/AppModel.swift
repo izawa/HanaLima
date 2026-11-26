@@ -87,6 +87,8 @@ enum SidebarItem: Hashable {
     case disks
     case storage
     case networks
+    /// The USB routes (docs/19).
+    case usb
 
     var instanceName: String? {
         if case .instance(let name) = self { name } else { nil }
@@ -147,10 +149,14 @@ final class AppModel {
     var pauseEpochs: [String: Int] = [:]
     /// Stopped VMs with a hibernated state (docs/11, stage 2), from the instance folders.
     var hibernatedInstances: Set<String> = []
-    /// The VM that receives USB accessories (docs/19), from `usb-target.json`.
-    var usbTargetName: String?
-    /// The USB target's driver says it receives (also while it starts, or outside this list).
-    var usbTargetActive = false
+    /// The USB routes (docs/19), from `usb-routes.json` (or v0.19's `usb-target.json`).
+    var usbRoutes: Result<USBRoutes, USBRoutes.LoadError> = .success(USBRoutes())
+    /// The routes' names for the `hanalima` VMs that have started once (a VM is named by its
+    /// folder and `vz-identifier`), by VM name.
+    var usbTargets: [String: USBTarget] = [:]
+    /// What each running `hanalima` VM's driver last said, by VM name (the USB page and the
+    /// overview poll it).
+    var usbReports: [String: DriverControl.Response] = [:]
     /// No driver where launchd's `limactl` finds it (the app isn't in an Applications folder):
     /// a `hanalima` VM can't start at login.
     var loginDriverMissing = false
@@ -439,7 +445,7 @@ final class AppModel {
             updateDiskPlacements()
             updateMetadata(list)
             updateGroupLayout()
-            updateUSBTarget()
+            updateUSBRoutes()
             finishInterruptedRenames()
             invalidateMapChecks()
             reattachHostedBoots()

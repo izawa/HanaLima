@@ -69,7 +69,7 @@ public enum DriverControl {
         public init(op: Op) { self.op = op }
     }
 
-    public struct Response: Codable, Sendable {
+    public struct Response: Codable, Equatable, Sendable {
         public var ok: Bool
         public var error: String?
         /// VZ's state name: "running", "stopped", "paused"…, or "none" before Start.
@@ -79,24 +79,21 @@ public enum DriverControl {
         /// Whether the window is on screen now.
         public var screenShown: Bool?
         public var png: Data?
-        /// The VM is the USB target and receives USB accessories (docs/19).
+        /// A v0.19 driver: the VM is the single USB target and receives every USB accessory.
+        /// Newer drivers answer `usbRouting` instead, so the app can tell one still running.
         public var usbTarget: Bool?
-        /// USB accessories attached now, and the last attach failure, while receiving.
-        public var usbAttached: Int?
-        public var usbError: String?
+        /// The driver receives USB accessories and sends them by `USBRoutes` (docs/19).
+        public var usbRouting: USBRoutingStatus?
 
         public init(ok: Bool, error: String? = nil, state: String? = nil, display: Bool? = nil,
-                    screenShown: Bool? = nil, png: Data? = nil,
-                    usbTarget: Bool? = nil, usbAttached: Int? = nil, usbError: String? = nil) {
+                    screenShown: Bool? = nil, png: Data? = nil, usbRouting: USBRoutingStatus? = nil) {
             self.ok = ok
             self.error = error
             self.state = state
             self.display = display
             self.screenShown = screenShown
             self.png = png
-            self.usbTarget = usbTarget
-            self.usbAttached = usbAttached
-            self.usbError = usbError
+            self.usbRouting = usbRouting
         }
 
         public static func failure(_ message: String) -> Response { Response(ok: false, error: message) }
@@ -171,5 +168,59 @@ public enum DriverControl {
             received.append(contentsOf: buffer[0..<n])
             if buffer[n - 1] == 10 { return received }
         }
+    }
+}
+
+/// What a driver says about the USB accessories it is told of (docs/19, routing): every
+/// accessory assigned to HanaLima reaches every driver, attached or not.
+public struct USBRoutingStatus: Codable, Equatable, Sendable {
+    /// This VM, as routes name it.
+    public var me: USBTarget?
+    /// The revision of the routes the driver works by; nil while it has none it can read.
+    public var revision: String?
+    /// Why the routes can't be read (the driver then changes nothing), or why receiving failed.
+    public var error: String?
+    public var devices: [Device]
+
+    public init(me: USBTarget?, revision: String?, error: String?, devices: [Device]) {
+        self.me = me
+        self.revision = revision
+        self.error = error
+        self.devices = devices
+    }
+
+    public struct Device: Codable, Equatable, Sendable {
+        /// The accessory's IORegistry ID, hex: this connection only (it changes when the device
+        /// is enumerated again).
+        public var registryID: String
+        public var identity: USBDeviceIdentity
+        /// Where the routes send it, and by which rule; or why it is held.
+        public var destination: USBTarget?
+        public var rule: USBRouteDecision.Rule?
+        public var hold: USBRouteDecision.Hold?
+        public var state: State
+        public var error: String?
+
+        public init(registryID: String, identity: USBDeviceIdentity, destination: USBTarget?,
+                    rule: USBRouteDecision.Rule?, hold: USBRouteDecision.Hold?, state: State, error: String?) {
+            self.registryID = registryID
+            self.identity = identity
+            self.destination = destination
+            self.rule = rule
+            self.hold = hold
+            self.state = state
+            self.error = error
+        }
+    }
+
+    public enum State: String, Codable, Sendable {
+        /// Known, not attached to this VM.
+        case observed
+        /// Ours, waiting: the VM can't take it now (paused, stopping), or another VM may still
+        /// be letting it go.
+        case waiting
+        case attaching
+        case attached
+        case detaching
     }
 }

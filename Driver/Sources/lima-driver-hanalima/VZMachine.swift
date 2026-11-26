@@ -1,5 +1,6 @@
 import Foundation
 import Virtualization
+import LimaKit
 
 /// A Lima instance's VM on Virtualization.framework, driven from its own serial queue (there is
 /// no main run loop in the driver). Mirrors what Lima's vz driver attaches: EFI with the
@@ -76,10 +77,11 @@ final class VZMachine: @unchecked Sendable {
 
     /// These keep `usb` to DriverCore's actor: call them from there only.
 
-    /// Starts receiving the USB accessories assigned to this driver. Call once the VM runs.
-    func openUSB() {
+    /// Starts receiving the USB accessories assigned to this driver, attaching those the routes
+    /// in `support` send to `me`. Call once the VM runs.
+    func openUSB(me: USBTarget, support: URL) {
         guard #available(macOS 27, *), usb == nil, !queue.sync(execute: { machine.usbControllers.isEmpty }) else { return }
-        usb = USBPassthrough(machine: machine, queue: queue)
+        usb = USBPassthrough(machine: machine, queue: queue, me: me, support: support)
     }
 
     /// No new accessories while a stop or a hibernate runs; `releaseUSB()` if it fails.
@@ -103,8 +105,8 @@ final class VZMachine: @unchecked Sendable {
         await Task.detached { passthrough.close() }.value
     }
 
-    /// Attached accessories and the last failure; nil while not receiving.
-    var usbStatus: (attached: Int, lastError: String?)? {
+    /// What the driver knows of the accessories; nil while not receiving.
+    var usbStatus: USBRoutingStatus? {
         guard #available(macOS 27, *), let passthrough = usb as? USBPassthrough else { return nil }
         return passthrough.status
     }

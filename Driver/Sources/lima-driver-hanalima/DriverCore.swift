@@ -49,8 +49,6 @@ actor DriverCore {
         var hibernating = false
         /// The VM has an xHCI controller (USB passthrough, docs/19); recorded with a saved state.
         var xhci = false
-        /// This VM is the USB target and receives the assigned USB accessories (docs/19).
-        var usbTarget = false
     }
 
     private var run: Run?
@@ -245,10 +243,9 @@ actor DriverCore {
             log("VM running")
             // The choice is read only now, so one changed while this VM was getting ready counts;
             // not if a stop began meanwhile (it found nothing to hold).
-            if current.xhci, run?.generation == gen, run?.stopping == false, Self.isUSBTarget(spec) {
-                run?.usbTarget = true
-                vm.openUSB()
-                log("usb: this VM is the USB target")
+            if current.xhci, run?.generation == gen, run?.stopping == false, Self.claimsUSB,
+               let me = USBTarget(instanceDir: spec.dir) {
+                vm.openUSB(me: me, support: NetworkPaths.supportDirectory)
             }
             if let box = vm.displayMachine {
                 // Like Lima's vz: the window opens with the VM. It can be hidden and reopened.
@@ -535,7 +532,7 @@ actor DriverCore {
             let usb = run?.machine?.usbStatus
             return DriverControl.Response(ok: true, state: run?.machine?.stateName ?? "none",
                                           display: spec?.display ?? false, screenShown: shown,
-                                          usbTarget: run?.usbTarget, usbAttached: usb?.attached, usbError: usb?.lastError)
+                                          usbRouting: usb)
         case .openScreen:
             guard let window = run?.window else {
                 return .failure(spec?.display == true ? "the VM is not running" : "the VM has no display (video.display is none)")
@@ -766,18 +763,17 @@ actor DriverCore {
         if #available(macOS 27, *) { true } else { false }
     }
 
-    /// The VM is the one the user chose for USB accessories, and this driver may claim them
-    /// (signed with the entitlement and the driver's provisioning profile; not an ad hoc build).
-    private static func isUSBTarget(_ spec: InstanceSpec) -> Bool {
-        guard let target = USBTarget.load(from: NetworkPaths.supportDirectory.appending(path: USBTarget.fileName)),
-              target.matches(instanceDir: spec.dir) else { return false }
+    /// This driver may claim USB accessories: signed with the entitlement and the driver's
+    /// provisioning profile (not an ad hoc build). Every VM of such a driver receives them, and
+    /// the routes decide which it attaches (docs/19).
+    private static let claimsUSB: Bool = {
         guard let executable = Bundle.main.executableURL?.resolvingSymlinksInPath(),
               USBTarget.isEntitled(executable: executable) else {
-            log("usb: this VM is the USB target, but this driver isn't signed to claim USB accessories")
+            log("usb: this driver isn't signed to claim USB accessories")
             return false
         }
         return true
-    }
+    }()
 
     /// The hibernated state Start should restore, nil to boot. Throws if there is one that
     /// doesn't match the VM any more: booting would throw the guest's RAM away silently, and

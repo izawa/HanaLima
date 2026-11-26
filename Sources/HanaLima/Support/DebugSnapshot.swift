@@ -31,6 +31,7 @@ enum DebugSnapshot {
         case "disks": return .disks
         case "storage": return .storage
         case "networks": return .networks
+        case "usb": return .usb
         case let g where g.hasPrefix("group:"): return .group(String(g.dropFirst("group:".count)))
         default: return .instance(s)
         }

@@ -54,6 +54,7 @@ struct SidebarOutline: NSViewRepresentable {
         }
         keys += model.ungroupedNames.map { "vm:\($0)" }
         keys += ["section:storage", "disks", "storage", "section:network", "networks"]
+        if AppModel.offersUSBPassthrough { keys += ["section:devices", "usb"] }
         return keys
     }
 
@@ -117,16 +118,22 @@ struct SidebarOutline: NSViewRepresentable {
         private var vmSection: SidebarNode { node(.section, "section:vm", String(localized: "仮想マシン")) }
         private var storageSection: SidebarNode { node(.section, "section:storage", String(localized: "ストレージ")) }
         private var networkSection: SidebarNode { node(.section, "section:network", String(localized: "ネットワーク")) }
+        private var deviceSection: SidebarNode { node(.section, "section:devices", String(localized: "周辺機器")) }
+        private var sections: [SidebarNode] {
+            [vmSection, storageSection, networkSection] + (AppModel.offersUSBPassthrough ? [deviceSection] : [])
+        }
         func groupNode(_ name: String) -> SidebarNode { node(.group, "group:\(name)", name) }
         func vmNode(_ name: String) -> SidebarNode { node(.vm, "vm:\(name)", name) }
 
         func children(of item: Any?) -> [SidebarNode] {
-            guard let n = item as? SidebarNode else { return [vmSection, storageSection, networkSection] }
+            guard let n = item as? SidebarNode else { return sections }
             switch n.kind {
             case .section where n === vmSection:
                 return model.sidebarGroups.map { groupNode($0.name) } + model.ungroupedNames.map { vmNode($0) }
             case .section where n === storageSection:
                 return [node(.disks, "disks", ""), node(.storage, "storage", "")]
+            case .section where n === deviceSection:
+                return [node(.usb, "usb", "")]
             case .section:
                 return [node(.networks, "networks", "")]
             case .group:
@@ -147,7 +154,7 @@ struct SidebarOutline: NSViewRepresentable {
                 let keep = Set(structure.map { $0.hasPrefix("group:") ? String($0.dropLast()) : $0 })
                 cells = cells.filter { keep.contains($0.key) }
                 outline.reloadData()
-                for n in [vmSection, storageSection, networkSection] { outline.expandItem(n) }
+                for n in sections { outline.expandItem(n) }
                 for g in model.sidebarGroups {
                     if g.expanded { outline.expandItem(groupNode(g.name)) } else { outline.collapseItem(groupNode(g.name)) }
                 }
@@ -183,6 +190,7 @@ struct SidebarOutline: NSViewRepresentable {
             case .disks: nodes["disks"]
             case .storage: nodes["storage"]
             case .networks: nodes["networks"]
+            case .usb: nodes["usb"]
             }
         }
 
@@ -228,6 +236,8 @@ struct SidebarOutline: NSViewRepresentable {
             case .networks:
                 cell = hosted(CountRow(title: "仮想ネットワーク", systemImage: "point.3.connected.trianglepath.dotted",
                                        count: { $0.virtualNetworks.count }))
+            case .usb:
+                cell = hosted(Label("USB 機器", systemImage: "cable.connector").frame(maxWidth: .infinity, alignment: .leading))
             }
             cells[n.key] = cell
             return cell
@@ -300,6 +310,7 @@ struct SidebarOutline: NSViewRepresentable {
             case .disks: .disks
             case .storage: .storage
             case .networks: .networks
+            case .usb: .usb
             default: nil
             }
             if model.selection != item { model.selection = item }
@@ -426,7 +437,7 @@ struct SidebarOutline: NSViewRepresentable {
 final class SidebarOutlineView: NSOutlineView {}
 
 final class SidebarNode: NSObject {
-    enum Kind { case section, group, vm, disks, storage, networks }
+    enum Kind { case section, group, vm, disks, storage, networks, usb }
     let kind: Kind
     let key: String
     let name: String

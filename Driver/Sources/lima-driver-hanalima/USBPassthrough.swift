@@ -1,51 +1,100 @@
 import AccessoryAccess
 import Foundation
+import LimaKit
 import Virtualization
 
 /// The USB accessories the user assigns to HanaLima's driver in macOS's "Virtual Machine
-/// Accessories" menu, attached to the VM's xHCI controller (docs/19). Only the USB target VM's
-/// driver makes one (USBTarget), once the VM runs. A stop or a hibernate holds it (no new
-/// attaches, what is attached stays recorded) and lets it go if it fails; the VM's end closes
-/// it. An accessory that arrives while the VM can't take it (paused, held) waits. All state
-/// lives on the VM's queue.
+/// Accessories" menu (docs/19). Every driver of a running VM is told of every such accessory;
+/// it attaches to its VM's xHCI controller only those the routes (`usb-routes.json`) send to
+/// this VM, and detaches one the routes send elsewhere, which then reaches the other VM's
+/// driver as a new connection. The routes are read at the start and whenever their folder
+/// changes. A stop, a hibernate or a pause holds it (nothing attached or detached; what is
+/// attached stays recorded) and a release goes on by the routes of then; the VM's end closes
+/// it. All state lives on the VM's queue.
 @available(macOS 27, *)
 final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.Delegate, @unchecked Sendable {
+    /// A device that the routes newly send here while it is connected may still be attached to
+    /// the VM it went to before: wait this long for that VM to let it go (it then comes back
+    /// as a new connection) before attaching it (docs/19, moving between VMs).
+    static let letGoGrace: TimeInterval = 2
+
     private let machine: VZVirtualMachine
     private let queue: DispatchQueue
+    private let me: USBTarget
+    private let support: URL
     private var accepting = true
-    /// By the accessory's IORegistry ID.
-    private var attached: [UInt64: VZUSBPassthroughDevice] = [:]
-    /// Attaches in flight, each with its own token: a disconnect drops the token, so the late
-    /// completion of a device that has gone changes nothing.
-    private var attaching: [UInt64: UUID] = [:]
-    private var waiting: [UInt64: AAUSBAccessory] = [:]
-    private var lastError: String?
+    /// Nil while there are none that can be read: nothing is attached or detached then.
+    private var routes: USBRoutes?
+    private var routesError: String?
+    private var receiveError: String?
+    /// Rules found to match two connected devices this session: those devices stay held even
+    /// while one of them is away being enumerated again (or the other would be attached in
+    /// the gap). Forgotten when the routes change.
+    private var duplicates = Set<USBRoutes.Match>()
+    /// By the accessory's IORegistry ID (one connection).
+    private var entries: [UInt64: Entry] = [:]
+    private var watcher: DispatchSourceFileSystemObject?
 
-    init(machine: VZVirtualMachine, queue: DispatchQueue) {
+    private struct Entry {
+        var accessory: AAUSBAccessory
+        var identity: USBDeviceIdentity
+        var state: USBRoutingStatus.State = .observed
+        var device: VZUSBPassthroughDevice?
+        /// The attach or detach in flight: a disconnect drops the entry, so a late completion
+        /// for a device that has gone changes nothing.
+        var token: UUID?
+        /// Not attached before this (`letGoGrace`).
+        var notBefore = Date.distantPast
+        var error: String?
+    }
+
+    init(machine: VZVirtualMachine, queue: DispatchQueue, me: USBTarget, support: URL) {
         self.machine = machine
         self.queue = queue
+        self.me = me
+        self.support = support
         super.init()
-        queue.sync { machine.usbControllers.first?.delegate = self }
+        queue.sync {
+            machine.usbControllers.first?.delegate = self
+            watch()
+            reload()
+        }
         // No criteria: every assigned accessory (criteria are mostly ignored anyway, FB24018643).
         AAUSBAccessoryManager.shared.registerListener(self, matchingCriteria: []) { [self] present, error in
             if let error {
                 log("usb: receiving accessories failed: \(error)")
-                queue.async { self.lastError = error.localizedDescription }
+                queue.async { self.receiveError = error.localizedDescription }
                 return
             }
             log("usb: receiving accessories, \(present.count) assigned now")
-            for accessory in present { offer(accessory) }
+            for accessory in present { arrived(accessory) }
         }
     }
 
-    var status: (attached: Int, lastError: String?) {
-        queue.sync { (attached.count, lastError) }
+    var status: USBRoutingStatus {
+        queue.sync {
+            let all = entries.values.map(\.identity)
+            let devices = entries.sorted { $0.key < $1.key }.map { id, entry in
+                var destination: USBTarget?, rule: USBRouteDecision.Rule?, hold: USBRouteDecision.Hold?
+                switch decide(entry.identity, among: all) {
+                case .send(let target, let by): (destination, rule) = (target, by)
+                case .hold(let why): hold = why
+                case nil: break
+                }
+                return USBRoutingStatus.Device(registryID: String(id, radix: 16), identity: entry.identity,
+                                               destination: destination, rule: rule, hold: hold,
+                                               state: entry.state, error: entry.error)
+            }
+            return USBRoutingStatus(me: me, revision: routes?.revision, error: routesError ?? receiveError, devices: devices)
+        }
     }
 
     func close() {
         queue.sync {
             accepting = false
-            waiting.removeAll()
+            entries.removeAll()
+            watcher?.cancel()
+            watcher = nil
             machine.usbControllers.first?.delegate = nil
         }
         // Wait for AccessoryAccess to finish before the process may end: a driver that exited
@@ -56,96 +105,209 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         if done.wait(timeout: .now() + 2) == .timedOut { log("usb: unregistering didn't finish in 2 s") }
     }
 
-    /// No new attaches (a stop or a hibernate has begun); arrivals wait.
+    /// Nothing attached or detached (a stop, a hibernate or a pause has begun).
     func hold() {
         queue.sync { accepting = false }
     }
 
-    /// Attaches again (after a resume, or a stop or hibernate that failed), starting with what
-    /// arrived meanwhile.
+    /// Goes on by the routes of now (after a resume, or a stop or hibernate that failed).
     func release() {
         queue.async { [self] in
             accepting = true
-            let pending = waiting.values
-            waiting.removeAll()
-            for accessory in pending { attach(accessory) }
+            reload()
+            reconcile()
         }
     }
 
     // MARK: AAUSBAccessoryListener (on AccessoryAccess's queue)
 
     func usbAccessoryDidConnect(_ usbAccessory: AAUSBAccessory) {
-        offer(usbAccessory)
+        arrived(usbAccessory)
     }
 
     func usbAccessoryDidDisconnect(_ usbAccessory: AAUSBAccessory) {
         let id = usbAccessory.registryID
         queue.async { [self] in
-            waiting[id] = nil
-            attaching[id] = nil
-            if attached.removeValue(forKey: id) != nil { log("usb: \(Self.describe(usbAccessory)) left the VM") }
+            guard let entry = entries.removeValue(forKey: id) else { return }
+            if entry.state == .attached { log("usb: \(entry.identity.ids) left the VM") }
+            reconcile()
         }
     }
 
     // MARK: VZUSBController.Delegate (on the VM's queue)
 
     func usbController(_ usbController: VZUSBController, usbPassthroughDeviceDidDisconnect device: VZUSBPassthroughDevice) {
-        // VZ has detached it already; AccessoryAccess's disconnect says which one, so either
-        // order leaves the same state.
-        attached = attached.filter { $0.value !== device }
+        // VZ has detached it already; AccessoryAccess's disconnect drops the entry.
+        for (id, entry) in entries where entry.device === device {
+            entries[id]?.device = nil
+            entries[id]?.state = .observed
+            entries[id]?.token = nil
+        }
     }
 
-    // MARK: -
+    // MARK: - Routes
 
-    private func offer(_ accessory: AAUSBAccessory) {
-        queue.async { [self] in attach(accessory) }
+    /// The routes' folder: a save replaces the file (atomically), so the file itself can't be
+    /// watched.
+    private func watch() {
+        let fd = open(support.path, O_EVTONLY)
+        guard fd >= 0 else {
+            log("usb: can't watch \(support.path) for changes to the routes")
+            return
+        }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete], queue: queue)
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            reload()
+            reconcile()
+        }
+        source.setCancelHandler { Darwin.close(fd) }
+        source.resume()
+        watcher = source
     }
 
-    /// On the VM's queue.
-    private func attach(_ accessory: AAUSBAccessory) {
-        let id = accessory.registryID
-        guard attached[id] == nil, attaching[id] == nil else { return }
-        guard accepting, machine.state == .running else {
-            waiting[id] = accessory
-            return
+    /// On the VM's queue. Devices the new routes send here that weren't ours before wait
+    /// `letGoGrace` before they are attached.
+    private func reload() {
+        switch USBRoutes.load(support: support) {
+        case .success(let new):
+            routesError = nil
+            guard new != routes else { return }
+            let wasOurs = Set(entries.filter { isOurs($0.value.identity) }.keys)
+            routes = new
+            duplicates = []
+            log("usb: routes \(new.revision.isEmpty ? "(none saved)" : new.revision)")
+            let until = Date().addingTimeInterval(Self.letGoGrace)
+            for (id, entry) in entries {
+                entries[id]?.error = nil
+                if entry.state == .observed, !wasOurs.contains(id), isOurs(entry.identity) { entries[id]?.notBefore = until }
+            }
+        case .failure(let error):
+            if routesError != error.description { log("usb: \(error)") }
+            routes = nil
+            routesError = error.description
         }
-        guard let controller = machine.usbControllers.first else { return }
-        let device: VZUSBPassthroughDevice
-        do {
-            device = try VZUSBPassthroughDevice(configuration: VZUSBPassthroughDeviceConfiguration(device: accessory))
-        } catch {
-            fail(accessory, error)
-            return
+    }
+
+    /// Where the routes send `identity`; nil without routes.
+    private func decide(_ identity: USBDeviceIdentity, among all: [USBDeviceIdentity]) -> USBRouteDecision? {
+        guard let routes else { return nil }
+        if [identity.serialMatch, identity.portMatch].contains(where: { $0.map(duplicates.contains) == true }) {
+            return .hold(.duplicate)
         }
-        let token = UUID()
-        attaching[id] = token
-        controller.attach(device: device) { [self] error in
-            guard attaching[id] == token else { return }  // disconnected meanwhile
-            attaching[id] = nil
-            if let error {
-                fail(accessory, error)
-            } else {
-                attached[id] = device
-                log("usb: attached \(Self.describe(accessory))")
+        return routes.decision(for: identity, among: all)
+    }
+
+    private func isOurs(_ identity: USBDeviceIdentity) -> Bool {
+        if case .send(let target, _) = decide(identity, among: entries.values.map(\.identity)) { return target == me }
+        return false
+    }
+
+    // MARK: - Attaching and detaching
+
+    private func arrived(_ accessory: AAUSBAccessory) {
+        // Off AccessoryAccess's queue: unarchiving or calling back into it there traps (docs/19).
+        queue.async { [self] in
+            let id = accessory.registryID
+            guard entries[id] == nil else { return }  // in the present list and a connect both
+            let ids = USBDeviceIdentity.ids(descriptor: [UInt8](accessory.deviceDescriptorData)) ?? (0, 0)
+            let identity = USBDeviceIdentity.read(registryID: id, vendor: ids.vendor, product: ids.product)
+            entries[id] = Entry(accessory: accessory, identity: identity)
+            log("usb: \(identity.ids) connected\(identity.readable ? "" : " (IORegistry not readable)")")
+            reconcile()
+        }
+    }
+
+    /// On the VM's queue: attaches what the routes send here, detaches what they send elsewhere.
+    private func reconcile() {
+        guard let routes else { return }
+        let all = entries.values.map(\.identity)
+        for (id, entry) in entries {
+            guard let decision = decide(entry.identity, among: all) else { continue }
+            if case .hold(.duplicate) = decision {
+                for match in [entry.identity.serialMatch, entry.identity.portMatch].compactMap({ $0 })
+                where routes.rules.contains(where: { $0.match == match }) {
+                    duplicates.insert(match)
+                }
+            }
+            var ours = false
+            if case .send(let target, _) = decision { ours = target == me }
+            switch entry.state {
+            case .attached where !ours: detach(id)
+            // One that failed waits for its next connection, or new routes.
+            case .observed where ours && entry.error == nil, .waiting where ours: attach(id)
+            case .waiting where !ours: entries[id]?.state = .observed
+            default: break
             }
         }
     }
 
-    private func fail(_ accessory: AAUSBAccessory, _ error: Error) {
-        // A stop or hibernate began meanwhile: tried again if that fails (`release()`), dropped
-        // with the rest at the VM's end.
-        guard accepting else {
-            waiting[accessory.registryID] = accessory
+    private func attach(_ id: UInt64) {
+        guard let entry = entries[id] else { return }
+        guard accepting, machine.state == .running, let controller = machine.usbControllers.first else {
+            entries[id]?.state = .waiting
             return
         }
-        lastError = "\(Self.describe(accessory)): \(error.localizedDescription)"
-        log("usb: attaching \(Self.describe(accessory)) failed: \(error)")
+        let wait = entry.notBefore.timeIntervalSinceNow
+        guard wait <= 0 else {
+            entries[id]?.state = .waiting
+            queue.asyncAfter(deadline: .now() + wait) { [self] in reconcile() }
+            return
+        }
+        let device: VZUSBPassthroughDevice
+        do {
+            device = try VZUSBPassthroughDevice(configuration: VZUSBPassthroughDeviceConfiguration(device: entry.accessory))
+        } catch {
+            failed(id, "attaching", error)
+            return
+        }
+        let token = UUID()
+        entries[id]?.state = .attaching
+        entries[id]?.token = token
+        controller.attach(device: device) { [self] error in
+            guard entries[id]?.token == token else { return }  // gone meanwhile
+            entries[id]?.token = nil
+            if let error {
+                failed(id, "attaching", error)
+            } else {
+                entries[id]?.state = .attached
+                entries[id]?.device = device
+                entries[id]?.error = nil
+                log("usb: attached \(entry.identity.ids)")
+                reconcile()  // the routes may have changed meanwhile
+            }
+        }
     }
 
-    /// Vendor and product IDs from the device descriptor (bytes 8–11, little endian).
-    static func describe(_ accessory: AAUSBAccessory) -> String {
-        let d = [UInt8](accessory.deviceDescriptorData)
-        guard d.count >= 12 else { return "USB device \(accessory.registryID)" }
-        return String(format: "%04x:%04x", Int(d[8]) | Int(d[9]) << 8, Int(d[10]) | Int(d[11]) << 8)
+    /// The device then goes back to AccessoryAccess, which tells every driver of it as a new
+    /// connection; the routes, already new here, keep this VM from taking it again.
+    private func detach(_ id: UInt64) {
+        guard let entry = entries[id], let device = entry.device else { return }
+        guard accepting, machine.state == .running, let controller = machine.usbControllers.first else { return }
+        let token = UUID()
+        entries[id]?.state = .detaching
+        entries[id]?.token = token
+        controller.detach(device: device) { [self] error in
+            guard entries[id]?.token == token else { return }
+            entries[id]?.token = nil
+            if let error {
+                entries[id]?.state = .attached
+                entries[id]?.error = "detaching: \(error.localizedDescription)"
+                log("usb: detaching \(entry.identity.ids) failed: \(error)")
+            } else {
+                entries[id]?.state = .observed
+                entries[id]?.device = nil
+                log("usb: detached \(entry.identity.ids) for another VM")
+            }
+        }
+    }
+
+    private func failed(_ id: UInt64, _ what: String, _ error: Error) {
+        guard let entry = entries[id] else { return }
+        // A stop or hibernate began meanwhile: tried again on release.
+        entries[id]?.state = accepting ? .observed : .waiting
+        guard accepting else { return }
+        entries[id]?.error = "\(what): \(error.localizedDescription)"
+        log("usb: \(what) \(entry.identity.ids) failed: \(error)")
     }
 }
