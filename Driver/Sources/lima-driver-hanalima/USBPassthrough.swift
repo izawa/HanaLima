@@ -144,25 +144,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
                 log("usb: AccessoryAccess dropped \(entry.identity.ids), still attached")
                 return
             }
-            entries[id] = nil
-            if entry.state == .attached { log("usb: \(entry.identity.ids) left the VM") }
-            reconcile()
-            // A device enumerated again comes back within the grace: only after it, a rule that
-            // no longer matches two connected devices stops holding (each rule by its own last
-            // departure).
-            let left = [entry.identity.serialMatch, entry.identity.portMatch].compactMap { $0 }.filter(duplicates.contains)
-            guard !left.isEmpty else { return }
-            let now = Date()
-            for match in left { duplicateLeft[match] = now }
-            queue.asyncAfter(deadline: .now() + Self.letGoGrace) { [self] in
-                let all = entries.values.map(\.identity)
-                for match in left where duplicateLeft[match] == now
-                    && all.filter({ $0.serialMatch == match || $0.portMatch == match }).count < 2 {
-                    duplicates.remove(match)
-                    duplicateLeft[match] = nil
-                }
-                reconcile()
-            }
+            remove(id)
         }
     }
 
@@ -172,13 +154,36 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         // VZ has detached it already; AccessoryAccess's disconnect drops the entry.
         for (id, entry) in entries where entry.device === device {
             if entry.gone {
-                entries[id] = nil
-                log("usb: \(entry.identity.ids) left the VM")
+                remove(id)
                 continue
             }
             entries[id]?.device = nil
             entries[id]?.state = .observed
             entries[id]?.token = nil
+        }
+    }
+
+    /// On the VM's queue: the device has gone (AccessoryAccess said so, and VZ no longer has
+    /// it). Every way a device ends comes here, so duplicates are let go the same way.
+    private func remove(_ id: UInt64) {
+        guard let entry = entries.removeValue(forKey: id) else { return }
+        if entry.device != nil || entry.gone { log("usb: \(entry.identity.ids) left the VM") }
+        reconcile()
+        // A device enumerated again comes back within the grace: only after it, a rule that
+        // no longer matches two connected devices stops holding (each rule by its own last
+        // departure).
+        let left = [entry.identity.serialMatch, entry.identity.portMatch].compactMap { $0 }.filter(duplicates.contains)
+        guard !left.isEmpty else { return }
+        let now = Date()
+        for match in left { duplicateLeft[match] = now }
+        queue.asyncAfter(deadline: .now() + Self.letGoGrace) { [self] in
+            let all = entries.values.map(\.identity)
+            for match in left where duplicateLeft[match] == now
+                && all.filter({ $0.serialMatch == match || $0.portMatch == match }).count < 2 {
+                duplicates.remove(match)
+                duplicateLeft[match] = nil
+            }
+            reconcile()
         }
     }
 
@@ -346,6 +351,8 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
                 entries[id]?.state = .attached
                 entries[id]?.error = "detaching: \(error.localizedDescription)"
                 log("usb: detaching \(entry.identity.ids) failed: \(error)")
+            } else if entries[id]?.gone == true {
+                remove(id)  // AccessoryAccess has already let it go
             } else {
                 entries[id]?.state = .observed
                 entries[id]?.device = nil
