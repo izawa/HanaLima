@@ -402,7 +402,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ serial number …%2$@"
+            "value": "%1$@, serial number …%2$@"
           }
         },
         "ja": {
@@ -418,7 +418,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ port %2$@"
+            "value": "%1$@, port %2$@"
           }
         },
         "ja": {
@@ -1682,7 +1682,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start a VM on HanaLima’s driver and choose “Use with HanaLima” for a device in the menu bar’s Virtual Machine Accessories; the device then appears here."
+            "value": "Start a VM that uses HanaLima’s driver, then choose “Use with HanaLima” for a device in Virtual Machine Accessories in the menu bar. The device appears here."
           }
         },
         "ja": {
@@ -4423,7 +4423,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%@” is still running as started by an earlier version of HanaLima. The routing can’t be changed until that VM stops."
+            "value": "“%@” is still running from an earlier version of HanaLima. The routing can’t be changed until that VM stops."
           }
         },
         "ja": {
@@ -4615,7 +4615,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The driver of “%@” doesn’t answer, so whether an earlier version of HanaLima started it can’t be checked. Choose again in a moment."
+            "value": "The driver of “%@” isn’t responding, so HanaLima can’t check whether an earlier version started it. Try again in a moment."
           }
         },
         "ja": {
@@ -4631,7 +4631,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The driver of “%@” doesn’t answer. Devices of this VM may be missing from the list."
+            "value": "The driver of “%@” isn’t responding. Its devices may be missing from the list."
           }
         },
         "ja": {
@@ -4951,7 +4951,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%@” runs on the driver of an earlier version of HanaLima. After a restart it receives devices by the routing."
+            "value": "“%@” runs on a driver from an earlier version of HanaLima. Restart it to receive devices according to the routing."
           }
         },
         "ja": {
@@ -5207,7 +5207,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rules for Devices Not Connected Now"
+            "value": "Rules for Devices Not Connected"
           }
         },
         "ja": {
@@ -5240,7 +5240,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not receiving USB devices now. Besides while the VM starts, this happens when it resumed from hibernation without a USB controller, or was started by a HanaLima or driver without USB support. Stop it and start it from this HanaLima to receive them."
+            "value": "Not receiving USB devices. This happens while the VM is starting, after it resumes from hibernation without a USB controller, or when a HanaLima or driver without USB support started it. Stop it and start it from this HanaLima to receive devices."
           }
         },
         "ja": {
@@ -5883,7 +5883,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This device can’t be told apart that way."
+            "value": "This device can’t be identified that way."
           }
         },
         "ja": {
@@ -5899,7 +5899,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This device can’t be told apart, so no rule can be made for it. Plugging it in again reads it again."
+            "value": "This device can’t be identified, so no rule can be made for it. Unplug it and plug it in again to read it again."
           }
         },
         "ja": {
@@ -5963,7 +5963,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Another connected device matches this rule. Tell them apart another way."
+            "value": "Another connected device matches this rule. Identify the devices another way."
           }
         },
         "ja": {
@@ -10291,7 +10291,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devices you set to “Use with HanaLima” in the menu bar’s Virtual Machine Accessories appear here."
+            "value": "Devices set to “Use with HanaLima” in Virtual Machine Accessories in the menu bar appear here."
           }
         },
         "ja": {
@@ -12488,7 +12488,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Held (another device matches the same rule; tell them apart by “Port Plugged Into”)"
+            "value": "Held (another device matches the same rule; identify them by “Port”)"
           }
         },
         "ja": {
@@ -13432,7 +13432,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Started by an earlier version of HanaLima. From its next start it receives devices by the routing."
+            "value": "Started by an earlier version of HanaLima. From its next start, it receives devices according to the routing."
           }
         },
         "ja": {
@@ -13609,7 +13609,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No devices received."
+            "value": "Not receiving any devices."
           }
         },
         "ja": {
@@ -13709,7 +13709,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "VMs on HanaLima’s driver can receive the devices you set to “Use with HanaLima” in the menu bar’s Virtual Machine Accessories while one of them runs (for VMs started from Terminal or at login, it shows as an unknown application). A device whose receiving VM is stopped is held, not given to another VM, and the Mac can’t use it meanwhile; to use it on the Mac, choose “Use with This Mac” in the menu bar. Before changing the receiving VM of storage in use, unmount it in the VM that has it. The first time, macOS asks for access to removable volumes."
+            "value": "VMs on HanaLima’s driver receive the devices set to “Use with HanaLima” in Virtual Machine Accessories in the menu bar while one of those VMs runs (for a VM started from Terminal or at login, the menu shows “Unknown Application” instead). A device whose receiving VM is stopped is held, not given to another VM, and the Mac can’t use it meanwhile; to use it on the Mac, choose “Use with This Mac”. Before changing the receiving VM of storage in use, unmount it in the VM that has it. The first time, macOS asks for access to removable volumes."
           }
         },
         "ja": {
@@ -13773,7 +13773,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Another device with the same serial number is connected. Tell them apart by “Port Plugged Into”."
+            "value": "Another device with the same serial number is connected. Identify them by “Port”."
           }
         },
         "ja": {
@@ -13789,7 +13789,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Among the devices with the same serial number, some can’t be told apart by the port they are plugged into."
+            "value": "Some of the devices with this serial number can’t be identified by their port."
           }
         },
         "ja": {
@@ -14961,7 +14961,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A driver doesn’t answer, so not every device with the same serial number can be checked. Choose again in a moment."
+            "value": "A driver isn’t responding, so not every device with this serial number can be checked. Try again in a moment."
           }
         },
         "ja": {
@@ -15121,7 +15121,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Port Plugged Into"
+            "value": "Port"
           }
         },
         "ja": {
@@ -17403,7 +17403,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tell Apart By"
+            "value": "Identify By"
           }
         },
         "ja": {
@@ -17419,7 +17419,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devices without a rule go to"
+            "value": "Receiving VM for Devices Without a Rule"
           }
         },
         "ja": {
@@ -17435,7 +17435,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Same as devices without a rule"
+            "value": "Same as Devices Without a Rule"
           }
         },
         "ja": {
