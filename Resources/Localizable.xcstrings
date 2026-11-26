@@ -14842,6 +14842,22 @@
         }
       }
     },
+    "応答しないドライバーがあり、同じシリアル番号の機器をすべて確かめられません。しばらくしてからもう一度選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A driver doesn’t answer, so not every device with the same serial number can be checked. Choose again in a moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "応答しないドライバーがあり、同じシリアル番号の機器をすべて確かめられません。しばらくしてからもう一度選んでください。"
+          }
+        }
+      }
+    },
     "成功": {
       "localizations": {
         "en": {
@@ -15886,6 +15902,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "標準（%@）"
+          }
+        }
+      }
+    },
+    "機器がつなぎ直されました。もう一度選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The device was connected again. Choose again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機器がつなぎ直されました。もう一度選んでください。"
           }
         }
       }

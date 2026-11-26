@@ -244,9 +244,11 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
 
     /// On the VM's queue: attaches what the routes send here, detaches what they send elsewhere.
     private func reconcile() {
-        guard let routes else { return }
+        guard routes != nil else { return }
         let all = entries.values.map(\.identity)
         for id in Array(entries.keys) {
+            // The routes of now: an attach in this pass may have read new ones.
+            guard let routes else { return }
             // The live entry: an attach in this pass may have read new routes.
             guard let entry = entries[id], let decision = decide(entry.identity, among: all) else { continue }
             // Only the rule that collided: the first the routes try (serial, then port).

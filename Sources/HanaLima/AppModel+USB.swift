@@ -75,9 +75,16 @@ extension AppModel {
     /// the VM using it (storage there should be unmounted first).
     /// Ownership is asked of every driver now, not taken from the last poll; a driver that
     /// doesn't answer may have one attached, so it is asked about too.
-    func changeUSBRoutes(_ change: (inout USBRoutes) -> Void) async {
+    /// `since`: the revision the caller saw when the user chose (a caller that waited before
+    /// this); another edit saved meanwhile stops this one.
+    func changeUSBRoutes(since: String? = nil, _ change: (inout USBRoutes) -> Void) async {
         guard case .success(var routes) = usbRoutes else { return }
         let base = routes.revision
+        if let since, since != base {
+            alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),
+                                 message: String(localized: "ほかの変更と重なりました。もう一度選んでください。"))
+            return
+        }
         change(&routes)
         guard routes != (try? usbRoutes.get()) else { return }
         await refreshUSBReports()
@@ -143,13 +150,24 @@ extension AppModel {
     /// picks, replacing the device's rules. Turning a serial rule that matches several
     /// connected devices into port rules turns it for all of them at once, to the same VM, so
     /// none falls to the default route before the user chooses.
-    func setUSBRoute(for row: USBDeviceRow, to destination: USBTarget?, bySerial: Bool) async {
-        let device = row.device.identity
+    func setUSBRoute(for chosen: USBDeviceRow, to destination: USBTarget?, bySerial: Bool) async {
+        let failed = String(localized: "USB 機器の振り分けを保存できませんでした")
+        let since = (try? usbRoutes.get())?.revision
         // The devices of now, not of the last poll: one that came since must not lose its rule.
         await refreshUSBReports()
+        guard let row = usbDevices.first(where: { $0.id == chosen.id }) else {
+            alert = AlertMessage(title: failed, message: String(localized: "機器がつなぎ直されました。もう一度選んでください。"))
+            return
+        }
+        let device = row.device.identity
         let sharedRule = device.serialMatch.flatMap { match in (try? usbRoutes.get())?.rules.first { $0.match == match } }
         let twins = bySerial || sharedRule == nil ? [] : usbDevices
             .filter { $0.id != row.id && $0.device.identity.serialMatch == device.serialMatch }.map(\.device.identity)
+        // Replacing a shared serial rule needs every device it matches, so no driver may be silent.
+        if !bySerial, sharedRule != nil, !usbUnreachable.isEmpty {
+            alert = AlertMessage(title: failed, message: String(localized: "応答しないドライバーがあり、同じシリアル番号の機器をすべて確かめられません。しばらくしてからもう一度選んでください。"))
+            return
+        }
         // Replacing a shared serial rule: each device it matches needs a port of its own, or the
         // rule stays (one would fall to the default route).
         let ports = ([device] + twins).map(\.portMatch)
@@ -158,7 +176,7 @@ extension AppModel {
                                  message: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"))
             return
         }
-        await changeUSBRoutes { routes in
+        await changeUSBRoutes(since: since) { routes in
             let shared = device.serialMatch.flatMap { match in routes.rules.first { $0.match == match } }
             let mine = [device.serialMatch, device.portMatch].compactMap { $0 }
             routes.rules.removeAll { mine.contains($0.match) }
