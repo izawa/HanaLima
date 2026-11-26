@@ -29,7 +29,7 @@ public struct USBRoutes: Codable, Equatable, Sendable {
         public var vendor: UInt16
         public var product: UInt16
         public var serial: String?
-        /// The port, as `USBDeviceIdentity.port` gives it (the root port left out).
+        /// The port, as `USBDeviceIdentity.port` gives it.
         public var locationID: UInt32?
 
         public init(vendor: UInt16, product: UInt16, serial: String? = nil, locationID: UInt32? = nil) {
@@ -133,18 +133,22 @@ public struct USBDeviceIdentity: Codable, Hashable, Sendable {
     public var product: UInt16
     /// Nil when the device has none, or when IORegistry couldn't be read (`readable`).
     public var serial: String?
+    /// IORegistry's `locationID`, as it is (shown to the user).
     public var locationID: UInt32?
+    /// The port a rule names (`port(locationID:oneSocket:)`); set where IORegistry is read.
+    public var port: UInt32?
     public var name: String?
     public var manufacturer: String?
     /// IORegistry answered. From the device descriptor alone only vendor and product are known.
     public var readable: Bool
 
-    public init(vendor: UInt16, product: UInt16, serial: String? = nil, locationID: UInt32? = nil,
+    public init(vendor: UInt16, product: UInt16, serial: String? = nil, locationID: UInt32? = nil, port: UInt32? = nil,
                 name: String? = nil, manufacturer: String? = nil, readable: Bool = true) {
         self.vendor = vendor
         self.product = product
         self.serial = serial
         self.locationID = locationID
+        self.port = port ?? locationID
         self.name = name
         self.manufacturer = manufacturer
         self.readable = readable
@@ -167,12 +171,14 @@ public struct USBDeviceIdentity: Codable, Hashable, Sendable {
         port.map { USBRoutes.Match(vendor: vendor, product: product, locationID: $0) }
     }
 
-    /// The port a rule names: `locationID` without its root port (bits 20–23). A USB 3 device
-    /// in one socket has one root port on the USB 2 path and another on the USB 3 path, and is
-    /// enumerated on either (0x03114100 and 0x03214100, docs/19); the hubs below keep their
-    /// numbers. Two sockets this can't tell apart match the same rule, which then holds both.
-    public var port: UInt32? {
-        locationID.map { $0 & ~0x00F0_0000 }
+    /// The port a rule names. A USB 3 device in one socket has one root port on the USB 2 path
+    /// and another on the USB 3 path, and is enumerated on either (0x03114100 and 0x03214100,
+    /// docs/19); the hubs below keep their numbers. So on a controller with one socket (one
+    /// USB 2 and one USB 3 root port, as each USB-C controller of a Mac with Apple silicon has)
+    /// the root port (bits 20–23) is left out; on others (two USB 2 and two USB 3 root ports
+    /// for two sockets) it can't be told which root ports pair, and `locationID` stays whole.
+    public static func port(locationID: UInt32, oneSocket: Bool) -> UInt32 {
+        oneSocket ? locationID & ~0x00F0_0000 : locationID
     }
 }
 
@@ -232,9 +238,28 @@ extension USBDeviceIdentity {
         identity.serial = (property("USB Serial Number") ?? property("kUSBSerialNumberString")) as? String
         if identity.serial?.isEmpty == true { identity.serial = nil }
         identity.locationID = (property("locationID") as? NSNumber)?.uint32Value
+        identity.port = identity.locationID.map { port(locationID: $0, oneSocket: oneSocketControllers().contains(UInt8($0 >> 24))) }
         identity.name = property("USB Product Name") as? String
         identity.manufacturer = property("USB Vendor Name") as? String
         return identity
+    }
+
+    /// The controllers (`locationID`'s top byte) with exactly one USB 2 and one USB 3 root port.
+    static func oneSocketControllers() -> Set<UInt8> {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("AppleUSBXHCIPort"), &iterator) == KERN_SUCCESS else { return [] }
+        defer { IOObjectRelease(iterator) }
+        var counts: [UInt8: (usb2: Int, usb3: Int)] = [:]
+        while case let port = IOIteratorNext(iterator), port != 0 {
+            defer { IOObjectRelease(port) }
+            guard let location = (IORegistryEntryCreateCFProperty(port, "locationID" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? NSNumber)?.uint32Value else { continue }
+            let controller = UInt8(location >> 24)
+            var count = counts[controller] ?? (0, 0)
+            if IOObjectConformsTo(port, "AppleUSB30XHCIPort") != 0 { count.usb3 += 1 } else { count.usb2 += 1 }
+            counts[controller] = count
+        }
+        return Set(counts.filter { $0.value == (1, 1) }.keys)
     }
 }
 #endif

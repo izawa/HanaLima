@@ -116,18 +116,21 @@ import Testing
         #expect(routes.decision(for: yubikey, among: [yubikey]) == .send(vm2, by: .port))
     }
 
-    @Test func aUSB3DeviceMatchesItsPortOnEitherPath() {
+    @Test func aUSB3DeviceMatchesItsPortOnEitherPathOfOneSocket() {
+        func stick(_ location: UInt32, oneSocket: Bool) -> USBDeviceIdentity {
+            USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: location,
+                              port: USBDeviceIdentity.port(locationID: location, oneSocket: oneSocket))
+        }
         // One socket: the USB 2 path (root port 1) and the USB 3 path (root port 2), docs/19.
-        let hs = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0311_4100)
-        let ss = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0321_4100)
+        let hs = stick(0x0311_4100, oneSocket: true), ss = stick(0x0321_4100, oneSocket: true)
         #expect(hs.portMatch == ss.portMatch)
         let routes = USBRoutes(rules: [.init(match: hs.portMatch!, destination: vm1)])
         #expect(routes.decision(for: ss, among: [ss]) == .send(vm1, by: .port))
-        // Another port of the hub, or another controller, is another port.
-        let otherHubPort = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0321_4200)
-        let otherController = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0221_4100)
+        // Another port of the hub is another port.
+        let otherHubPort = stick(0x0321_4200, oneSocket: true)
         #expect(routes.decision(for: otherHubPort, among: [otherHubPort]) == .hold(.noDefault))
-        #expect(routes.decision(for: otherController, among: [otherController]) == .hold(.noDefault))
+        // A controller with two sockets keeps its root ports apart.
+        #expect(stick(0x2010_0000, oneSocket: false).portMatch != stick(0x2020_0000, oneSocket: false).portMatch)
     }
 
     @Test func descriptorIDs() {
