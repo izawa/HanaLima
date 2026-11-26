@@ -121,18 +121,11 @@ extension AppModel {
         let name = usbName(of: target) ?? dir.lastPathComponent
         guard let response else {
             // No answer: stopped is fine, but a driver that runs and doesn't answer may be one.
-            guard Self.driverRuns(instanceDir: dir) else { return nil }
+            guard DriverControl.driverPID(instanceDir: dir) != nil else { return nil }
             return String(localized: "「\(name)」のドライバーが応答しないので、前の版の HanaLima で起動したものか確かめられません。しばらくしてからもう一度選んでください。")
         }
         guard response.usbTarget == true, response.usbRouting == nil else { return nil }
         return String(localized: "「\(name)」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。")
-    }
-
-    /// The driver's process in `instanceDir` (`hanalima.pid`) is alive.
-    private nonisolated static func driverRuns(instanceDir: URL) -> Bool {
-        guard let text = try? String(contentsOf: instanceDir.appending(path: "hanalima.pid"), encoding: .utf8),
-              let pid = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
-        return kill(pid, 0) == 0 || errno == EPERM
     }
 
     /// "device on VM" for each attached device `routes` would send elsewhere.
@@ -150,10 +143,15 @@ extension AppModel {
     /// picks, replacing the device's rules. Turning a serial rule that matches several
     /// connected devices into port rules turns it for all of them at once, to the same VM, so
     /// none falls to the default route before the user chooses.
-    func setUSBRoute(for device: USBDeviceIdentity, to destination: USBTarget?, bySerial: Bool) async {
-        let twins = bySerial ? [] : usbDevices.map(\.device.identity).filter { $0 != device && $0.serialMatch != nil && $0.serialMatch == device.serialMatch }
-        // Each twin needs a port of its own, or the shared rule stays (one would fall to the
-        // default route).
+    func setUSBRoute(for row: USBDeviceRow, to destination: USBTarget?, bySerial: Bool) async {
+        let device = row.device.identity
+        // The devices of now, not of the last poll: one that came since must not lose its rule.
+        await refreshUSBReports()
+        let sharedRule = device.serialMatch.flatMap { match in (try? usbRoutes.get())?.rules.first { $0.match == match } }
+        let twins = bySerial || sharedRule == nil ? [] : usbDevices
+            .filter { $0.id != row.id && $0.device.identity.serialMatch == device.serialMatch }.map(\.device.identity)
+        // Replacing a shared serial rule: each device it matches needs a port of its own, or the
+        // rule stays (one would fall to the default route).
         let ports = ([device] + twins).map(\.portMatch)
         if !twins.isEmpty, ports.contains(nil) || Set(ports).count != ports.count {
             alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),

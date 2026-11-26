@@ -249,11 +249,11 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         for id in Array(entries.keys) {
             // The live entry: an attach in this pass may have read new routes.
             guard let entry = entries[id], let decision = decide(entry.identity, among: all) else { continue }
-            if case .hold(.duplicate) = decision {
-                for match in [entry.identity.serialMatch, entry.identity.portMatch].compactMap({ $0 })
-                where routes.rules.contains(where: { $0.match == match }) {
-                    duplicates.insert(match)
-                }
+            // Only the rule that collided: the first the routes try (serial, then port).
+            if case .hold(.duplicate) = routes.decision(for: entry.identity, among: all),
+               let match = [entry.identity.serialMatch, entry.identity.portMatch].compactMap({ $0 })
+                .first(where: { match in routes.rules.contains { $0.match == match } }) {
+                duplicates.insert(match)
             }
             var ours = false
             if case .send(let target, _) = decision { ours = target == me }

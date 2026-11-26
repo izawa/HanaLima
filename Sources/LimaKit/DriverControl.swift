@@ -51,6 +51,16 @@ public enum DriverControl {
         return pid
     }
 
+    /// The pid of the driver running `instanceDir` under Lima (`hanalima.pid`), if that
+    /// process is alive and is a HanaLima driver (a pid file left by a crash may by now belong
+    /// to anything). Lima starts the driver without the folder in its arguments.
+    public static func driverPID(instanceDir: URL) -> Int32? {
+        guard let text = try? String(contentsOf: instanceDir.appending(path: "hanalima.pid"), encoding: .utf8),
+              let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0,
+              commandLine(of: pid).contains("lima-driver-hanalima") else { return nil }
+        return pid
+    }
+
     static func commandLine(of pid: Int32) -> String {
         let ps = Process()
         ps.executableURL = URL(fileURLWithPath: "/bin/ps")

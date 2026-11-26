@@ -132,7 +132,7 @@ struct USBRoutingView: View {
                 }
                 Picker("受け取り先", selection: Binding(
                     get: { rule?.destination },
-                    set: { target in Task { await model.setUSBRoute(for: identity, to: target, bySerial: bySerial) } })) {
+                    set: { target in Task { await model.setUSBRoute(for: row, to: target, bySerial: bySerial) } })) {
                     Text("規則の無い機器の受け取り先に従う").tag(USBTarget?.none)
                     ForEach(vms, id: \.name) { vm in Text(vm.name).tag(USBTarget?.some(vm.target)) }
                     if let destination = rule?.destination, model.usbName(of: destination) == nil {
@@ -146,7 +146,7 @@ struct USBRoutingView: View {
                 if identity.serial != nil, identity.locationID != nil {
                     Picker("見分け方", selection: Binding(
                         get: { bySerial },
-                        set: { bySerial in Task { await model.setUSBRoute(for: identity, to: rule?.destination, bySerial: bySerial) } })) {
+                        set: { bySerial in Task { await model.setUSBRoute(for: row, to: rule?.destination, bySerial: bySerial) } })) {
                         Text("シリアル番号（…\(String(identity.serial!.suffix(4)))）").tag(true)
                         Text("挿したポート").tag(false)
                     }
