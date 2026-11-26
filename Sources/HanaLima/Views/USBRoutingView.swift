@@ -27,6 +27,10 @@ struct USBRoutingView: View {
                 } else if model.usbApplying {
                     Text("設定を反映中です。").font(.caption).foregroundStyle(.secondary)
                 }
+                ForEach(model.usbOldDrivers, id: \.self) { name in
+                    Text("「\(name)」は前の版の HanaLima のドライバーで動いています。再起動すると、振り分けに従って受け取ります。")
+                        .font(.caption).foregroundStyle(.orange)
+                }
                 ForEach(model.usbUnreachable, id: \.self) { name in
                     Text("「\(name)」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。")
                         .font(.caption).foregroundStyle(.orange)
@@ -80,7 +84,7 @@ struct USBRoutingView: View {
         .alert("使用中の機器を外しますか？", isPresented: Binding(
             get: { model.pendingUSBRoutes != nil }, set: { if !$0 { model.pendingUSBRoutes = nil } }),
                presenting: model.pendingUSBRoutes) { pending in
-            Button("外して変更") { Task { await model.saveUSBRoutes(pending.routes, base: pending.base) } }
+            Button("外して変更") { Task { await model.confirmUSBRoutes(pending) } }
             Button("キャンセル", role: .cancel) {}
         } message: { pending in
             Text("この変更で、\(pending.moving.joined(separator: "、")) が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。")
@@ -143,7 +147,7 @@ struct USBRoutingView: View {
                 if identity.serialMatch == nil && identity.portMatch == nil {
                     Text("この機器は見分けられないので、規則を作れません。挿し直すと読み直します。").font(.caption).foregroundStyle(.secondary)
                 }
-                if identity.serial != nil, identity.locationID != nil {
+                if identity.serialMatch != nil, identity.portMatch != nil {
                     Picker("見分け方", selection: Binding(
                         get: { bySerial },
                         set: { bySerial in Task { await model.setUSBRoute(for: row, to: rule?.destination, bySerial: bySerial) } })) {
@@ -170,7 +174,8 @@ struct USBRoutingView: View {
         /// the device apart.
         private var bySerial: Bool {
             if let rule { return rule.match.isSerial }
-            return identity.serial != nil && row.device.hold != .duplicate
+            let shared = model.usbDevices.contains { $0.id != row.id && $0.device.identity.serialMatch == identity.serialMatch }
+            return identity.serialMatch != nil && !shared && row.device.hold != .duplicate
         }
 
         private var state: String {

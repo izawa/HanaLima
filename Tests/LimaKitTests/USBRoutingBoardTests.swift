@@ -110,6 +110,36 @@ import Testing
         }
     }
 
+    @Test func aDeviceBeingAttachedCountsAsTakenAway() {
+        let rows = [USBDeviceRow(device: device("a", stick, .attaching), holder: "vm1")]
+        #expect(USBRoutingBoard.takenAway(by: USBRoutes(), rows: rows, name: name).map(\.id) == ["a"])
+    }
+
+    @Test func aTwinInAnotherPortIsNotTheChosenDevice() {
+        var twin = stick
+        twin.locationID = 0x0321_4200
+        twin.port = 0x0321_4200
+        #expect(USBRoutingBoard.find(USBDeviceRow(device: device("gone", stick)), in: [USBDeviceRow(device: device("t", twin))]) == nil)
+    }
+
+    @Test func noSerialRuleForASerialNumberTwoDevicesHave() {
+        let a = USBDeviceIdentity(vendor: 1, product: 2, serial: "S", locationID: 0x0321_4100)
+        let b = USBDeviceIdentity(vendor: 1, product: 2, serial: "S", locationID: 0x0321_4200)
+        let rows = [USBDeviceRow(device: device("a", a)), USBDeviceRow(device: device("b", b))]
+        #expect(throws: USBRoutingBoard.Refusal.serialShared) {
+            try USBRoutingBoard.route(USBRoutes(), device: rows[0], among: rows, to: vm1, bySerial: true)
+        }
+    }
+
+    @Test func noRuleWithoutItsKeyAndTheOldRuleStays() {
+        let noPort = USBDeviceIdentity(vendor: 1, product: 2, serial: "S")
+        let row = USBDeviceRow(device: device("a", noPort))
+        #expect(throws: USBRoutingBoard.Refusal.noKey) {
+            try USBRoutingBoard.route(USBRoutes(rules: [.init(match: noPort.serialMatch!, destination: vm1)]),
+                                      device: row, among: [row], to: vm2, bySerial: false)
+        }
+    }
+
     @Test func withoutASharedRuleOtherDevicesAreLeftAlone() throws {
         let a = USBDeviceIdentity(vendor: 1, product: 2, serial: "S", locationID: 0x0321_4100)
         let noPort = USBDeviceIdentity(vendor: 1, product: 2, serial: "S")

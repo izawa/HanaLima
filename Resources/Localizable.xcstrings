@@ -4946,6 +4946,22 @@
         }
       }
     },
+    "「%@」は前の版の HanaLima のドライバーで動いています。再起動すると、振り分けに従って受け取ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” runs on the driver of an earlier version of HanaLima. After a restart it receives devices by the routing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」は前の版の HanaLima のドライバーで動いています。再起動すると、振り分けに従って受け取ります。"
+          }
+        }
+      }
+    },
     "「%@」は既に存在します。": {
       "localizations": {
         "en": {
@@ -5808,6 +5824,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "この機器は、選んだ見分け方では見分けられません。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device can’t be told apart that way."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この機器は、選んだ見分け方では見分けられません。"
           }
         }
       }
@@ -13666,6 +13698,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "同じ"
+          }
+        }
+      }
+    },
+    "同じシリアル番号の機器がほかにもつながっています。見分け方を「挿したポート」にしてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another device with the same serial number is connected. Tell them apart by “Port Plugged Into”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じシリアル番号の機器がほかにもつながっています。見分け方を「挿したポート」にしてください。"
           }
         }
       }

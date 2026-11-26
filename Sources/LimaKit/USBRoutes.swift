@@ -122,7 +122,9 @@ public struct USBRoutes: Codable, Equatable, Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(routes).write(to: support.appending(path: Self.fileName), options: .atomic)
-        try USBTarget.save(nil, to: support.appending(path: USBTarget.fileName))
+        // Saved and in effect: v0.19's file goes if it can (it is ignored from now on anyway,
+        // and tried again at the next save).
+        try? USBTarget.save(nil, to: support.appending(path: USBTarget.fileName))
         return routes
     }
 }
@@ -218,6 +220,11 @@ extension USBRoutes {
                 guard let match, let rule = rules.first(where: { $0.match == match }) else { continue }
                 let same = connected.filter { by == .serial ? $0.serialMatch == match : $0.portMatch == match }
                 return same.count > 1 ? .hold(.duplicate) : .send(rule.destination, by: by)
+            }
+            // No port known: a port rule for this kind of device may be about it.
+            if device.port == nil,
+               rules.contains(where: { $0.match.locationID != nil && $0.match.vendor == device.vendor && $0.match.product == device.product }) {
+                return .hold(.unreadable)
             }
         }
         return defaultRoute.map { .send($0, by: .defaultRoute) } ?? .hold(.noDefault)

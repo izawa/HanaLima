@@ -240,7 +240,7 @@ private struct USBSection: View {
         Section("USB 機器") {
             if instance.isRunning, let status {
                 let attached = status.usbRouting?.devices.filter { $0.state == .attached } ?? []
-                if status.usbTarget == true, status.usbRouting == nil {
+                if status.usbRouting == nil {
                     Text("前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。").font(.caption)
                 } else if attached.isEmpty {
                     Text("受け取っている機器はありません。").foregroundStyle(.secondary)

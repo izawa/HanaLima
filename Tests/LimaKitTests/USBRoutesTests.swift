@@ -110,6 +110,16 @@ import Testing
         #expect(routes.decision(for: other, among: [other]) == .send(vm1, by: .defaultRoute))
     }
 
+    @Test func anUnknownPortIsHeldIfAPortRuleMayBeAboutIt() {
+        let somewhere = USBDeviceIdentity(vendor: 0x1050, product: 0x0402, locationID: 7)
+        let unknownPort = USBDeviceIdentity(vendor: 0x1050, product: 0x0402)
+        let routes = USBRoutes(defaultRoute: vm1, rules: [.init(match: somewhere.portMatch!, destination: vm2)])
+        #expect(routes.decision(for: unknownPort, among: [unknownPort]) == .hold(.unreadable))
+        // Another kind of device is untouched.
+        let other = USBDeviceIdentity(vendor: 9, product: 9)
+        #expect(routes.decision(for: other, among: [other]) == .send(vm1, by: .defaultRoute))
+    }
+
     @Test func noSerialIsNotUnreadable() {
         let yubikey = USBDeviceIdentity(vendor: 0x1050, product: 0x0402, locationID: 7)
         let routes = USBRoutes(rules: [.init(match: yubikey.portMatch!, destination: vm2)])

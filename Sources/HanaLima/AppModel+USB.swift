@@ -60,6 +60,12 @@ extension AppModel {
         usbReports.first { $0.value.usbTarget == true && $0.value.usbRouting == nil }?.key
     }
 
+    /// Running VMs whose driver is from before routing (v0.19): not receiving by the routes
+    /// until they start again.
+    var usbOldDrivers: [String] {
+        usbReports.filter { $0.value.usbRouting == nil }.keys.sorted()
+    }
+
     /// Why the routes can't be changed now, or nil.
     var usbRoutesBlocker: String? {
         if let name = usbLegacyReceiver {
@@ -94,6 +100,19 @@ extension AppModel {
             await saveUSBRoutes(routes, base: base)
         } else {
             pendingUSBRoutes = PendingUSBRoutes(routes: routes, base: base, moving: moving)
+        }
+    }
+
+    /// The user confirmed taking `pending.moving` away: asks the drivers again, and asks the
+    /// user again if more would be taken away now (another device attached meanwhile).
+    func confirmUSBRoutes(_ pending: PendingUSBRoutes) async {
+        await refreshUSBReports()
+        let moving = usbDevicesTakenAway(by: pending.routes)
+            + usbUnreachable.map { String(localized: "「\($0)」の機器（応答しないので確かめられません）") }
+        if Set(moving).isSubset(of: pending.moving) {
+            await saveUSBRoutes(pending.routes, base: pending.base)
+        } else {
+            pendingUSBRoutes = PendingUSBRoutes(routes: pending.routes, base: pending.base, moving: moving)
         }
     }
 
@@ -167,7 +186,12 @@ extension AppModel {
             do throws(USBRoutingBoard.Refusal) {
                 _ = try USBRoutingBoard.route(routes, device: row, among: rows, to: destination, bySerial: bySerial)
             } catch {
-                alert = AlertMessage(title: failed, message: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"))
+                let message = switch error {
+                case .twinsWithoutPorts: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。")
+                case .serialShared: String(localized: "同じシリアル番号の機器がほかにもつながっています。見分け方を「挿したポート」にしてください。")
+                case .noKey: String(localized: "この機器は、選んだ見分け方では見分けられません。")
+                }
+                alert = AlertMessage(title: failed, message: message)
                 return
             }
         }

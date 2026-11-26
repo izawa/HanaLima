@@ -42,22 +42,30 @@ public enum USBRoutingBoard {
         return routes.rules.filter { !present.contains($0.match) }
     }
 
-    /// The attached devices `routes` would send away from the VM that has them; `name` gives
+    /// The devices attached (or being attached) that `routes` would send away from the VM that
+    /// has them; `name` gives
     /// the VM a route names.
     public static func takenAway(by routes: USBRoutes, rows: [USBDeviceRow], name: (USBTarget) -> String?) -> [USBDeviceRow] {
         let all = rows.map(\.device.identity)
         return rows.filter { row in
-            guard let vm = row.holder, row.device.state == .attached else { return false }
+            guard let vm = row.holder, [.attached, .attaching].contains(row.device.state) else { return false }
             if case .send(let target, _) = routes.decision(for: row.device.identity, among: all) { return name(target) != vm }
             return true
         }
     }
 
     /// The row of now for `chosen`: the same connection, or the device enumerated again
-    /// (moving it between VMs gives it a new registry ID) if exactly one row has its key.
+    /// (moving it between VMs gives it a new registry ID) if exactly one row has both its
+    /// serial number and its port (a twin with the same serial number in another port is
+    /// another device).
     public static func find(_ chosen: USBDeviceRow, in rows: [USBDeviceRow]) -> USBDeviceRow? {
         if let row = rows.first(where: { $0.id == chosen.id }) { return row }
-        let same = rows.filter { $0.device.identity.matches(chosen.device.identity) }
+        let key = chosen.device.identity
+        let same = rows.filter {
+            let identity = $0.device.identity
+            return identity.vendor == key.vendor && identity.product == key.product
+                && identity.serial == key.serial && identity.port != nil && identity.port == key.port
+        }
         return same.count == 1 ? same[0] : nil
     }
 
@@ -65,6 +73,10 @@ public enum USBRoutingBoard {
         /// A serial rule several devices share would become port rules, but not every one of
         /// them has a port of its own.
         case twinsWithoutPorts
+        /// A serial rule for a serial number another connected device has too.
+        case serialShared
+        /// The device has no serial number, or no port, for the rule asked for.
+        case noKey
     }
 
     /// `routes` with `device` sent to `destination` (nil: by the default route) by the rule
@@ -74,6 +86,9 @@ public enum USBRoutingBoard {
     public static func route(_ routes: USBRoutes, device row: USBDeviceRow, among rows: [USBDeviceRow],
                              to destination: USBTarget?, bySerial: Bool) throws(Refusal) -> USBRoutes {
         let device = row.device.identity
+        if destination != nil, (bySerial ? device.serialMatch : device.portMatch) == nil { throw .noKey }
+        if bySerial, destination != nil,
+           rows.contains(where: { $0.id != row.id && $0.device.identity.serialMatch == device.serialMatch }) { throw .serialShared }
         let shared = device.serialMatch.flatMap { match in routes.rules.first { $0.match == match } }
         let twins = bySerial || shared == nil ? [] : rows
             .filter { $0.id != row.id && $0.device.identity.serialMatch == device.serialMatch }.map(\.device.identity)
