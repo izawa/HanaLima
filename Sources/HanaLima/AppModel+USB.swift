@@ -135,14 +135,10 @@ extension AppModel {
         return String(localized: "「\(name)」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。")
     }
 
-    /// "device on VM" for each attached device `routes` would send elsewhere.
+    /// "device (VM)" for each attached device `routes` would send elsewhere.
     private func usbDevicesTakenAway(by routes: USBRoutes) -> [String] {
-        let devices = usbDevices
-        let all = devices.map(\.device.identity)
-        return devices.compactMap { row in
-            guard let vm = row.holder, row.device.state == .attached else { return nil }
-            if case .send(let target, _) = routes.decision(for: row.device.identity, among: all), usbName(of: target) == vm { return nil }
-            return String(localized: "\(row.device.identity.name ?? row.device.identity.ids)（\(vm)）")
+        USBRoutingBoard.takenAway(by: routes, rows: usbDevices, name: usbName(of:)).map { row in
+            String(localized: "\(row.device.identity.name ?? row.device.identity.ids)（\(row.holder ?? "")）")
         }
     }
 
@@ -155,69 +151,40 @@ extension AppModel {
         let since = (try? usbRoutes.get())?.revision
         // The devices of now, not of the last poll: one that came since must not lose its rule.
         await refreshUSBReports()
-        // The same connection, or the device enumerated again (moving it between VMs gives it a
-        // new registry ID): the one device of now with the chosen device's key.
-        let devices = usbDevices
-        let same = devices.filter { $0.device.identity.matches(chosen.device.identity) }
-        guard let row = devices.first(where: { $0.id == chosen.id }) ?? (same.count == 1 ? same[0] : nil) else {
+        guard let row = USBRoutingBoard.find(chosen, in: usbDevices) else {
             alert = AlertMessage(title: failed, message: String(localized: "機器がつなぎ直されました。もう一度選んでください。"))
             return
         }
-        let device = row.device.identity
-        let sharedRule = device.serialMatch.flatMap { match in (try? usbRoutes.get())?.rules.first { $0.match == match } }
-        let twins = bySerial || sharedRule == nil ? [] : usbDevices
-            .filter { $0.id != row.id && $0.device.identity.serialMatch == device.serialMatch }.map(\.device.identity)
         // Replacing a shared serial rule needs every device it matches, so no driver may be silent.
-        if !bySerial, sharedRule != nil, !usbUnreachable.isEmpty {
+        let device = row.device.identity
+        let shared = device.serialMatch.flatMap { match in (try? usbRoutes.get())?.rules.contains { $0.match == match } } ?? false
+        if !bySerial, shared, !usbUnreachable.isEmpty {
             alert = AlertMessage(title: failed, message: String(localized: "応答しないドライバーがあり、同じシリアル番号の機器をすべて確かめられません。しばらくしてからもう一度選んでください。"))
             return
         }
-        // Replacing a shared serial rule: each device it matches needs a port of its own, or the
-        // rule stays (one would fall to the default route).
-        let ports = ([device] + twins).map(\.portMatch)
-        if !twins.isEmpty, ports.contains(nil) || Set(ports).count != ports.count {
-            alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),
-                                 message: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"))
-            return
+        let rows = usbDevices
+        if let routes = try? usbRoutes.get() {
+            do throws(USBRoutingBoard.Refusal) {
+                _ = try USBRoutingBoard.route(routes, device: row, among: rows, to: destination, bySerial: bySerial)
+            } catch {
+                alert = AlertMessage(title: failed, message: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"))
+                return
+            }
         }
         await changeUSBRoutes(since: since) { routes in
-            let shared = device.serialMatch.flatMap { match in routes.rules.first { $0.match == match } }
-            let mine = [device.serialMatch, device.portMatch].compactMap { $0 }
-            routes.rules.removeAll { mine.contains($0.match) }
-            if let shared {
-                for twin in twins {
-                    guard let port = twin.portMatch else { continue }
-                    routes.rules.removeAll { $0.match == port }
-                    routes.rules.append(.init(match: port, destination: shared.destination))
-                }
-            }
-            guard let destination, let match = bySerial ? device.serialMatch : device.portMatch else { return }
-            routes.rules.append(.init(match: match, destination: destination))
+            routes = (try? USBRoutingBoard.route(routes, device: row, among: rows, to: destination, bySerial: bySerial)) ?? routes
         }
     }
 
     /// The accessories the drivers know, one row each (every driver is told of every one).
     var usbDevices: [USBDeviceRow] {
-        var rows: [String: USBDeviceRow] = [:]
-        for (vm, response) in usbReports.sorted(by: { $0.key < $1.key }) {
-            for device in response.usbRouting?.devices ?? [] {
-                var row = rows[device.registryID] ?? USBDeviceRow(device: device)
-                if [.attached, .attaching, .detaching].contains(device.state) || (device.state == .waiting && row.holder == nil) {
-                    row.holder = vm
-                    row.device = device
-                }
-                if let error = device.error { row.errors.append("\(vm): \(error)") }
-                rows[device.registryID] = row
-            }
-        }
-        return rows.values.sorted { ($0.device.identity.name ?? "", $0.id) < ($1.device.identity.name ?? "", $1.id) }
+        USBRoutingBoard.rows(usbReports.compactMapValues(\.usbRouting))
     }
 
     /// Rules for devices no driver reports now (or no driver that answered).
     var usbAbsentRules: [USBRoutes.Rule] {
         guard case .success(let routes) = usbRoutes else { return [] }
-        let present = usbDevices.flatMap { [$0.device.identity.serialMatch, $0.device.identity.portMatch] }
-        return routes.rules.filter { rule in !present.contains(rule.match) }
+        return USBRoutingBoard.absentRules(routes, rows: usbDevices)
     }
 
     /// A driver works by other routes than the saved ones (it hasn't read them yet).
@@ -242,16 +209,4 @@ struct PendingUSBRoutes {
     /// The revision the edit started from.
     var base: String
     var moving: [String]
-}
-
-/// One accessory on the USB page.
-struct USBDeviceRow: Identifiable {
-    var device: USBRoutingStatus.Device
-    /// The VM whose driver has it attached, is attaching or detaching it, or waits to attach it.
-    var holder: String?
-    var errors: [String] = []
-
-    init(device: USBRoutingStatus.Device) { self.device = device }
-
-    var id: String { device.registryID }
 }
