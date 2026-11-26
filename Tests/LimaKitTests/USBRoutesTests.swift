@@ -133,6 +133,15 @@ import Testing
         #expect(stick(0x2010_0000, oneSocket: false).portMatch != stick(0x2020_0000, oneSocket: false).portMatch)
     }
 
+    @Test func theSameDeviceAfterEnumeratingAgain() {
+        var again = stick
+        again.locationID = 0x0321_4100  // the other path; the serial number is the same
+        #expect(stick.matches(again))
+        #expect(!stick.matches(camera))
+        let a = USBDeviceIdentity(vendor: 1, product: 2, locationID: 5), b = USBDeviceIdentity(vendor: 1, product: 2, locationID: 6)
+        #expect(a.matches(a) && !a.matches(b))
+    }
+
     @Test func descriptorIDs() {
         var d = [UInt8](repeating: 0, count: 18)
         d[8] = 0x64; d[9] = 0x85; d[10] = 0x00; d[11] = 0x10

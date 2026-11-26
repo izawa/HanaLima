@@ -155,7 +155,11 @@ extension AppModel {
         let since = (try? usbRoutes.get())?.revision
         // The devices of now, not of the last poll: one that came since must not lose its rule.
         await refreshUSBReports()
-        guard let row = usbDevices.first(where: { $0.id == chosen.id }) else {
+        // The same connection, or the device enumerated again (moving it between VMs gives it a
+        // new registry ID): the one device of now with the chosen device's key.
+        let devices = usbDevices
+        let same = devices.filter { $0.device.identity.matches(chosen.device.identity) }
+        guard let row = devices.first(where: { $0.id == chosen.id }) ?? (same.count == 1 ? same[0] : nil) else {
             alert = AlertMessage(title: failed, message: String(localized: "機器がつなぎ直されました。もう一度選んでください。"))
             return
         }

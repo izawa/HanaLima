@@ -163,6 +163,13 @@ public struct USBDeviceIdentity: Codable, Hashable, Sendable {
     /// "8564:1000".
     public var ids: String { String(format: "%04x:%04x", vendor, product) }
 
+    /// The same device, as far as rules can tell: its serial number, or without one its port.
+    public func matches(_ other: USBDeviceIdentity) -> Bool {
+        guard vendor == other.vendor, product == other.product else { return false }
+        if let serial { return serial == other.serial }
+        return other.serial == nil && port != nil && port == other.port
+    }
+
     /// The rule that would send this device by its serial number, or by its port.
     public var serialMatch: USBRoutes.Match? {
         serial.map { USBRoutes.Match(vendor: vendor, product: product, serial: $0) }
