@@ -29,6 +29,7 @@ public struct USBRoutes: Codable, Equatable, Sendable {
         public var vendor: UInt16
         public var product: UInt16
         public var serial: String?
+        /// The port, as `USBDeviceIdentity.port` gives it (the root port left out).
         public var locationID: UInt32?
 
         public init(vendor: UInt16, product: UInt16, serial: String? = nil, locationID: UInt32? = nil) {
@@ -163,7 +164,15 @@ public struct USBDeviceIdentity: Codable, Hashable, Sendable {
         serial.map { USBRoutes.Match(vendor: vendor, product: product, serial: $0) }
     }
     public var portMatch: USBRoutes.Match? {
-        locationID.map { USBRoutes.Match(vendor: vendor, product: product, locationID: $0) }
+        port.map { USBRoutes.Match(vendor: vendor, product: product, locationID: $0) }
+    }
+
+    /// The port a rule names: `locationID` without its root port (bits 20–23). A USB 3 device
+    /// in one socket has one root port on the USB 2 path and another on the USB 3 path, and is
+    /// enumerated on either (0x03114100 and 0x03214100, docs/19); the hubs below keep their
+    /// numbers. Two sockets this can't tell apart match the same rule, which then holds both.
+    public var port: UInt32? {
+        locationID.map { $0 & ~0x00F0_0000 }
     }
 }
 

@@ -116,6 +116,20 @@ import Testing
         #expect(routes.decision(for: yubikey, among: [yubikey]) == .send(vm2, by: .port))
     }
 
+    @Test func aUSB3DeviceMatchesItsPortOnEitherPath() {
+        // One socket: the USB 2 path (root port 1) and the USB 3 path (root port 2), docs/19.
+        let hs = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0311_4100)
+        let ss = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0321_4100)
+        #expect(hs.portMatch == ss.portMatch)
+        let routes = USBRoutes(rules: [.init(match: hs.portMatch!, destination: vm1)])
+        #expect(routes.decision(for: ss, among: [ss]) == .send(vm1, by: .port))
+        // Another port of the hub, or another controller, is another port.
+        let otherHubPort = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0321_4200)
+        let otherController = USBDeviceIdentity(vendor: 0x8564, product: 0x1000, locationID: 0x0221_4100)
+        #expect(routes.decision(for: otherHubPort, among: [otherHubPort]) == .hold(.noDefault))
+        #expect(routes.decision(for: otherController, among: [otherController]) == .hold(.noDefault))
+    }
+
     @Test func descriptorIDs() {
         var d = [UInt8](repeating: 0, count: 18)
         d[8] = 0x64; d[9] = 0x85; d[10] = 0x00; d[11] = 0x10

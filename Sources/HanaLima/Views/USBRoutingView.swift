@@ -162,7 +162,7 @@ struct USBRoutingView: View {
         /// Maker, IDs, and the port, so two devices of one kind can be told apart.
         private var details: String {
             [identity.manufacturer, identity.ids,
-             identity.locationID.map { String(localized: "ポート \(String(format: "0x%08x", $0))") }]
+             identity.port.map { String(localized: "ポート \(String(format: "0x%08x", $0))") }]
                 .compactMap { $0 }.joined(separator: " ")
         }
 
