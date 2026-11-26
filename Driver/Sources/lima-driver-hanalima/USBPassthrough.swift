@@ -48,6 +48,12 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         /// Not attached before this (`letGoGrace`).
         var notBefore = Date.distantPast
         var error: String?
+        /// VZ can't pass this device through (an Apple device, isochronous endpoints): never
+        /// tried again, even with new routes.
+        var unsupported = false
+        /// AccessoryAccess says it has gone while VZ still has it attached (accessoryaccessd
+        /// restarted): kept until VZ lets it go.
+        var gone = false
     }
 
     init(machine: VZVirtualMachine, queue: DispatchQueue, me: USBTarget, support: URL) {
@@ -130,7 +136,15 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     func usbAccessoryDidDisconnect(_ usbAccessory: AAUSBAccessory) {
         let id = usbAccessory.registryID
         queue.async { [self] in
-            guard let entry = entries.removeValue(forKey: id) else { return }
+            guard let entry = entries[id] else { return }
+            if entry.device != nil {
+                // Not by VZ: AccessoryAccess dropped it (its daemon restarted), the guest still
+                // has it. VZ's delegate ends the entry.
+                entries[id]?.gone = true
+                log("usb: AccessoryAccess dropped \(entry.identity.ids), still attached")
+                return
+            }
+            entries[id] = nil
             if entry.state == .attached { log("usb: \(entry.identity.ids) left the VM") }
             reconcile()
             // A device enumerated again comes back within the grace: only after it, a rule that
@@ -157,6 +171,11 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     func usbController(_ usbController: VZUSBController, usbPassthroughDeviceDidDisconnect device: VZUSBPassthroughDevice) {
         // VZ has detached it already; AccessoryAccess's disconnect drops the entry.
         for (id, entry) in entries where entry.device === device {
+            if entry.gone {
+                entries[id] = nil
+                log("usb: \(entry.identity.ids) left the VM")
+                continue
+            }
             entries[id]?.device = nil
             entries[id]?.state = .observed
             entries[id]?.token = nil
@@ -199,7 +218,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             log("usb: routes \(new.revision.isEmpty ? "(none saved)" : new.revision)")
             let until = Date().addingTimeInterval(Self.letGoGrace)
             for (id, entry) in entries {
-                entries[id]?.error = nil
+                if !entry.unsupported { entries[id]?.error = nil }
                 if entry.state == .observed, !wasOurs.contains(id), isOurs(entry.identity) { entries[id]?.notBefore = until }
             }
         case .failure(let error):
@@ -262,7 +281,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             switch entry.state {
             case .attached where !ours: detach(id)
             // One that failed waits for its next connection, or new routes.
-            case .observed where ours && entry.error == nil, .waiting where ours: attach(id)
+            case .observed where ours && entry.error == nil && !entry.unsupported, .waiting where ours: attach(id)
             case .waiting where !ours: entries[id]?.state = .observed
             default: break
             }
@@ -341,6 +360,8 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         entries[id]?.state = accepting ? .observed : .waiting
         guard accepting else { return }
         entries[id]?.error = "\(what): \(error.localizedDescription)"
+        // VZErrorDomain -6: VZ doesn't pass this kind of device through at all.
+        if (error as NSError).domain == VZErrorDomain, (error as NSError).code == -6 { entries[id]?.unsupported = true }
         log("usb: \(what) \(entry.identity.ids) failed: \(error)")
     }
 }
