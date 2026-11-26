@@ -73,23 +73,34 @@ extension AppModel {
 
     /// Saves the routes with `change` applied; first asks if that takes a device away from
     /// the VM using it (storage there should be unmounted first).
+    /// Ownership is asked of every driver now, not taken from the last poll; a driver that
+    /// doesn't answer may have one attached, so it is asked about too.
     func changeUSBRoutes(_ change: (inout USBRoutes) -> Void) async {
         guard case .success(var routes) = usbRoutes else { return }
+        let base = routes.revision
         change(&routes)
         guard routes != (try? usbRoutes.get()) else { return }
-        let moving = usbDevicesTakenAway(by: routes)
+        await refreshUSBReports()
+        var moving = usbDevicesTakenAway(by: routes)
+        moving += usbUnreachable.map { String(localized: "「\($0)」の機器（応答しないので確かめられません）") }
         if moving.isEmpty {
-            await saveUSBRoutes(routes)
+            await saveUSBRoutes(routes, base: base)
         } else {
-            pendingUSBRoutes = PendingUSBRoutes(routes: routes, moving: moving)
+            pendingUSBRoutes = PendingUSBRoutes(routes: routes, base: base, moving: moving)
         }
     }
 
-    /// Saves routes the user has confirmed (or that move nothing).
-    func saveUSBRoutes(_ routes: USBRoutes) async {
+    /// Saves routes the user has confirmed (or that move nothing), unless the routes saved
+    /// are no longer the ones `base` names (another edit came first: it would be undone).
+    func saveUSBRoutes(_ routes: USBRoutes, base: String) async {
         let failed = String(localized: "USB 機器の振り分けを保存できませんでした")
         if let blocker = await usbLegacyBlocker() ?? usbRoutesBlocker {
             alert = AlertMessage(title: failed, message: blocker)
+            return
+        }
+        guard (try? USBRoutes.load(support: Self.usbSupport).get())?.revision == base else {
+            updateUSBRoutes()
+            alert = AlertMessage(title: failed, message: String(localized: "ほかの変更と重なりました。もう一度選んでください。"))
             return
         }
         do {
@@ -105,11 +116,23 @@ extension AppModel {
         guard let target = USBTarget.load(from: Self.usbSupport.appending(path: USBTarget.fileName)) else { return nil }
         let dir = URL(fileURLWithPath: target.instanceDir)
         let response = await Task.detached {
-            try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 1)
+            try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 2)
         }.value
-        guard response?.usbTarget == true, response?.usbRouting == nil else { return nil }
         let name = usbName(of: target) ?? dir.lastPathComponent
+        guard let response else {
+            // No answer: stopped is fine, but a driver that runs and doesn't answer may be one.
+            guard Self.driverRuns(instanceDir: dir) else { return nil }
+            return String(localized: "「\(name)」のドライバーが応答しないので、前の版の HanaLima で起動したものか確かめられません。しばらくしてからもう一度選んでください。")
+        }
+        guard response.usbTarget == true, response.usbRouting == nil else { return nil }
         return String(localized: "「\(name)」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。")
+    }
+
+    /// The driver's process in `instanceDir` (`hanalima.pid`) is alive.
+    private nonisolated static func driverRuns(instanceDir: URL) -> Bool {
+        guard let text = try? String(contentsOf: instanceDir.appending(path: "hanalima.pid"), encoding: .utf8),
+              let pid = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        return kill(pid, 0) == 0 || errno == EPERM
     }
 
     /// "device on VM" for each attached device `routes` would send elsewhere.
@@ -129,6 +152,14 @@ extension AppModel {
     /// none falls to the default route before the user chooses.
     func setUSBRoute(for device: USBDeviceIdentity, to destination: USBTarget?, bySerial: Bool) async {
         let twins = bySerial ? [] : usbDevices.map(\.device.identity).filter { $0 != device && $0.serialMatch != nil && $0.serialMatch == device.serialMatch }
+        // Each twin needs a port of its own, or the shared rule stays (one would fall to the
+        // default route).
+        let ports = ([device] + twins).map(\.portMatch)
+        if !twins.isEmpty, ports.contains(nil) || Set(ports).count != ports.count {
+            alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),
+                                 message: String(localized: "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"))
+            return
+        }
         await changeUSBRoutes { routes in
             let shared = device.serialMatch.flatMap { match in routes.rules.first { $0.match == match } }
             let mine = [device.serialMatch, device.portMatch].compactMap { $0 }
@@ -188,6 +219,8 @@ extension AppModel {
 /// Routes waiting for the user to confirm taking devices away from the VMs using them.
 struct PendingUSBRoutes {
     var routes: USBRoutes
+    /// The revision the edit started from.
+    var base: String
     var moving: [String]
 }
 

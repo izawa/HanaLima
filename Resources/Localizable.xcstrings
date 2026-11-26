@@ -4404,16 +4404,16 @@
     },
     "「%@」: %@": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "new",
-            "value": "「%1$@」: %2$@"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "“%1$@”: %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "「%1$@」: %2$@"
           }
         }
       }
@@ -4610,18 +4610,34 @@
         }
       }
     },
-    "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。": {
+    "「%@」のドライバーが応答しないので、前の版の HanaLima で起動したものか確かめられません。しばらくしてからもう一度選んでください。": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The driver of “%@” doesn’t answer, so whether an earlier version of HanaLima started it can’t be checked. Choose again in a moment."
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。"
+            "value": "「%@」のドライバーが応答しないので、前の版の HanaLima で起動したものか確かめられません。しばらくしてからもう一度選んでください。"
           }
-        },
+        }
+      }
+    },
+    "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。": {
+      "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The driver of “%@” doesn’t answer. Devices of this VM may be missing from the list."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」のドライバーが応答しません。この仮想マシンの機器は一覧に出ていないことがあります。"
           }
         }
       }
@@ -4734,6 +4750,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "「%@」の実行中はサイズを変更できません。"
+          }
+        }
+      }
+    },
+    "「%@」の機器（応答しないので確かめられません）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "devices of “%@” (it doesn’t answer, so this can’t be checked)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の機器（応答しないので確かめられません）"
           }
         }
       }
@@ -5734,16 +5766,16 @@
     },
     "この変更で、%@ が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この変更で、%@ が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This change detaches %@ from the VM. If it is storage, unmount it in the VM first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この変更で、%@ が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。"
           }
         }
       }
@@ -5782,16 +5814,16 @@
     },
     "この機器は見分けられないので、規則を作れません。挿し直すと読み直します。": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この機器は見分けられないので、規則を作れません。挿し直すと読み直します。"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This device can’t be told apart, so no rule can be made for it. Plugging it in again reads it again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この機器は見分けられないので、規則を作れません。挿し直すと読み直します。"
           }
         }
       }
@@ -6388,6 +6420,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ほかの処理の最中です。"
+          }
+        }
+      }
+    },
+    "ほかの変更と重なりました。もう一度選んでください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another change came first. Choose again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの変更と重なりました。もう一度選んでください。"
           }
         }
       }
@@ -10062,16 +10110,16 @@
     },
     "ポート %@": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ポート %@"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Port %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポート %@"
           }
         }
       }
@@ -11955,16 +12003,16 @@
     },
     "使用中の機器を外しますか？": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用中の機器を外しますか？"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Detach Devices in Use?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中の機器を外しますか？"
           }
         }
       }
@@ -13622,6 +13670,22 @@
         }
       }
     },
+    "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Among the devices with the same serial number, some can’t be told apart by the port they are plugged into."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じシリアル番号の機器のなかに、挿したポートで見分けられないものがあります。"
+          }
+        }
+      }
+    },
     "同じタグのスナップショットがあります。": {
       "localizations": {
         "en": {
@@ -14090,16 +14154,16 @@
     },
     "外して変更": {
       "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外して変更"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Detach and Change"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外して変更"
           }
         }
       }

@@ -31,6 +31,8 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     /// while one of them is away being enumerated again (or the other would be attached in
     /// the gap). Forgotten when the routes change.
     private var duplicates = Set<USBRoutes.Match>()
+    /// When a device of a duplicate rule last left: the rule stops holding only a grace after.
+    private var duplicateLeft: [USBRoutes.Match: Date] = [:]
     /// By the accessory's IORegistry ID (one connection).
     private var entries: [UInt64: Entry] = [:]
     private var watcher: DispatchSourceFileSystemObject?
@@ -132,11 +134,18 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             if entry.state == .attached { log("usb: \(entry.identity.ids) left the VM") }
             reconcile()
             // A device enumerated again comes back within the grace: only after it, a rule that
-            // no longer matches two connected devices stops holding.
+            // no longer matches two connected devices stops holding (each rule by its own last
+            // departure).
+            let left = [entry.identity.serialMatch, entry.identity.portMatch].compactMap { $0 }.filter(duplicates.contains)
+            guard !left.isEmpty else { return }
+            let now = Date()
+            for match in left { duplicateLeft[match] = now }
             queue.asyncAfter(deadline: .now() + Self.letGoGrace) { [self] in
                 let all = entries.values.map(\.identity)
-                duplicates = duplicates.filter { match in
-                    all.filter { $0.serialMatch == match || $0.portMatch == match }.count > 1
+                for match in left where duplicateLeft[match] == now
+                    && all.filter({ $0.serialMatch == match || $0.portMatch == match }).count < 2 {
+                    duplicates.remove(match)
+                    duplicateLeft[match] = nil
                 }
                 reconcile()
             }
@@ -186,6 +195,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             let wasOurs = Set(entries.filter { isOurs($0.value.identity) }.keys)
             routes = new
             duplicates = []
+            duplicateLeft = [:]
             log("usb: routes \(new.revision.isEmpty ? "(none saved)" : new.revision)")
             let until = Date().addingTimeInterval(Self.letGoGrace)
             for (id, entry) in entries {
@@ -236,8 +246,9 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
     private func reconcile() {
         guard let routes else { return }
         let all = entries.values.map(\.identity)
-        for (id, entry) in entries {
-            guard let decision = decide(entry.identity, among: all) else { continue }
+        for id in Array(entries.keys) {
+            // The live entry: an attach in this pass may have read new routes.
+            guard let entry = entries[id], let decision = decide(entry.identity, among: all) else { continue }
             if case .hold(.duplicate) = decision {
                 for match in [entry.identity.serialMatch, entry.identity.portMatch].compactMap({ $0 })
                 where routes.rules.contains(where: { $0.match == match }) {
@@ -271,7 +282,7 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
         // The folder's change notice may not have come yet: attach only by the routes of now.
         reload()
         guard let current = entries[id], isOurs(current.identity), current.notBefore.timeIntervalSinceNow <= 0 else {
-            reconcile()
+            queue.async { [self] in reconcile() }  // a new pass, not one inside the caller's
             return
         }
         let device: VZUSBPassthroughDevice

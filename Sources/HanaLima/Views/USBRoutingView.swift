@@ -57,8 +57,8 @@ struct USBRoutingView: View {
                     ForEach(model.usbAbsentRules, id: \.match) { rule in
                         HStack {
                             Picker(Self.label(rule.match), selection: Binding(
-                                get: { rule.destination },
-                                set: { target in Task { await model.changeUSBRoutes { routes in
+                                get: { USBTarget?.some(rule.destination) },
+                                set: { target in guard let target else { return }; Task { await model.changeUSBRoutes { routes in
                                     if let i = routes.rules.firstIndex(where: { $0.match == rule.match }) { routes.rules[i].destination = target }
                                 } } })) {
                                 destinationOptions(current: rule.destination)
@@ -80,7 +80,7 @@ struct USBRoutingView: View {
         .alert("使用中の機器を外しますか？", isPresented: Binding(
             get: { model.pendingUSBRoutes != nil }, set: { if !$0 { model.pendingUSBRoutes = nil } }),
                presenting: model.pendingUSBRoutes) { pending in
-            Button("外して変更") { Task { await model.saveUSBRoutes(pending.routes) } }
+            Button("外して変更") { Task { await model.saveUSBRoutes(pending.routes, base: pending.base) } }
             Button("キャンセル", role: .cancel) {}
         } message: { pending in
             Text("この変更で、\(pending.moving.joined(separator: "、")) が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。")
