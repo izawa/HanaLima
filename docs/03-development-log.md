@@ -224,6 +224,17 @@ v0.17.1 のあと、MCP の道具を広げた。どれも Codex と対照設計�
 - `boot_logs` を作るときに実際のログで試し、新しい systemd（257 以降）がシリアルに書く OSC の制御シーケンス（`ESC ] 3008;…`、マシン ID などを含む）が、ログタブの表示にも残っていたことに気づいて取り除いた。
 - v0.17.1 のリリースの前の E2E で、`DriverLeftBehindEndToEndTests` が `Process.waitUntilExit()` で 1 時間止まった。Swift Testing の非同期の文脈でランループを回して待つと、終了の知らせを取りこぼすことがあるので、`isRunning` を見る形に直した。
 
+## 37. ASIF のディスクの検証（2026-11-26）
+
+macOS 27 の新しい API を調べる途中で、HanaLima に ASIF 形式のディスクを扱うコードが無いことに気づいた。Lima 2.3 の vz は `vmOpts.vz.diskImageFormat: asif` でディスクを ASIF にできる。ASIF のファイルの長さはディスクの大きさと一致しない（10 GiB のディスクが、作った直後は約 210 MB）。一方、スナップショットの復元と外付けへの移動は、raw を前提にファイルの長さを `truncate` で合わせる。壊れるかを、使い捨ての VM（Alpine、vz、10 GiB、macOS 27.2.1、Lima 2.3.0）で確かめた。HanaLima から作る VM は raw なので、関係するのはターミナルで ASIF を指定して作った VM だけである。
+- スナップショット: 保存し、ゲストで 300 MB 書いてから戻した。戻したファイルは `truncate` で末尾が伸びる（約 340 MB の写しが約 660 MB に）が、`diskutil image info` は ASIF として読み、VM は起動して中身も戻った。
+- 複製、別のボリュームへ移して戻す、HanaLima のドライバーへの切り替え、休止と再開: どれも正常だった。
+- ディスクの拡張は効かない。`limactl edit --set '.disk = "12GiB"'` のあとに起動すると、Lima は「Resize instance's disk from 10GiB to 12GiB」と記録するが、ファイルの長さを 12 GiB に伸ばすだけで、`diskutil image info` の Total Bytes もゲストの `/sys/block/vda/size` も 10 GiB のままだった。`limactl` だけで再現するので Lima の側の問題で、upstream に報告されているかは調べていない。
+- 拡張のあとは、休止から再開できない。大きさが合わないままなので、Lima は起動のたびに拡張をやり直してディスクの更新時刻を変える。ドライバーはこれを「disk was written to」と判断して再開を断る。保存した状態は残り、捨てて起動する案内が出る。
+- 確かめていないこと: 長さを伸ばされた ASIF に書き込みを続けたときの振る舞い。
+
+HanaLima は変えていない。設定タブで ASIF のディスクの拡張を止める案は、ASIF の VM を使う人が出てからにする。
+
 ## 2026-10-09 時点の状態（`e105f0c`）
 - テスト: 単体 66 件。E2E は 7 スイート（`HANALIMA_E2E=1`）。
 - 試験用の資源: VM `hanalima-dev`（Alpine。NIC は `demo` のみ、固定 IP 192.168.200.10）、仮想ネットワーク `demo`（192.168.200.0/24）、追加ディスク `hanalima-demo`、socket_vmnet 1.2.2 インストール済み。
