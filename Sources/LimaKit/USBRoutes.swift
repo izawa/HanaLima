@@ -238,16 +238,25 @@ extension USBDeviceIdentity {
         identity.serial = (property("USB Serial Number") ?? property("kUSBSerialNumberString")) as? String
         if identity.serial?.isEmpty == true { identity.serial = nil }
         identity.locationID = (property("locationID") as? NSNumber)?.uint32Value
-        identity.port = identity.locationID.map { port(locationID: $0, oneSocket: oneSocketControllers().contains(UInt8($0 >> 24))) }
+        if let location = identity.locationID {
+            // Without the controllers' layout the port can't be named: held like an unreadable
+            // device if a rule may be about it, rather than matched by a guess.
+            guard let controllers = oneSocketControllers() else {
+                identity.readable = false
+                return identity
+            }
+            identity.port = port(locationID: location, oneSocket: controllers.contains(UInt8(location >> 24)))
+        }
         identity.name = property("USB Product Name") as? String
         identity.manufacturer = property("USB Vendor Name") as? String
         return identity
     }
 
-    /// The controllers (`locationID`'s top byte) with exactly one USB 2 and one USB 3 root port.
-    static func oneSocketControllers() -> Set<UInt8> {
+    /// The controllers (`locationID`'s top byte) with exactly one USB 2 and one USB 3 root port;
+    /// nil if IORegistry can't be asked.
+    static func oneSocketControllers() -> Set<UInt8>? {
         var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("AppleUSBXHCIPort"), &iterator) == KERN_SUCCESS else { return [] }
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("AppleUSBXHCIPort"), &iterator) == KERN_SUCCESS else { return nil }
         defer { IOObjectRelease(iterator) }
         var counts: [UInt8: (usb2: Int, usb3: Int)] = [:]
         while case let port = IOIteratorNext(iterator), port != 0 {
