@@ -5219,6 +5219,7 @@
       }
     },
     "いまは USB 機器を受け取っていません。起動の途中でなければ、USB のコントローラーの無い構成で休止から再開したか、古い版の HanaLima で起動したためです。止めて起動し直すと受け取ります。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5230,6 +5231,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "いまは USB 機器を受け取っていません。起動の途中でなければ、USB のコントローラーの無い構成で休止から再開したか、古い版の HanaLima で起動したためです。止めて起動し直すと受け取ります。"
+          }
+        }
+      }
+    },
+    "いまは USB 機器を受け取っていません。起動の途中のほか、USB のコントローラーの無い構成で休止から再開したときや、USB に対応していない HanaLima やドライバーで起動したときにこうなります。この HanaLima から止めて起動し直すと受け取ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not receiving USB devices now. Besides while the VM starts, this happens when it resumed from hibernation without a USB controller, or was started by a HanaLima or driver without USB support. Stop it and start it from this HanaLima to receive them."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いまは USB 機器を受け取っていません。起動の途中のほか、USB のコントローラーの無い構成で休止から再開したときや、USB に対応していない HanaLima やドライバーで起動したときにこうなります。この HanaLima から止めて起動し直すと受け取ります。"
           }
         }
       }
@@ -5937,6 +5954,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この状態に戻す…"
+          }
+        }
+      }
+    },
+    "この規則に当たる機器がほかにもつながっています。見分け方を変えてください。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another connected device matches this rule. Tell them apart another way."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この規則に当たる機器がほかにもつながっています。見分け方を変えてください。"
           }
         }
       }

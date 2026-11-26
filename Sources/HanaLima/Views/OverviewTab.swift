@@ -243,7 +243,7 @@ private struct USBSection: View {
                 if status.usbTarget != nil, status.usbRouting == nil {
                     Text("前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。").font(.caption)
                 } else if status.usbRouting == nil {
-                    Text("いまは USB 機器を受け取っていません。起動の途中でなければ、USB のコントローラーの無い構成で休止から再開したか、古い版の HanaLima で起動したためです。止めて起動し直すと受け取ります。").font(.caption)
+                    Text("いまは USB 機器を受け取っていません。起動の途中のほか、USB のコントローラーの無い構成で休止から再開したときや、USB に対応していない HanaLima やドライバーで起動したときにこうなります。この HanaLima から止めて起動し直すと受け取ります。").font(.caption)
                 } else if attached.isEmpty {
                     Text("受け取っている機器はありません。").foregroundStyle(.secondary)
                 } else {

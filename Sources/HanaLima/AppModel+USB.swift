@@ -94,7 +94,7 @@ extension AppModel {
         change(&routes)
         guard routes != (try? usbRoutes.get()) else { return }
         await refreshUSBReports()
-        if usbNewSerialRuleIsShared(routes) { return }
+        if usbNewRuleIsShared(routes) { return }
         let pending = PendingUSBRoutes(routes: routes, base: base, taken: usbTaken(by: routes))
         if pending.taken.isEmpty {
             await saveUSBRoutes(routes, base: base)
@@ -103,18 +103,18 @@ extension AppModel {
         }
     }
 
-    /// A serial rule this edit adds or changes names a serial number two connected devices have
-    /// (one may have connected since the user chose): says so, and the edit isn't saved.
-    /// Conflicts the edit doesn't touch stay held as they are.
-    private func usbNewSerialRuleIsShared(_ routes: USBRoutes) -> Bool {
+    /// A rule this edit adds or changes matches two connected devices (one may have connected
+    /// since the user chose): says so, and the edit isn't saved. Conflicts the edit doesn't
+    /// touch stay held as they are.
+    private func usbNewRuleIsShared(_ routes: USBRoutes) -> Bool {
         let before = (try? usbRoutes.get())?.rules ?? []
         let all = usbDevices.map(\.device.identity)
         let shared = routes.rules.contains { rule in
-            rule.match.isSerial && !before.contains(rule) && all.filter { $0.serialMatch == rule.match }.count > 1
+            !before.contains(rule) && all.filter { (rule.match.isSerial ? $0.serialMatch : $0.portMatch) == rule.match }.count > 1
         }
         if shared {
             alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),
-                                 message: String(localized: "同じシリアル番号の機器がほかにもつながっています。見分け方を「挿したポート」にしてください。"))
+                                 message: String(localized: "この規則に当たる機器がほかにもつながっています。見分け方を変えてください。"))
         }
         return shared
     }
@@ -131,7 +131,7 @@ extension AppModel {
     /// user again if more would be taken away now (another device attached meanwhile).
     func confirmUSBRoutes(_ pending: PendingUSBRoutes) async {
         await refreshUSBReports()
-        if usbNewSerialRuleIsShared(pending.routes) { return }
+        if usbNewRuleIsShared(pending.routes) { return }
         let taken = usbTaken(by: pending.routes)
         if taken.isWithin(pending.taken) {
             await saveUSBRoutes(pending.routes, base: pending.base)
