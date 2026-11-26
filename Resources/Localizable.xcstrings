@@ -5218,6 +5218,22 @@
         }
       }
     },
+    "いまは USB 機器を受け取っていません（起動の途中か、USB のコントローラーの無い構成で休止から再開したとき）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not receiving USB devices now (the VM is still starting, or it resumed from hibernation in a configuration without a USB controller)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いまは USB 機器を受け取っていません（起動の途中か、USB のコントローラーの無い構成で休止から再開したとき）。"
+          }
+        }
+      }
+    },
     "いま処理している仮想マシンが終わったら、次へ進まずに止めます。": {
       "localizations": {
         "en": {

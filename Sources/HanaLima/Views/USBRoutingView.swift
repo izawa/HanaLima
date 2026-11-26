@@ -87,7 +87,7 @@ struct USBRoutingView: View {
             Button("外して変更") { Task { await model.confirmUSBRoutes(pending) } }
             Button("キャンセル", role: .cancel) {}
         } message: { pending in
-            Text("この変更で、\(pending.moving.joined(separator: "、")) が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。")
+            Text("この変更で、\(pending.taken.labels.joined(separator: "、")) が仮想マシンから外れます。ストレージなら、先に仮想マシンの中でアンマウントしてください。")
         }
         .task {
             while !Task.isCancelled {

@@ -240,8 +240,10 @@ private struct USBSection: View {
         Section("USB 機器") {
             if instance.isRunning, let status {
                 let attached = status.usbRouting?.devices.filter { $0.state == .attached } ?? []
-                if status.usbRouting == nil {
+                if status.usbTarget != nil, status.usbRouting == nil {
                     Text("前の版の HanaLima で起動しています。次の起動から、振り分けに従って受け取ります。").font(.caption)
+                } else if status.usbRouting == nil {
+                    Text("いまは USB 機器を受け取っていません（起動の途中か、USB のコントローラーの無い構成で休止から再開したとき）。").font(.caption)
                 } else if attached.isEmpty {
                     Text("受け取っている機器はありません。").foregroundStyle(.secondary)
                 } else {

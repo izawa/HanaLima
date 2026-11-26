@@ -60,10 +60,10 @@ extension AppModel {
         usbReports.first { $0.value.usbTarget == true && $0.value.usbRouting == nil }?.key
     }
 
-    /// Running VMs whose driver is from before routing (v0.19): not receiving by the routes
-    /// until they start again.
+    /// Running VMs whose driver is from before routing (v0.19, which answers `usbTarget`):
+    /// not receiving by the routes until they start again.
     var usbOldDrivers: [String] {
-        usbReports.filter { $0.value.usbRouting == nil }.keys.sorted()
+        usbReports.filter { $0.value.usbTarget != nil && $0.value.usbRouting == nil }.keys.sorted()
     }
 
     /// Why the routes can't be changed now, or nil.
@@ -94,25 +94,39 @@ extension AppModel {
         change(&routes)
         guard routes != (try? usbRoutes.get()) else { return }
         await refreshUSBReports()
-        var moving = usbDevicesTakenAway(by: routes)
-        moving += usbUnreachable.map { String(localized: "「\($0)」の機器（応答しないので確かめられません）") }
-        if moving.isEmpty {
+        let pending = PendingUSBRoutes(routes: routes, base: base, taken: usbTaken(by: routes))
+        if pending.taken.isEmpty {
             await saveUSBRoutes(routes, base: base)
         } else {
-            pendingUSBRoutes = PendingUSBRoutes(routes: routes, base: base, moving: moving)
+            pendingUSBRoutes = pending
         }
+    }
+
+    /// What `routes` would take away now: attached devices (by connection and VM) and the VMs
+    /// whose drivers don't answer.
+    private func usbTaken(by routes: USBRoutes) -> PendingUSBRoutes.Taken {
+        PendingUSBRoutes.Taken(
+            devices: USBRoutingBoard.takenAway(by: routes, rows: usbDevices, name: usbName(of:)),
+            silent: usbUnreachable)
     }
 
     /// The user confirmed taking `pending.moving` away: asks the drivers again, and asks the
     /// user again if more would be taken away now (another device attached meanwhile).
     func confirmUSBRoutes(_ pending: PendingUSBRoutes) async {
         await refreshUSBReports()
-        let moving = usbDevicesTakenAway(by: pending.routes)
-            + usbUnreachable.map { String(localized: "「\($0)」の機器（応答しないので確かめられません）") }
-        if Set(moving).isSubset(of: pending.moving) {
+        // A device connected meanwhile may share the serial number the new rule names.
+        let rows = usbDevices
+        let all = rows.map(\.device.identity)
+        if rows.contains(where: { pending.routes.decision(for: $0.device.identity, among: all) == .hold(.duplicate) }) {
+            alert = AlertMessage(title: String(localized: "USB 機器の振り分けを保存できませんでした"),
+                                 message: String(localized: "同じシリアル番号の機器がほかにもつながっています。見分け方を「挿したポート」にしてください。"))
+            return
+        }
+        let taken = usbTaken(by: pending.routes)
+        if taken.isWithin(pending.taken) {
             await saveUSBRoutes(pending.routes, base: pending.base)
         } else {
-            pendingUSBRoutes = PendingUSBRoutes(routes: pending.routes, base: pending.base, moving: moving)
+            pendingUSBRoutes = PendingUSBRoutes(routes: pending.routes, base: pending.base, taken: taken)
         }
     }
 
@@ -152,13 +166,6 @@ extension AppModel {
         }
         guard response.usbTarget == true, response.usbRouting == nil else { return nil }
         return String(localized: "「\(name)」が前の版の HanaLima で起動したまま動いています。その仮想マシンを停止するまで、振り分けは変えられません。")
-    }
-
-    /// "device (VM)" for each attached device `routes` would send elsewhere.
-    private func usbDevicesTakenAway(by routes: USBRoutes) -> [String] {
-        USBRoutingBoard.takenAway(by: routes, rows: usbDevices, name: usbName(of:)).map { row in
-            String(localized: "\(row.device.identity.name ?? row.device.identity.ids)（\(row.holder ?? "")）")
-        }
     }
 
     /// Sends `device` to `destination` (nil: by the default route) by the rule `bySerial`
@@ -232,5 +239,25 @@ struct PendingUSBRoutes {
     var routes: USBRoutes
     /// The revision the edit started from.
     var base: String
-    var moving: [String]
+    var taken: Taken
+
+    struct Taken {
+        var devices: [USBDeviceRow]
+        /// VMs whose drivers don't answer: they may have devices the change takes away.
+        var silent: [String]
+
+        var isEmpty: Bool { devices.isEmpty && silent.isEmpty }
+
+        /// Nothing more than `confirmed` (the same connections on the same VMs).
+        func isWithin(_ confirmed: Taken) -> Bool {
+            Set(devices.map { "\($0.id) \($0.holder ?? "")" }).isSubset(of: confirmed.devices.map { "\($0.id) \($0.holder ?? "")" })
+                && Set(silent).isSubset(of: confirmed.silent)
+        }
+
+        /// "device (VM)" for the confirmation.
+        var labels: [String] {
+            devices.map { String(localized: "\($0.device.identity.name ?? $0.device.identity.ids)（\($0.holder ?? "")）") }
+                + silent.map { String(localized: "「\($0)」の機器（応答しないので確かめられません）") }
+        }
+    }
 }
