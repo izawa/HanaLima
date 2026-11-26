@@ -5218,7 +5218,24 @@
         }
       }
     },
+    "いまは USB 機器を受け取っていません。起動の途中でなければ、USB のコントローラーの無い構成で休止から再開したか、古い版の HanaLima で起動したためです。止めて起動し直すと受け取ります。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not receiving USB devices now. Unless the VM is still starting, it resumed from hibernation without a USB controller or was started by an older version of HanaLima. Stop and start it to receive them."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いまは USB 機器を受け取っていません。起動の途中でなければ、USB のコントローラーの無い構成で休止から再開したか、古い版の HanaLima で起動したためです。止めて起動し直すと受け取ります。"
+          }
+        }
+      }
+    },
     "いまは USB 機器を受け取っていません（起動の途中か、USB のコントローラーの無い構成で休止から再開したとき）。": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
