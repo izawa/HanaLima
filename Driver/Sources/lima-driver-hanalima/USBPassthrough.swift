@@ -48,7 +48,12 @@ final class USBPassthrough: NSObject, AAUSBAccessoryListener, VZUSBController.De
             waiting.removeAll()
             machine.usbControllers.first?.delegate = nil
         }
-        AAUSBAccessoryManager.shared.unregisterListener(self) {}
+        // Wait for AccessoryAccess to finish before the process may end: a driver that exited
+        // with the unregistration still in flight was followed by accessoryaccessd crashing
+        // (docs/19).
+        let done = DispatchSemaphore(value: 0)
+        AAUSBAccessoryManager.shared.unregisterListener(self) { done.signal() }
+        if done.wait(timeout: .now() + 2) == .timedOut { log("usb: unregistering didn't finish in 2 s") }
     }
 
     /// No new attaches (a stop or a hibernate has begun); arrivals wait.
