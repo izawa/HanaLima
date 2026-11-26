@@ -197,6 +197,12 @@ struct USBRoutingView: View {
             if let destination = device.destination {
                 guard let name = model.usbName(of: destination) else { return String(localized: "保留中（受け取り先の仮想マシンが見つかりません）") }
                 if model.instance(named: name)?.isRunning != true { return String(localized: "保留中（\(name) の起動待ち）") }
+                // macOS gives the device to the app the menu names: a VM started from Terminal or
+                // at login is “Unknown Application”, one started here is HanaLima.
+                if let devices = model.usbReports[name]?.usbRouting?.devices,
+                   !devices.contains(where: { $0.identity.matches(identity) }) {
+                    return String(localized: "保留中（\(name) にこの機器が届いていません。メニューバーの「仮想マシンアクセサリ」の割り当てを、\(name) の起動のしかたに合わせてください。HanaLima から起動したなら「HanaLima で使用」、ターミナルやログイン時の自動起動なら「“不明なアプリケーション” で使用」です）")
+                }
                 return String(localized: "\(name) への接続を待っています")
             }
             return String(localized: "状態を確認できません")

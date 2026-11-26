@@ -12451,6 +12451,22 @@
         }
       }
     },
+    "保留中（%@ にこの機器が届いていません。メニューバーの「仮想マシンアクセサリ」の割り当てを、%@ の起動のしかたに合わせてください。HanaLima から起動したなら「HanaLima で使用」、ターミナルやログイン時の自動起動なら「“不明なアプリケーション” で使用」です）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Held (this device doesn’t reach %1$@. In Virtual Machine Accessories in the menu bar, assign it to match how %2$@ was started: “Use with HanaLima” if HanaLima started it, “Use with Unknown Application” if Terminal or login did)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "new",
+            "value": "保留中（%1$@ にこの機器が届いていません。メニューバーの「仮想マシンアクセサリ」の割り当てを、%2$@ の起動のしかたに合わせてください。HanaLima から起動したなら「HanaLima で使用」、ターミナルやログイン時の自動起動なら「“不明なアプリケーション” で使用」です）"
+          }
+        }
+      }
+    },
     "保留中（%@ の起動待ち）": {
       "localizations": {
         "en": {
