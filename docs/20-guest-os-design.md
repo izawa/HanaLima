@@ -92,7 +92,7 @@ Windows のゲスト（Lima のテンプレートの一覧にある）で `sh -s
 
 ## 6. 確かめること
 
-Linux（Alpine、Ubuntu）、隔離した VM、ISO から入れた VM で、準備完了のあとに確認が通ること。Lima 2.3 の macOS と FreeBSD のゲストで `limactl shell … sh -s` が通るかは確かめていない。通らなければ、その OS は確認できないまま「未確認」になる。
+Linux（Alpine、Ubuntu）、隔離した VM、ISO から入れた VM で、準備完了のあとに確認が通ること。FreeBSD は 2026-11-27 に確かめた（下の表）。macOS のゲストで `limactl shell … sh -s` が通るかは確かめていない。通らなければ、確認できないまま「未確認」になる。
 
 2026-11-27 に確かめたこと（HanaLima のドライバー、Lima 2.3.0）:
 
@@ -103,6 +103,7 @@ Linux（Alpine、Ubuntu）、隔離した VM、ISO から入れた VM で、準�
 | 動いている VM がある状態でアプリを起動し直す | 起動の時点で読み直し、日時が新しくなった |
 | Alpine を制御ソケットで一時停止してから、アプリを起動し直す | 確認は走らず（`limactl shell` も残らず）、記録の日時は変わらなかった |
 | 動いている Alpine のゲストで `sudo reboot` する | VM は Running のまま。`watch` はポート転送の知らせを 4 件出したが、確認は走らなかった（一度読めているため） |
+| FreeBSD（Lima の `template:freebsd`、QEMU、15.1）をターミナルから作って起動する | 準備完了の 1 秒後に「FreeBSD 15.1-RELEASE-p7」が記録された。ゲストの `freebsd-version -u` と同じ |
 | 止まっていて一度も確認していない VM（`template:ubuntu-lts`、版の記録より前に作った） | 作成元は版を添えず、OS は「未確認（起動すると確認します）」 |
 
 レビュー（Codex、3 回）で採らなかったもの: `experimental/almalinux-kitten-10` の作成時の版が出ないこと。実験的なテンプレート 1 つのために、版付きの名前の規則（家族名のあとに数字）を変えるのは見合わない。
