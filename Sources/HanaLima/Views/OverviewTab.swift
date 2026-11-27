@@ -358,7 +358,7 @@ private struct GuestOSRow: View {
                 if model.observingOS.contains(instance.name) {
                     ProgressView().controlSize(.small)
                 } else if model.isReady(instance.name), !model.isPaused(instance.name) {
-                    Button("確認") { Task { await model.observeOS(instance.name) } }
+                    Button("確認する") { Task { await model.observeOS(instance.name) } }
                         .buttonStyle(.link)
                         .help("ゲストの中で OS の名前と版を読み直します。")
                 }

@@ -16609,22 +16609,6 @@
         }
       }
     },
-    "確認": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "確認"
-          }
-        }
-      }
-    },
     "確認が要る理由": {
       "localizations": {
         "en": {
@@ -16637,6 +16621,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "確認が要る理由"
+          }
+        }
+      }
+    },
+    "確認する": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認する"
           }
         }
       }
