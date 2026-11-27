@@ -3039,6 +3039,16 @@
         }
       }
     },
+    "OS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OS"
+          }
+        }
+      }
+    },
     "OS のイメージなどは、最初に使うときにここへダウンロードされ、次からは再利用されます。削除しても仮想マシンには影響しません。": {
       "localizations": {
         "en": {
@@ -7286,6 +7296,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ゲストのアドレス"
+          }
+        }
+      }
+    },
+    "ゲストの中で OS の名前と版を読み直します。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reads the OS name and version again in the guest."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲストの中で OS の名前と版を読み直します。"
           }
         }
       }
@@ -15924,6 +15950,38 @@
         }
       }
     },
+    "未確認": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未確認"
+          }
+        }
+      }
+    },
+    "未確認（起動すると確認します）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked (checked when the VM starts)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未確認（起動すると確認します）"
+          }
+        }
+      }
+    },
     "未選択": {
       "localizations": {
         "en": {
@@ -16547,6 +16605,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "確かめる"
+          }
+        }
+      }
+    },
+    "確認": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認"
           }
         }
       }
@@ -18625,6 +18699,22 @@
         }
       }
     },
+    "（%@ に確認）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(checked %@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（%@ に確認）"
+          }
+        }
+      }
+    },
     "（パス未設定）": {
       "localizations": {
         "en": {
@@ -18637,6 +18727,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "（パス未設定）"
+          }
+        }
+      }
+    },
+    "（作成時は %@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(%@ when created)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（作成時は %@）"
           }
         }
       }

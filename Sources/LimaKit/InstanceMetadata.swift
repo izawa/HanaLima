@@ -52,6 +52,24 @@ public struct InstanceMetadata: Codable, Equatable, Sendable {
     /// new name afterwards. The flag moves with the folder, so a rename cut short by a quit is
     /// finished at the next launch.
     public var autostartAfterRename: Bool?
+    /// The versioned image the template resolved to when HanaLima created the VM
+    /// ("ubuntu-24.04"), docs/20. Never changed afterwards.
+    public var creationImage: String?
+    /// The OS last read in the guest (docs/20). Gone from copies (a new record) and cleared when
+    /// a snapshot is restored (the disk goes back in time).
+    public var lastObservedOS: ObservedOS?
+
+    public struct ObservedOS: Codable, Equatable, Sendable {
+        /// As shown: "Ubuntu 26.04 LTS", "macOS 27.0.1".
+        public var name: String
+        /// By the Mac's clock.
+        public var observedAt: Date
+
+        public init(name: String, observedAt: Date = .now) {
+            self.name = name
+            self.observedAt = observedAt.wholeSeconds
+        }
+    }
 
     public struct AnsibleRecord: Codable, Equatable, Sendable {
         public var playbook: String

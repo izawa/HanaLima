@@ -47,18 +47,20 @@ extension AppModel {
 
     /// Asks each running `hanalima` VM's driver whether it's paused (also after a relaunch:
     /// the driver keeps the VM, and its pause, when the app quits).
+    /// Whether the driver has the guest paused; nil without an answer (a timeout, the driver
+    /// restarting). Pausing and resuming last milliseconds; neither answers the guest.
+    nonisolated static func driverPaused(instanceDir: URL) -> Bool? {
+        let state = try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: instanceDir, timeout: 2).state
+        return state.map { ["paused", "pausing", "resuming"].contains($0) }
+    }
+
     func refreshPausedInstances(_ list: [LimaInstance]) async {
         let targets = list.filter { $0.isRunning && $0.usesHanaLimaDriver }.map { ($0.name, $0.instanceDir) }
         let epochs = pauseEpochs
         let answers = await Task.detached {
             await withTaskGroup(of: (String, Bool?).self) { group in
                 for (name, dir) in targets {
-                    group.addTask {
-                        // nil: no answer (a timeout, the driver restarting); keeps what we knew.
-                        let state = try? DriverControl.send(DriverControl.Request(op: .status), instanceDir: dir, timeout: 2).state
-                        // Pausing and resuming last milliseconds; neither answers the guest.
-                        return (name, state.map { ["paused", "pausing", "resuming"].contains($0) })
-                    }
+                    group.addTask { (name, Self.driverPaused(instanceDir: dir)) }
                 }
                 var answers: [String: Bool?] = [:]
                 for await (name, paused) in group { answers[name] = paused }

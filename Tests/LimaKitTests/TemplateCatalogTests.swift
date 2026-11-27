@@ -85,4 +85,13 @@ import Testing
         #expect(resolve("archlinux") == nil)
         #expect(resolve("ubuntu-24.04") == nil)  // already versioned
     }
+
+    @Test func creationImage() {
+        #expect(LimaTemplate(name: "ubuntu-lts", resolvedImage: "ubuntu-26.04").creationImage == "ubuntu-26.04")
+        #expect(LimaTemplate(name: "fedora-44").creationImage == "fedora-44")
+        #expect(LimaTemplate(name: "experimental/freebsd-16").creationImage == "freebsd-16")
+        #expect(LimaTemplate(name: "ubuntu-lts").creationImage == nil)
+        #expect(LimaTemplate(name: "docker").creationImage == nil)
+        #expect(TemplateCatalog.displayName(ofImage: "ubuntu-24.04") == "Ubuntu 24.04 LTS")
+    }
 }

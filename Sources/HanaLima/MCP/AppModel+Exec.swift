@@ -19,14 +19,16 @@ extension AppModel {
     /// On timeout the local `limactl` is terminated; whether the guest's processes ended is
     /// unknown (docs/14 §7).
     /// `stop` is asked twice a second: true (the job was cancelled) ends the run like a timeout.
-    func runGuestScript(_ name: String, script: String, timeout: Duration, keepBytes: Int,
+    /// `holdsVM: false` neither marks the VM busy nor minds that it is: for a read that does
+    /// nothing in the guest (the OS check, docs/20), so it never refuses a start or stop.
+    func runGuestScript(_ name: String, script: String, timeout: Duration, keepBytes: Int, holdsVM: Bool = true,
                         stop: @escaping @MainActor () -> Bool = { false }) async -> GuestScriptResult {
         guard let client else { return GuestScriptResult(output: "", error: "HanaLima has no limactl") }
         guard let inst = instance(named: name), inst.isRunning else { return GuestScriptResult(output: "", error: "not running") }
-        guard !isBusy(name) else { return GuestScriptResult(output: "", error: "busy with another operation") }
+        guard !holdsVM || !isBusy(name) else { return GuestScriptResult(output: "", error: "busy with another operation") }
         if isPaused(name) { return GuestScriptResult(output: "", error: "paused") }
-        operations[name] = Operation(kind: .runScript)
-        defer { operations[name] = nil }
+        if holdsVM { operations[name] = Operation(kind: .runScript) }
+        defer { if holdsVM { operations[name] = nil } }
         let stream = client.runScript(in: name, script: script, asRoot: false)
         let work = Task { () -> GuestScriptResult in
             var tail = OutputTail(limit: keepBytes)

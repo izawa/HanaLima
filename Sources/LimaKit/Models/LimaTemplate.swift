@@ -21,6 +21,14 @@ public struct LimaTemplate: Hashable, Sendable, Identifiable {
 
     public var isExperimental: Bool { name.hasPrefix("experimental/") }
 
+    /// The versioned image a VM created from this template now gets ("ubuntu-26.04"): the
+    /// resolved image of a "latest" template, or the name itself when it carries a version.
+    /// Nil when the name doesn't say (`docker`), docs/20.
+    public var creationImage: String? {
+        if let resolvedImage { return resolvedImage }
+        return TemplateCatalog.family(of: baseName)?.version != nil ? baseName : nil
+    }
+
     /// The name without the `experimental/` directory.
     var baseName: String { name.split(separator: "/").last.map(String.init) ?? name }
 
@@ -144,7 +152,7 @@ public enum TemplateCatalog {
     }
 
     /// Readable name of a versioned template or image name: "ubuntu-24.04" → "Ubuntu 24.04 LTS".
-    static func displayName(ofImage name: String) -> String {
+    public static func displayName(ofImage name: String) -> String {
         if let special = specialName(name) { return special }
         guard let (family, version) = family(of: name) else { return name }
         guard let version else { return family.name }

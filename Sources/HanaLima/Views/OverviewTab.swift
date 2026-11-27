@@ -228,7 +228,6 @@ struct ScreenThumbnail: View {
     }
 }
 
-/// Where the VM came from (a template or another VM), its copies, and a note.
 /// USB passthrough (docs/19): the USB accessories this VM's driver has attached, and the way
 /// to the USB page where the routes are set.
 private struct USBSection: View {
@@ -271,6 +270,7 @@ private struct USBSection: View {
     }
 }
 
+/// Where the VM came from (a template or another VM), its OS (docs/20), its copies, and a note.
 private struct OriginSection: View {
     @Environment(AppModel.self) private var model
     let instance: LimaInstance
@@ -300,10 +300,17 @@ private struct OriginSection: View {
                     if template.hasPrefix("iso:") {
                         Text("インストーラーの ISO（\(String(template.dropFirst(4)))）")
                     } else {
-                        Text(verbatim: "template:\(template)").monospaced()
+                        HStack(spacing: 4) {
+                            Text(verbatim: "template:\(template)").monospaced()
+                            // Older records have no image; a versioned template name says it anyway.
+                            if let image = record?.creationImage ?? LimaTemplate(name: template).creationImage {
+                                Text("（作成時は \(TemplateCatalog.displayName(ofImage: image))）").foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
+            GuestOSRow(instance: instance, observed: record?.lastObservedOS)
             if let created = record?.createdAt, record?.parent == nil {
                 LabeledContent("作成日時") { Text(created.formatted(date: .abbreviated, time: .shortened)) }
             }
@@ -327,6 +334,35 @@ private struct OriginSection: View {
         }
         .onChange(of: record?.note) { _, new in
             if !editingNote { note = new ?? "" }
+        }
+    }
+}
+
+/// The guest's OS as last read, with when (docs/20), and a button to read it again (a guest
+/// that restarted itself, after an upgrade, doesn't become ready again for Lima).
+private struct GuestOSRow: View {
+    @Environment(AppModel.self) private var model
+    let instance: LimaInstance
+    let observed: InstanceMetadata.ObservedOS?
+
+    var body: some View {
+        LabeledContent("OS") {
+            HStack(spacing: 6) {
+                if let observed {
+                    Text(verbatim: observed.name)
+                    Text("（\(observed.observedAt.formatted(date: .abbreviated, time: .shortened)) に確認）")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(instance.isRunning ? "未確認" : "未確認（起動すると確認します）").foregroundStyle(.secondary)
+                }
+                if model.observingOS.contains(instance.name) {
+                    ProgressView().controlSize(.small)
+                } else if model.isReady(instance.name), !model.isPaused(instance.name) {
+                    Button("確認") { Task { await model.observeOS(instance.name) } }
+                        .buttonStyle(.link)
+                        .help("ゲストの中で OS の名前と版を読み直します。")
+                }
+            }
         }
     }
 }

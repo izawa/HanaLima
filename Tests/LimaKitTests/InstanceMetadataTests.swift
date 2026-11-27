@@ -123,4 +123,45 @@ import Testing
             == ["del(.networks[].macAddress)"])
         #expect(InstanceCopy.cloneExpressions(sourceConfig: "networks:\n- vzNAT: true\n").isEmpty)
     }
+
+    // MARK: OS (docs/20)
+
+    @Test func theObservedOSFollowsARenameButNotACopy() throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = try vm(root, "a"), b = try vm(root, "b")
+        var original = InstanceMetadata(instanceDir: a.dir)
+        original.creationImage = "ubuntu-24.04"
+        original.lastObservedOS = .init(name: "Ubuntu 26.04 LTS")
+        try original.save()
+        try FileManager.default.copyItem(at: InstanceMetadata.url(instanceDir: a.dir), to: InstanceMetadata.url(instanceDir: b.dir))
+        let records = InstanceMetadata.reconcile([a, b])
+        #expect(records["a"]?.lastObservedOS?.name == "Ubuntu 26.04 LTS")
+        #expect(records["b"]?.lastObservedOS == nil && records["b"]?.creationImage == nil)  // a CLI clone
+        let renamed = root.appending(path: "renamed", directoryHint: .isDirectory)
+        try FileManager.default.moveItem(at: a.dir, to: renamed)
+        let after = InstanceMetadata.reconcile([("renamed", renamed), b])
+        #expect(after["renamed"]?.lastObservedOS?.name == "Ubuntu 26.04 LTS")
+        #expect(after["renamed"]?.creationImage == "ubuntu-24.04")
+    }
+
+    @Test func recordsWithoutTheOSFieldsStillLoad() throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = try vm(root, "a")
+        let json = #"{"id":"9C9FC359-4B8B-4E1C-A335-2E0E0DB4995C","instanceDir":"\#(a.dir.path)/","note":"","template":"ubuntu-lts"}"#
+        try Data(json.utf8).write(to: InstanceMetadata.url(instanceDir: a.dir))
+        let meta = try #require(InstanceMetadata.load(instanceDir: a.dir))
+        #expect(meta.template == "ubuntu-lts" && meta.creationImage == nil && meta.lastObservedOS == nil)
+    }
+
+    @Test func aCopyMadeByHanaLimaStartsUnobserved() async throws {
+        let root = try temp()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let copy = try vm(root, "copy")
+        var source = InstanceMetadata(instanceDir: root.appending(path: "src"))
+        source.lastObservedOS = .init(name: "Alpine Linux v3.22")
+        let meta = try await InstanceCopy.finish(copyDir: copy.dir, name: "copy", source: source, sourceName: "src", note: "") { _ in }
+        #expect(meta.lastObservedOS == nil)
+    }
 }

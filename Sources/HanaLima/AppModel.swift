@@ -141,7 +141,17 @@ final class AppModel {
     /// Running instances whose boot has finished (SSH and guest agent are up). `limactl list`
     /// says Running as soon as the VM boots, so readiness comes from the watch `running` event
     /// or from `limactl start` returning.
-    private(set) var readyInstances: Set<String> = []
+    private(set) var readyInstances: Set<String> = [] {
+        didSet { osTriedSinceReady.formIntersection(readyInstances) }
+    }
+    /// Ready VMs whose OS has been read, or tried on a sure ready signal, since they became
+    /// ready (docs/20). Lima's later `running` events (one per port forward) then don't try
+    /// again; a VM only assumed ready at launch may still be booting, so its try doesn't count.
+    var osTriedSinceReady: Set<String> = []
+    /// VMs asked to be read again while a read ran (docs/20).
+    var osCheckAgain: Set<String> = []
+    /// VMs whose OS is being read (docs/20).
+    var observingOS: Set<String> = []
     /// Running `hanalima` VMs the driver reports as paused (docs/11). Lima doesn't know about a
     /// pause and keeps listing them as Running, so this comes from the control socket.
     var pausedInstances: Set<String> = []
@@ -378,7 +388,7 @@ final class AppModel {
         await client.terminateOrphanedWatchers()
         startWatching()
         startPolling()
-        templates = (try? await client.templates()) ?? []
+        await reloadTemplates()
         bootstrapFinished = true
     }
 
@@ -419,7 +429,25 @@ final class AppModel {
         return instance(named: name)?.status.label ?? String(localized: "作成中")
     }
 
+    /// The templates as Lima lists them now (their files are under Homebrew's versioned
+    /// folder, so an update while the app runs moves them). Keeps the old list on failure.
+    @discardableResult
+    func reloadTemplates() async -> Bool {
+        guard let client, let fresh = try? await client.templates() else { return false }
+        templates = fresh
+        return true
+    }
+
     func isReady(_ name: String) -> Bool { readyInstances.contains(name) }
+
+    /// The one way a VM becomes ready (Lima's watch said so, `limactl start` returned, or
+    /// `assumed`: the app found it running at launch). Its OS is read once per boot (docs/20).
+    func markReady(_ name: String, assumed: Bool = false) {
+        readyInstances.insert(name)
+        guard !osTriedSinceReady.contains(name) else { return }
+        if !assumed { osTriedSinceReady.insert(name) }
+        Task { await observeOS(name) }
+    }
 
     func refresh() async {
         guard let client else { return }
@@ -436,7 +464,7 @@ final class AppModel {
                 } else if !hasListedOnce && !isBusy(inst.name) {
                     // Already running when the app launched: assume it finished booting.
                     // (The console retries if it turns out it hasn't.)
-                    readyInstances.insert(inst.name)
+                    markReady(inst.name, assumed: true)
                 }
             }
             readyInstances.formIntersection(list.map(\.name))
@@ -504,7 +532,7 @@ final class AppModel {
     }
 
     private func record(_ event: WatchEvent) {
-        if event.event.status.running == true { readyInstances.insert(event.instance) }
+        if event.event.status.running == true { markReady(event.instance) }
         if event.event.status.exiting == true { readyInstances.remove(event.instance) }
         let text = event.summary(previousSSHPort: lastSSHPort[event.instance])
         if let port = event.event.status.sshLocalPort, port != 0 { lastSSHPort[event.instance] = port }
@@ -537,19 +565,19 @@ final class AppModel {
         run(.create, on: options.name, client.create(options)) { [weak self] ok in
             guard let self else { return }
             guard ok else { self.pendingGroups[options.name] = nil; return }
-            if let installISO {
-                self.recordCreation(of: options.name, template: "iso:\(installISO.lastPathComponent)", pendingISO: installISO)
-                if startAfterCreate { self.installRequest = InstallRequest(name: options.name) }
-                return
-            }
-            self.recordCreation(of: options.name, template: options.template, pendingIsolation: isolateAfterFirstBoot)
-            if let diskFolder {
-                Task {
+            Task {
+                if let installISO {
+                    await self.recordCreation(of: options.name, template: "iso:\(installISO.lastPathComponent)", pendingISO: installISO)
+                    if startAfterCreate { self.installRequest = InstallRequest(name: options.name) }
+                    return
+                }
+                await self.recordCreation(of: options.name, template: options.template, pendingIsolation: isolateAfterFirstBoot)
+                if let diskFolder {
                     await self.refresh()  // moveDisk needs the instance listed
                     self.moveDisk(options.name, to: diskFolder, thenStart: startAfterCreate)
+                } else if startAfterCreate {
+                    self.start(options.name)
                 }
-            } else if startAfterCreate {
-                self.start(options.name)
             }
         }
     }
@@ -634,7 +662,8 @@ final class AppModel {
 
     func applySnapshot(_ name: String, tag: String) {
         guard let client else { return }
-        run(.snapshotApply, on: name, client.applySnapshot(name, tag: tag)) { [weak self] _ in
+        run(.snapshotApply, on: name, client.applySnapshot(name, tag: tag)) { [weak self] ok in
+            if ok { self?.forgetObservedOS(name) }
             Task { await self?.loadSnapshots(name) }
         }
     }
@@ -716,7 +745,7 @@ final class AppModel {
             pendingGroups[options.name] = nil
             return error
         }
-        recordCreation(of: options.name, template: template)
+        await recordCreation(of: options.name, template: template)
         return nil
     }
 
@@ -846,7 +875,7 @@ final class AppModel {
         operations[name]?.isRunning = false
         // `limactl start` only returns after the instance reports READY.
         if failure == nil && (kind == .start || kind == .restart) {
-            readyInstances.insert(name)
+            markReady(name)
             restartNeeded[name] = nil
         }
         await refresh()

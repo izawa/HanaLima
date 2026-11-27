@@ -19,11 +19,16 @@ extension AppModel {
     }
 
     /// Records how HanaLima created `name` (the listing has already given it a bare record).
-    func recordCreation(of name: String, template: String, pendingISO: URL? = nil, pendingIsolation: Bool = false) {
+    func recordCreation(of name: String, template: String, pendingISO: URL? = nil, pendingIsolation: Bool = false) async {
+        // The templates as Lima has them now: Homebrew may have updated it since the app started
+        // (the listed files are under its versioned folder).
+        let current = pendingISO == nil ? await reloadTemplates() : false
         guard let inst = instance(named: name) else { return }
         var meta = metadata[name] ?? InstanceMetadata(instanceDir: URL(filePath: inst.dir, directoryHint: .isDirectory))
         meta.createdAt = Date(timeIntervalSince1970: Date.now.timeIntervalSince1970.rounded(.down))
         meta.template = template
+        // Not from a list that may be older than the Lima that made it.
+        meta.creationImage = current ? templates.first { $0.name == template }?.creationImage : nil
         meta.pendingInstall = pendingISO.map { InstanceMetadata.PendingInstall(iso: $0) }
         meta.pendingIsolation = pendingIsolation ? true : nil
         if let group = pendingGroups.removeValue(forKey: name) { meta.group = group }
@@ -223,6 +228,7 @@ extension AppModel {
             operations[name]?.isRunning = false
         } else {
             operations[name] = nil
+            if kind == .snapshotApply { forgetObservedOS(name) }  // the disk went back in time
         }
         loadDiskSnapshots(name)
         await refresh()
