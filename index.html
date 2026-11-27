@@ -63,7 +63,7 @@
   <div class="wrap hero-grid">
     <div>
       <img class="hero-icon" src="assets/img/icon-512.png" width="96" height="96" alt="HanaLima icon">
-      <span class="eyebrow">● v0.20.0 · macOS 26+ · Lima 2.3+ · MIT</span>
+      <span class="eyebrow">● v0.21.0 · macOS 26+ · Lima 2.3+ · MIT</span>
       <h1>
         <span class="en">Lima VMs,<br>point and click.<br><span class="grad">Bridges without sudo.</span></span>
         <span class="ja"><span class="nb">Lima の VM を</span><br><span class="nb">GUI でかんたんに。</span><br><span class="grad"><span class="nb">ブリッジも</span><span class="nb">sudo なしで。</span></span></span>
@@ -583,6 +583,11 @@ lima1  UP      <span class="h">192.168.100.13</span>/24 <span class="c"># LAN</s
         <h3><span class="en">A VM for each USB device</span><span class="ja">USB 機器ごとに受け取る VM を選ぶ</span></h3>
         <p><span class="en">Send one USB stick to one VM and another to a second VM. On the new <strong>USB Devices</strong> page in the sidebar, choose the VM that gets devices without a rule (or hold them), and a VM for each device, told apart by its serial number or by the port it is plugged into. Change a device's VM and it moves while both VMs run, in about a second; if it is in use, HanaLima asks first. A device whose VM is stopped is held rather than given to another VM, and a VM keeps its device across a pause and gets it back after hibernation. VMs started from Terminal or at login appear as “Unknown Application” in the menu; the page tells you when a device was assigned to the other one. Apple devices and devices that stream video or audio, such as webcams, can't be passed through.</span><span class="ja">ある USB メモリはこの VM に、別の USB メモリはあの VM に、と分けて渡せます。サイドバーに足した「<strong>USB 機器</strong>」で、規則の無い機器を受け取る VM（または保留）と、機器ごとの VM を選びます。機器は、シリアル番号か、挿したポートで見分けます。受け取り先を変えると、両方の VM が動いたまま、1 秒ほどで機器が移ります。使用中の機器なら、先に確かめます。受け取り先が止まっている機器は、ほかの VM には回さずに保留します。一時停止の間は渡したままで、休止から戻ると付け直します。ターミナルやログイン時の自動起動で起動した VM は、メニューで「不明なアプリケーション」として出ます。機器をもう一方に割り当てていると、画面で知らせます。Apple の機器と、カメラのように映像や音声を流す機器は渡せません。</span></p>
       </div>
+      <div class="card reveal wide"><span class="status done">v0.21</span>
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M8 9l2 2 4-4"/></svg></div>
+        <h3><span class="en">See which OS a VM runs</span><span class="ja">VM に入っている OS が分かる</span></h3>
+        <p><span class="en">The Overview tab shows the OS and its version as read inside the guest, with when it was read: “Ubuntu 26.04.1 LTS (checked Nov 27, 2026 at 12:01)”. HanaLima reads it each time the VM becomes ready (os-release on Linux, <code>sw_vers</code> on macOS, <code>freebsd-version</code> on FreeBSD); it only reads, with no network or <code>sudo</code>, so isolated VMs work too. <strong>Check Now</strong> reads it again after you upgrade the OS in the guest. A stopped VM keeps what was read last, and a copy or a VM whose snapshot was restored starts as not checked. For VMs created from now on, Created From also shows the version the template stood for then: “template:ubuntu-lts (Ubuntu 24.04 LTS when created)”.</span><span class="ja">概要タブに、ゲストの中で読んだ OS とその版を、読んだ日時と一緒に出します（「Ubuntu 26.04.1 LTS（2026年11月27日 12:01 に確認）」）。VM が準備完了になるたびに読みます（Linux は os-release、macOS は <code>sw_vers</code>、FreeBSD は <code>freebsd-version</code>）。読むだけで、ネットワークも <code>sudo</code> も使わないので、隔離した VM でも読めます。ゲストで OS を更新したあとは「確認する」で読み直せます。止まっている VM には最後に読んだ値を出し、複製した VM とスナップショットを戻した VM は「未確認」から始まります。これから作る VM は、「作成元」にそのときテンプレートが指していた版も出します（「template:ubuntu-lts（作成時は Ubuntu 24.04 LTS）」）。</span></p>
+      </div>
       <div class="card reveal wide"><span class="status later"><span class="en">later</span><span class="ja">将来</span></span>
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3><span class="en">Auto-update</span><span class="ja">自動アップデート</span></h3>
@@ -821,6 +826,8 @@ scripts/make-app.sh --install --open</pre>
         <ul><li><span class="en">USB devices to a VM</span><span class="ja">USB 機器を VM に渡す</span></li></ul></div>
       <div class="milestone done"><div class="bar"></div><h3>v0.20</h3>
         <ul><li><span class="en">A VM for each USB device</span><span class="ja">USB 機器ごとに VM を選ぶ</span></li><li><span class="en">Move a device between running VMs</span><span class="ja">動いたまま機器を移す</span></li></ul></div>
+      <div class="milestone done"><div class="bar"></div><h3>v0.21</h3>
+        <ul><li><span class="en">The guest's OS and version</span><span class="ja">ゲストの OS と版</span></li><li><span class="en">The version a VM was created with</span><span class="ja">作成時の版</span></li></ul></div>
       <div class="milestone later"><div class="bar"></div><h3><span class="en">Release · later</span><span class="ja">配布 · 将来</span></h3>
         <ul><li><span class="en">Auto-update</span><span class="ja">自動アップデート</span></li><li><span class="en">Bundled limactl</span><span class="ja">limactl の同梱</span></li></ul></div>
     </div>
